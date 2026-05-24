@@ -4,11 +4,13 @@ import type {
   ArtifactId,
   Author,
   Comment,
+  LocatorSegment,
   RealtimeServerMessage,
   RelationGraph,
 } from '@desk/types';
 import { api, type ArtifactBundle } from '../lib/api';
 import { buildRealtimeClient, type RealtimeClient } from '../realtime/client';
+import { goHome, onPopState, pushArtifact, readLocation, replaceLocator } from '../lib/router';
 
 /**
  * UI store. Owns:
@@ -24,8 +26,17 @@ interface OpenArtifact {
   artifact: Artifact;
   relations: RelationGraph;
   comments: Comment[];
+  /** The active in-artifact deep-link location (slide, component, …). */
+  locator: LocatorSegment[];
   /** Optional historical version the viewer is "scrubbed" to. */
   pinnedVersion?: number;
+}
+
+interface OpenOptions {
+  /** Deep-link target inside the artifact. */
+  segments?: LocatorSegment[];
+  /** Set when the open is driven by browser back/forward, to avoid re-pushing history. */
+  fromHistory?: boolean;
 }
 
 interface State {
@@ -39,8 +50,12 @@ interface State {
 
   init(): Promise<void>;
   refresh(): Promise<void>;
-  openArtifact(id: ArtifactId): Promise<void>;
+  openArtifact(id: ArtifactId, opts?: OpenOptions): Promise<void>;
   closeArtifact(): void;
+  /** Update the active in-artifact locator and reflect it into the URL. */
+  setLocator(segments: LocatorSegment[]): void;
+  /** Re-sync the open artifact from the current address bar (load + popstate). */
+  syncFromLocation(fromHistory: boolean): void;
   applyEvent(msg: RealtimeServerMessage): void;
   setTheme(theme: 'light' | 'dark'): void;
 }
@@ -63,7 +78,10 @@ export const useStore = create<State>((set, get) => {
     async init() {
       get().realtime.connect();
       document.documentElement.dataset.theme = get().theme;
+      onPopState(() => get().syncFromLocation(true));
       await get().refresh();
+      // Open whatever the address bar points at (deep link on first load).
+      get().syncFromLocation(true);
     },
 
     async refresh() {
@@ -76,16 +94,48 @@ export const useStore = create<State>((set, get) => {
       }
     },
 
-    async openArtifact(id) {
+    async openArtifact(id, opts = {}) {
+      const segments = opts.segments ?? [];
+      const previous = get().open;
+      if (previous && previous.artifact.id !== id) {
+        get().realtime.unsubscribe(previous.artifact.id);
+      }
       const bundle: ArtifactBundle = await api.getArtifact(id);
-      set({ open: { ...bundle } });
+      set({ open: { ...bundle, locator: segments } });
       get().realtime.subscribe(id);
+      if (!opts.fromHistory) pushArtifact(id, segments);
     },
 
     closeArtifact() {
       const open = get().open;
       if (open) get().realtime.unsubscribe(open.artifact.id);
       set({ open: null });
+      goHome();
+    },
+
+    setLocator(segments) {
+      const open = get().open;
+      if (!open) return;
+      set({ open: { ...open, locator: segments } });
+      replaceLocator(open.artifact.id, segments);
+    },
+
+    syncFromLocation(fromHistory) {
+      const { artifactId, segments } = readLocation();
+      const open = get().open;
+      if (!artifactId) {
+        if (open) {
+          get().realtime.unsubscribe(open.artifact.id);
+          set({ open: null });
+        }
+        return;
+      }
+      if (open && open.artifact.id === artifactId) {
+        // Same artifact, possibly a new in-artifact locator (e.g. hash change).
+        set({ open: { ...open, locator: segments } });
+        return;
+      }
+      void get().openArtifact(artifactId as ArtifactId, { segments, fromHistory });
     },
 
     applyEvent(msg) {

@@ -1,27 +1,56 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { Artifact, Component } from '@desk/types';
+import { locatorValue } from '@desk/types';
+import { useStore } from '../state/store';
 import { renderers, RendererFallback } from '../renderers/renderer-registry';
 import '../renderers/styles.css';
 
 /**
  * Presentation view. Slices the components stream at every `slide-break`
- * component; the break itself contributes its title + layout hint to the
- * slide that follows. Arrow keys (and J/K) advance between slides.
+ * component; the break contributes its title + layout to the slide that
+ * follows. Arrow keys (and J/K) advance.
+ *
+ * Deep-link vocabulary: `slide:<n>` (1-based) and an optional
+ * `component:<id>` to scroll to within the slide. The current slide is
+ * reflected back into the URL as you navigate, so the address bar is always
+ * a link to exactly what you're looking at.
  */
 export function PresentationView({ artifact }: { artifact: Artifact }) {
   const slides = useMemo(() => splitIntoSlides(artifact.content.components), [artifact]);
-  const [index, setIndex] = useState(0);
+  const locator = useStore((s) => s.open?.locator ?? []);
+  const setLocator = useStore((s) => s.setLocator);
+
+  const slideParam = Number(locatorValue(locator, 'slide') ?? '1');
+  const index = Math.min(Math.max(0, (Number.isFinite(slideParam) ? slideParam : 1) - 1), slides.length - 1);
+
+  const go = (next: number) => {
+    const clamped = Math.min(Math.max(0, next), slides.length - 1);
+    setLocator([{ kind: 'slide', value: String(clamped + 1) }]);
+  };
 
   useEffect(() => {
     function handler(e: KeyboardEvent) {
-      if (e.key === 'ArrowRight' || e.key === 'j') setIndex((i) => Math.min(slides.length - 1, i + 1));
-      if (e.key === 'ArrowLeft' || e.key === 'k') setIndex((i) => Math.max(0, i - 1));
+      if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+      if (e.key === 'ArrowRight' || e.key === 'j') go(index + 1);
+      if (e.key === 'ArrowLeft' || e.key === 'k') go(index - 1);
     }
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [slides.length]);
+  });
 
-  const slide = slides[Math.min(index, slides.length - 1)];
+  // Scroll to a deep-linked component within the active slide.
+  const component = locatorValue(locator, 'component');
+  useEffect(() => {
+    if (!component) return;
+    const el = document.querySelector<HTMLElement>(`[data-component-id="${component.replace(/["\\]/g, '\\$&')}"]`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('deep-link-target');
+    const t = setTimeout(() => el.classList.remove('deep-link-target'), 1400);
+    return () => clearTimeout(t);
+  }, [component, index]);
+
+  const slide = slides[index];
 
   return (
     <div className="presentation">
@@ -33,14 +62,26 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           </span>
         </header>
         <div className="presentation__slide" data-layout={slide?.layout ?? 'content'}>
-          {slide?.body.map((component) => {
-            const Renderer = renderers[component.type] ?? RendererFallback;
+          {slide?.body.map((c) => {
+            const Renderer = renderers[c.type] ?? RendererFallback;
             return (
-              <div key={component.id} data-component-id={component.id}>
-                <Renderer component={component} artifactId={artifact.id} />
+              <div key={c.id} data-component-id={c.id}>
+                <Renderer component={c} artifactId={artifact.id} />
               </div>
             );
           })}
+        </div>
+        <div className="presentation__nav">
+          <button className="btn btn--ghost btn--sm" onClick={() => go(index - 1)} disabled={index === 0}>
+            ← Prev
+          </button>
+          <button
+            className="btn btn--ghost btn--sm"
+            onClick={() => go(index + 1)}
+            disabled={index === slides.length - 1}
+          >
+            Next →
+          </button>
         </div>
       </div>
     </div>
