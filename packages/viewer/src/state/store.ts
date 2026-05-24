@@ -50,6 +50,8 @@ interface State {
   theme: 'light' | 'dark';
   /** Pending anchor for a new comment, set when the user targets a component. */
   commentTarget: CommentAnchor | null;
+  /** Anchor being momentarily highlighted because its comment was clicked. */
+  focusedAnchor: CommentAnchor | null;
 
   init(): Promise<void>;
   refresh(): Promise<void>;
@@ -62,6 +64,8 @@ interface State {
   /** Begin composing a comment anchored to a specific element. */
   startComment(anchor: CommentAnchor): void;
   clearCommentTarget(): void;
+  /** Momentarily highlight an existing comment's anchor (clears itself). */
+  focusAnchor(anchor: CommentAnchor): void;
   applyEvent(msg: RealtimeServerMessage): void;
   setTheme(theme: 'light' | 'dark'): void;
 }
@@ -69,6 +73,8 @@ interface State {
 export const useStore = create<State>((set, get) => {
   const realtime = buildRealtimeClient();
   realtime.addListener((msg) => get().applyEvent(msg));
+  // Auto-clears the focused anchor after its highlight pulse.
+  let focusTimer: ReturnType<typeof setTimeout>;
 
   return {
     realtime,
@@ -78,6 +84,7 @@ export const useStore = create<State>((set, get) => {
     open: null,
     loading: false,
     commentTarget: null,
+    focusedAnchor: null,
     theme:
       (document.documentElement.dataset.theme as 'light' | 'dark') ??
       (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
@@ -126,6 +133,12 @@ export const useStore = create<State>((set, get) => {
 
     clearCommentTarget() {
       set({ commentTarget: null });
+    },
+
+    focusAnchor(anchor) {
+      set({ focusedAnchor: anchor });
+      clearTimeout(focusTimer);
+      focusTimer = setTimeout(() => set({ focusedAnchor: null }), 1600);
     },
 
     setLocator(segments) {

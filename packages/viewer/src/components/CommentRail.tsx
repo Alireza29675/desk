@@ -68,7 +68,7 @@ export function CommentRail() {
         <textarea
           ref={textareaRef}
           className="comment-rail__textarea"
-          placeholder={commentTarget && commentTarget.kind !== 'general' ? 'Comment on this element…' : 'Leave a general comment…'}
+          placeholder={commentTarget && commentTarget.kind !== 'general' ? `Comment on this ${commentTarget.kind === 'text-selection' ? 'selection' : commentTarget.kind}…` : 'Leave a general comment…'}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -138,6 +138,7 @@ function CommentCard({
 }) {
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState('');
+  const focusAnchor = useStore((s) => s.focusAnchor);
 
   async function submitReply() {
     if (!text.trim()) return;
@@ -162,7 +163,21 @@ function CommentCard({
         <span className="comment__when">{new Date(comment.createdAt).toLocaleTimeString()}</span>
       </header>
       {comment.anchor.kind !== 'general' ? (
-        <div className="comment__anchor">{describeAnchor(comment.anchor)}</div>
+        <button
+          className="comment__anchor"
+          title="Reveal where this is anchored"
+          onClick={() => {
+            focusAnchor(comment.anchor);
+            const cid = 'componentId' in comment.anchor ? comment.anchor.componentId : null;
+            if (cid) {
+              document
+                .querySelector(`[data-component-id="${cid.replace(/["\\]/g, '\\$&')}"]`)
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+        >
+          ⌖ {describeAnchor(comment.anchor)}
+        </button>
       ) : null}
       {comment.payload.kind === 'text' ? <div className="comment__body">{comment.payload.text}</div> : null}
 
@@ -232,11 +247,11 @@ function describeAnchor(anchor: CommentAnchor): string {
     case 'element':
       return `${anchor.componentId}${anchor.elementPath ? ` · ${anchor.elementPath}` : ''}`;
     case 'text-selection':
-      return `${anchor.componentId} [${anchor.start}–${anchor.end}]`;
+      return `${anchor.componentId} · text ${anchor.start}–${anchor.end}`;
     case 'region':
-      return `${anchor.componentId} (region)`;
+      return `${anchor.componentId} · region`;
     case 'point':
-      return `${anchor.componentId} (point)`;
+      return `${anchor.componentId} · point`;
     case 'general':
       return 'general';
   }

@@ -260,7 +260,17 @@
 /* Agent vs human get a subtle visual distinction in a thread. */
 .comment__author[data-kind='agent'] { color: var(--color-accent-strong); }
 .comment__when { color: var(--color-text-subtle); font-family: var(--font-mono); }
-.comment__anchor { font-size: var(--text-2xs); color: var(--color-text-subtle); font-family: var(--font-mono); }
+.comment__anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+.comment__anchor:hover { color: var(--color-accent); }
 .comment__body { font-size: var(--text-sm); line-height: var(--leading-snug); white-space: pre-wrap; word-break: break-word; }
 
 /* ── Threads ────────────────────────────────────────────────────── */
@@ -285,13 +295,25 @@
 
 /* ── Anchored commenting ────────────────────────────────────────── */
 /* Every rendered component is wrapped in .commentable; hovering reveals the
-   affordance. The targeted component gets an accent ring while composing. */
+   anchor toolbar. Four anchor shapes are reachable: element (Comment), point
+   (Pin), region (drag), and text-selection (select → floating pill). The
+   targeted component gets an accent ring while composing. */
 .commentable { position: relative; }
-.commentable__btn {
+.commentable__content { position: relative; }
+
+.commentable__tools {
   position: absolute;
   top: var(--space-3);
   right: var(--space-3);
+  display: flex;
+  gap: 4px;
   opacity: 0;
+  z-index: var(--z-elevated);
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+.commentable:hover .commentable__tools,
+.commentable__tools:focus-within { opacity: 1; }
+.commentable__tool {
   font-size: var(--text-2xs);
   font-weight: var(--weight-medium);
   padding: 3px 9px;
@@ -299,16 +321,87 @@
   background: var(--color-accent);
   color: var(--color-text-on-accent);
   box-shadow: var(--shadow-1);
-  z-index: var(--z-elevated);
-  transition: opacity var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard);
+  transition: background var(--duration-fast) var(--ease-standard);
 }
-.commentable:hover .commentable__btn,
-.commentable__btn:focus-visible { opacity: 1; }
-.commentable__btn:hover { background: var(--color-accent-strong); }
+.commentable__tool:hover { background: var(--color-accent-strong); }
+.commentable__tool--icon {
+  padding: 3px 7px;
+  font-size: var(--text-xs);
+  line-height: 1;
+}
+.commentable__tool[data-active='true'] {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
 .commentable[data-comment-target='true'] {
   box-shadow: 0 0 0 2px var(--color-accent-ring);
   border-radius: var(--radius-md);
 }
+/* While a point/region tool is armed, the content invites a click/drag. */
+.commentable[data-capture='point'] .commentable__content,
+.commentable[data-capture='region'] .commentable__content { cursor: crosshair; }
+.commentable[data-capture] { box-shadow: 0 0 0 2px var(--color-accent-ring); border-radius: var(--radius-md); }
+.commentable__capture-hint {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-3);
+  transform: translateX(-50%);
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: var(--z-elevated);
+}
+
+/* Spatial anchor overlays (point pin + region rect), projected from fractions. */
+.anchor-overlay { position: absolute; pointer-events: none; z-index: var(--z-elevated); }
+.anchor-overlay--region {
+  border: 1.5px solid var(--color-accent);
+  background: var(--color-accent-ring);
+  border-radius: var(--radius-sm);
+}
+.anchor-overlay--region.is-live { border-style: dashed; }
+.anchor-overlay--point {
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: var(--color-accent);
+  box-shadow: var(--shadow-1);
+}
+.anchor-overlay.is-focused { animation: anchor-pulse 1.6s var(--ease-decelerate); }
+@keyframes anchor-pulse {
+  0%, 40% { box-shadow: 0 0 0 4px var(--color-accent-ring); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Text-selection anchors painted with the CSS Custom Highlight API. */
+::highlight(desk-anchor-pending) { background: var(--color-accent-soft); }
+::highlight(desk-anchor-focused) {
+  background: var(--color-accent-soft);
+  text-decoration: underline wavy var(--color-accent);
+}
+
+/* Floating pill that follows a live text selection. */
+.selection-pill {
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+  padding: 5px 11px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  box-shadow: var(--shadow-2);
+  z-index: var(--z-overlay);
+  white-space: nowrap;
+}
+.selection-pill:hover { background: var(--color-accent-strong); }
 
 .comment-rail__target {
   display: flex;
