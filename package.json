@@ -1,0 +1,38 @@
+{
+  "name": "desk-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Desk — a visual communication channel between AI agents and a human operator.",
+  "license": "MIT",
+  "author": "Alireza Sheikholmolouki <alireza.sheikholmolouki@gmail.com>",
+  "homepage": "https://github.com/Alireza29675/desk",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alireza29675/desk.git"
+  },
+  "bugs": "https://github.com/Alireza29675/desk/issues",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "bun run --filter '*' build",
+    "dev": "bun run --filter '@desk/cli' dev",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "bun run --filter '*' test",
+    "clean": "rm -rf packages/*/dist packages/*/.turbo node_modules/.cache"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/bun": "^1.1.13",
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "bun": ">=1.1.0",
+    "node": ">=20"
+  },
+  "packageManager": "bun@1.1.42"
+}

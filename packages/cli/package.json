@@ -1,0 +1,23 @@
+{
+  "name": "@desk/cli",
+  "version": "0.1.0",
+  "description": "The Desk CLI: launches the server, opens the viewer, and prints MCP registration snippets.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "desk": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@desk/server": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

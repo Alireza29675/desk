@@ -1,0 +1,34 @@
+{
+  "name": "@desk/server",
+  "version": "0.1.0",
+  "description": "The Desk server: SQLite storage, MCP endpoint, WebSocket realtime channel, HTTP API for the viewer.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "desk-server": "./src/bin.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "dev": "bun run --watch src/bin.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@desk/types": "workspace:*",
+    "@desk/plugin-sdk": "workspace:*",
+    "@desk/plugins-builtin": "workspace:*",
+    "@hono/node-server": "^1.13.7",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "hono": "^4.6.14",
+    "nanoid": "^5.0.9",
+    "zod": "^3.23.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

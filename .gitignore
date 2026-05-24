@@ -1,0 +1,45 @@
+# dependencies
+node_modules
+.pnp
+.pnp.js
+
+# build outputs
+dist
+build
+*.tsbuildinfo
+.turbo
+
+# runtime data (Desk's local instance dir)
+.desk
+.desk-*
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+
+# logs
+logs
+*.log
+npm-debug.log*
+bun-debug.log*
+
+# editors
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.recommended.json
+.DS_Store
+
+# env
+.env
+.env.local
+.env.*.local
+
+# test
+coverage
+.nyc_output
+
+# misc
+*.tmp
+*.bak
+.cache

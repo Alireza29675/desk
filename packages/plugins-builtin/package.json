@@ -1,0 +1,25 @@
+{
+  "name": "@desk/plugins-builtin",
+  "version": "0.1.0",
+  "description": "The built-in plugin set for Desk: the v1 artifact types, the 14 component types, and the 4 built-in relation types.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@desk/types": "workspace:*",
+    "@desk/plugin-sdk": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
