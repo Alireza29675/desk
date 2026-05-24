@@ -69,7 +69,7 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
     thread_parent_id?: string;
   };
   try {
-    const res = await fetch(`${DESK_URL}/a/${artifact_id}/comments`, {
+    const res = await fetch(`${DESK_URL}/api/a/${artifact_id}/comments`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
@@ -99,7 +99,7 @@ async function artifactTitle(id: string): Promise<string> {
   const cached = titleCache.get(id);
   if (cached) return cached;
   try {
-    const res = await fetch(`${DESK_URL}/a/${id}`);
+    const res = await fetch(`${DESK_URL}/api/a/${id}`);
     if (res.ok) {
       const { artifact } = (await res.json()) as { artifact: { content: { title: string } } };
       titleCache.set(id, artifact.content.title);
