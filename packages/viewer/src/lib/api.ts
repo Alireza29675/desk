@@ -14,12 +14,11 @@ import type {
 } from '@desk/types';
 
 /**
- * Thin REST client. In dev the viewer runs on a different origin (Vite at
- * :5179) and reaches the API through the `/api` proxy, which strips the
- * prefix before forwarding. In production the server hosts the viewer build
- * itself, so the API is same-origin and lives at the root.
+ * Thin REST client. The server mounts all data routes under `/api`, so the
+ * base is `/api` in every environment. In dev, Vite proxies `/api` to the
+ * server; in production the server hosts the viewer and the API on one origin.
  */
-const base = import.meta.env.DEV ? '/api' : '';
+const base = '/api';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${base}${path}`, {

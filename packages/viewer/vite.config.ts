@@ -6,7 +6,8 @@ export default defineConfig({
   server: {
     port: 5179,
     proxy: {
-      '/api': { target: 'http://127.0.0.1:7878', changeOrigin: true, rewrite: (p) => p.replace(/^\/api/, '') },
+      // Keep the /api prefix — the server mounts its data routes under /api.
+      '/api': { target: 'http://127.0.0.1:7878', changeOrigin: true },
       '/ws': { target: 'ws://127.0.0.1:7878', ws: true },
     },
   },
