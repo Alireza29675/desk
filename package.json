@@ -27,6 +27,7 @@
     "@biomejs/biome": "^1.9.4",
     "@types/bun": "^1.1.13",
     "@types/node": "^22.10.2",
+    "puppeteer-core": "^25.0.4",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   },
