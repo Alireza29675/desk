@@ -380,10 +380,11 @@
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
-/* Text-selection anchors painted with the CSS Custom Highlight API. */
-::highlight(desk-anchor-pending) { background: var(--color-accent-soft); }
+/* Text-selection anchors painted with the CSS Custom Highlight API. A
+   translucent accent reads on both light and dark text backgrounds. */
+::highlight(desk-anchor-pending) { background: var(--color-accent-ring); }
 ::highlight(desk-anchor-focused) {
-  background: var(--color-accent-soft);
+  background: var(--color-accent-ring);
   text-decoration: underline wavy var(--color-accent);
 }
 

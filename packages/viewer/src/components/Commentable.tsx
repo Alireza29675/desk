@@ -6,7 +6,6 @@ import {
   type FractionalRect,
   fractionalPoint,
   fractionalRect,
-  rangeFromTextOffsets,
   selectedTextPreview,
   textOffsetsWithin,
 } from '../lib/anchor-geometry';
@@ -133,19 +132,9 @@ export function Commentable({
     setPill(null);
   };
 
-  // ── Highlight a pending / focused text-selection range ───────────────
-  useEffect(() => {
-    const root = contentRef.current;
-    if (!root) return;
-    const tsTarget = isTarget && target?.kind === 'text-selection' ? target : null;
-    const tsFocus = isFocused && focused?.kind === 'text-selection' ? focused : null;
-    setTextHighlight('desk-anchor-pending', tsTarget ? rangeFromTextOffsets(root, tsTarget.start, tsTarget.end) : null);
-    setTextHighlight('desk-anchor-focused', tsFocus ? rangeFromTextOffsets(root, tsFocus.start, tsFocus.end) : null);
-    return () => {
-      setTextHighlight('desk-anchor-pending', null);
-      setTextHighlight('desk-anchor-focused', null);
-    };
-  }, [isTarget, isFocused, target, focused]);
+  // Text-selection highlights are owned globally (see useAnchorHighlights):
+  // the CSS Highlight registry is a shared keyed map, so a single writer keeps
+  // sibling Commentables from clobbering each other's range.
 
   const liveRect = drag ? fractionalRect({ left: 0, top: 0, width: 1, height: 1 }, drag.from, drag.to) : null;
 
@@ -247,16 +236,4 @@ function rectStyle(r: FractionalRect) {
 function pointStyle(offset?: { x: number; y: number }) {
   const o = offset ?? { x: 0.5, y: 0.5 };
   return { left: `${o.x * 100}%`, top: `${o.y * 100}%` };
-}
-
-/**
- * Register/clear a CSS Custom Highlight by name. Used to paint text-selection
- * anchors without mutating the DOM. No-ops where the API is unavailable.
- */
-function setTextHighlight(name: string, range: Range | null): void {
-  const highlights = (CSS as unknown as { highlights?: Map<string, unknown> }).highlights;
-  const HighlightCtor = (globalThis as unknown as { Highlight?: new (...ranges: Range[]) => unknown }).Highlight;
-  if (!highlights || !HighlightCtor) return;
-  if (range) highlights.set(name, new HighlightCtor(range));
-  else highlights.delete(name);
 }
