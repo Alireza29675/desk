@@ -7,3 +7,4 @@ export * from './relation';
 export * from './history';
 export * from './realtime';
 export * from './plugin';
+export * from './locator';
