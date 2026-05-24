@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useStore } from './state/store';
+import { useAnchorHighlights } from './state/use-anchor-highlights';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { CommandPalette } from './components/CommandPalette';
@@ -13,6 +14,7 @@ export function App() {
   const init = useStore((s) => s.init);
   const open = useStore((s) => s.open);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  useAnchorHighlights();
 
   useEffect(() => {
     void init();
