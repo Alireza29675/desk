@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../state/store';
 import type { ArtifactId, Author, Comment, CommentAnchor } from '@desk/types';
@@ -6,20 +6,29 @@ import type { ArtifactId, Author, Comment, CommentAnchor } from '@desk/types';
 export function CommentRail() {
   const open = useStore((s) => s.open);
   const author = useStore((s) => s.author);
+  const commentTarget = useStore((s) => s.commentTarget);
+  const clearCommentTarget = useStore((s) => s.clearCommentTarget);
   const [draft, setDraft] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // When the user targets a component, focus the composer so they can type.
+  useEffect(() => {
+    if (commentTarget) textareaRef.current?.focus();
+  }, [commentTarget]);
 
   if (!open) return null;
   const artifactId = open.artifact.id;
   const { roots, repliesByParent } = buildThreads(open.comments);
 
-  async function postGeneralComment() {
+  async function post() {
     if (!draft.trim() || !open) return;
     await api.comment(artifactId, {
-      anchor: { kind: 'general' },
+      anchor: commentTarget ?? { kind: 'general' },
       payload: { kind: 'text', text: draft.trim() },
       author,
     });
     setDraft('');
+    clearCommentTarget();
   }
 
   return (
@@ -31,7 +40,7 @@ export function CommentRail() {
       <div className="comment-rail__list">
         {roots.length === 0 ? (
           <p className="comment-rail__empty">
-            No comments yet. Leave a general note below, or reply to build a thread.
+            No comments yet. Hover any element and click “Comment” to anchor one, or leave a general note below.
           </p>
         ) : (
           roots.map((c) => (
@@ -46,22 +55,34 @@ export function CommentRail() {
         )}
       </div>
       <div className="comment-rail__composer">
+        {commentTarget && commentTarget.kind !== 'general' ? (
+          <div className="comment-rail__target">
+            <span>
+              Commenting on <code>{describeAnchor(commentTarget)}</code>
+            </span>
+            <button className="comment-rail__target-clear" onClick={clearCommentTarget} title="Make it a general comment">
+              ✕
+            </button>
+          </div>
+        ) : null}
         <textarea
+          ref={textareaRef}
           className="comment-rail__textarea"
-          placeholder="Leave a general comment…"
+          placeholder={commentTarget && commentTarget.kind !== 'general' ? 'Comment on this element…' : 'Leave a general comment…'}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
-              void postGeneralComment();
+              void post();
             }
+            if (e.key === 'Escape' && commentTarget) clearCommentTarget();
           }}
           rows={3}
         />
         <div className="comment-rail__composer-row">
           <span className="comment-rail__hint">⌘+Enter to post</span>
-          <button className="btn btn--primary btn--sm" disabled={!draft.trim()} onClick={postGeneralComment}>
+          <button className="btn btn--primary btn--sm" disabled={!draft.trim()} onClick={post}>
             Post
           </button>
         </div>
@@ -205,16 +226,17 @@ function buildThreads(comments: Comment[]): {
   return { roots, repliesByParent };
 }
 
+/** Concise label for an anchor (no leading verb, so callers supply context). */
 function describeAnchor(anchor: CommentAnchor): string {
   switch (anchor.kind) {
     case 'element':
-      return `on ${anchor.componentId}${anchor.elementPath ? `.${anchor.elementPath}` : ''}`;
+      return `${anchor.componentId}${anchor.elementPath ? ` · ${anchor.elementPath}` : ''}`;
     case 'text-selection':
-      return `text in ${anchor.componentId} [${anchor.start}-${anchor.end}]`;
+      return `${anchor.componentId} [${anchor.start}–${anchor.end}]`;
     case 'region':
-      return `region in ${anchor.componentId}`;
+      return `${anchor.componentId} (region)`;
     case 'point':
-      return `point in ${anchor.componentId}`;
+      return `${anchor.componentId} (point)`;
     case 'general':
       return 'general';
   }

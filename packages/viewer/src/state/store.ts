@@ -4,6 +4,7 @@ import type {
   ArtifactId,
   Author,
   Comment,
+  CommentAnchor,
   LocatorSegment,
   RealtimeServerMessage,
   RelationGraph,
@@ -47,6 +48,8 @@ interface State {
   open: OpenArtifact | null;
   loading: boolean;
   theme: 'light' | 'dark';
+  /** Pending anchor for a new comment, set when the user targets a component. */
+  commentTarget: CommentAnchor | null;
 
   init(): Promise<void>;
   refresh(): Promise<void>;
@@ -56,6 +59,9 @@ interface State {
   setLocator(segments: LocatorSegment[]): void;
   /** Re-sync the open artifact from the current address bar (load + popstate). */
   syncFromLocation(fromHistory: boolean): void;
+  /** Begin composing a comment anchored to a specific element. */
+  startComment(anchor: CommentAnchor): void;
+  clearCommentTarget(): void;
   applyEvent(msg: RealtimeServerMessage): void;
   setTheme(theme: 'light' | 'dark'): void;
 }
@@ -71,6 +77,7 @@ export const useStore = create<State>((set, get) => {
     artifacts: [],
     open: null,
     loading: false,
+    commentTarget: null,
     theme:
       (document.documentElement.dataset.theme as 'light' | 'dark') ??
       (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
@@ -101,7 +108,7 @@ export const useStore = create<State>((set, get) => {
         get().realtime.unsubscribe(previous.artifact.id);
       }
       const bundle: ArtifactBundle = await api.getArtifact(id);
-      set({ open: { ...bundle, locator: segments } });
+      set({ open: { ...bundle, locator: segments }, commentTarget: null });
       get().realtime.subscribe(id);
       if (!opts.fromHistory) pushArtifact(id, segments);
     },
@@ -109,8 +116,16 @@ export const useStore = create<State>((set, get) => {
     closeArtifact() {
       const open = get().open;
       if (open) get().realtime.unsubscribe(open.artifact.id);
-      set({ open: null });
+      set({ open: null, commentTarget: null });
       goHome();
+    },
+
+    startComment(anchor) {
+      set({ commentTarget: anchor });
+    },
+
+    clearCommentTarget() {
+      set({ commentTarget: null });
     },
 
     setLocator(segments) {

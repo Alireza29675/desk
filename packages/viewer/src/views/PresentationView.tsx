@@ -2,6 +2,7 @@ import { useEffect, useMemo } from 'react';
 import type { Artifact, Component } from '@desk/types';
 import { locatorValue } from '@desk/types';
 import { useStore } from '../state/store';
+import { Commentable } from '../components/Commentable';
 import { renderers, RendererFallback } from '../renderers/renderer-registry';
 import '../renderers/styles.css';
 
@@ -65,9 +66,9 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           {slide?.body.map((c) => {
             const Renderer = renderers[c.type] ?? RendererFallback;
             return (
-              <div key={c.id} data-component-id={c.id}>
+              <Commentable key={c.id} componentId={c.id}>
                 <Renderer component={c} artifactId={artifact.id} />
-              </div>
+              </Commentable>
             );
           })}
         </div>
