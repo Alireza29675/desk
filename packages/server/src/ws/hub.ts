@@ -23,31 +23,48 @@ interface Subscription {
   sink: SubscriberSink;
 }
 
+/**
+ * Wildcard target for firehose subscriptions. A subscriber on this id receives
+ * every artifact's events, not just one. The channel bridge uses it to watch
+ * all comments at once without having to track which artifacts exist.
+ */
+export const ALL_ARTIFACTS = '*' as ArtifactId;
+
 export class RealtimeHub {
   private readonly byArtifact = new Map<ArtifactId, Map<SubscriptionId, Subscription>>();
+  private readonly firehose = new Map<SubscriptionId, Subscription>();
   private readonly all = new Map<SubscriptionId, Subscription>();
 
   subscribe(artifactId: ArtifactId, sink: SubscriberSink): SubscriptionId {
     const id = newSubscriptionId();
     const sub: Subscription = { id, artifactId, sink };
     this.all.set(id, sub);
+    const bucket = artifactId === ALL_ARTIFACTS ? this.firehose : this.bucketFor(artifactId);
+    bucket.set(id, sub);
+    sink.send({ kind: 's.subscribed', subscriptionId: id, artifactId });
+    return id;
+  }
+
+  private bucketFor(artifactId: ArtifactId): Map<SubscriptionId, Subscription> {
     let bucket = this.byArtifact.get(artifactId);
     if (!bucket) {
       bucket = new Map();
       this.byArtifact.set(artifactId, bucket);
     }
-    bucket.set(id, sub);
-    sink.send({ kind: 's.subscribed', subscriptionId: id, artifactId });
-    return id;
+    return bucket;
   }
 
   unsubscribe(id: SubscriptionId): void {
     const sub = this.all.get(id);
     if (!sub) return;
     this.all.delete(id);
-    const bucket = this.byArtifact.get(sub.artifactId);
-    bucket?.delete(id);
-    if (bucket && bucket.size === 0) this.byArtifact.delete(sub.artifactId);
+    if (sub.artifactId === ALL_ARTIFACTS) {
+      this.firehose.delete(id);
+    } else {
+      const bucket = this.byArtifact.get(sub.artifactId);
+      bucket?.delete(id);
+      if (bucket && bucket.size === 0) this.byArtifact.delete(sub.artifactId);
+    }
     sub.sink.send({ kind: 's.unsubscribed', subscriptionId: id });
   }
 
@@ -63,7 +80,7 @@ export class RealtimeHub {
 
   publish(event: RealtimeArtifactEvent): void {
     const bucket = this.byArtifact.get(event.artifactId);
-    if (!bucket) return;
-    for (const sub of bucket.values()) sub.sink.send(event);
+    if (bucket) for (const sub of bucket.values()) sub.sink.send(event);
+    for (const sub of this.firehose.values()) sub.sink.send(event);
   }
 }

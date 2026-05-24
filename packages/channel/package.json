@@ -1,0 +1,21 @@
+{
+  "name": "@desk/channel",
+  "version": "0.1.0",
+  "description": "Claude Code channel bridge for Desk: pushes the operator's comments into a running Claude Code session and posts the agent's replies back as comments.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "bin": {
+    "desk-channel": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

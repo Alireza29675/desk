@@ -21,7 +21,7 @@ import { ArtifactRepository } from '../storage/artifacts';
 import { CommentRepository } from '../storage/comments';
 import { HistoryRepository } from '../storage/history';
 import { RelationRepository } from '../storage/relations';
-import { RealtimeHub, type SubscriberSink } from '../ws/hub';
+import { ALL_ARTIFACTS, RealtimeHub, type SubscriberSink } from '../ws/hub';
 import { CommitDebouncer } from './commit-debouncer';
 import {
   newArtifactId,
@@ -309,7 +309,10 @@ export class DeskService {
   // ─── subscriptions ───────────────────────────────────────────────────
 
   subscribe(artifactId: ArtifactId, sink: SubscriberSink): SubscriptionId {
-    if (!this.artifacts.get(artifactId)) throw notFound(`Artifact "${artifactId}" not found.`);
+    // ALL_ARTIFACTS is the firehose target; every other id must exist.
+    if (artifactId !== ALL_ARTIFACTS && !this.artifacts.get(artifactId)) {
+      throw notFound(`Artifact "${artifactId}" not found.`);
+    }
     return this.hub.subscribe(artifactId, sink);
   }
 
