@@ -11,6 +11,7 @@ import type {
   CommentPayload,
 } from '@desk/types';
 import { ArtifactPatchSchema, AuthorSchema, CommentAnchorSchema, CommentPayloadSchema } from '@desk/types';
+import { mountViewer } from './static';
 
 /**
  * The viewer's HTTP API. Routes are thin: validate, call `DeskService`,
@@ -194,6 +195,10 @@ export function buildHttpApp(service: DeskService): Hono {
     });
     return c.json({ removed: removed ?? null });
   });
+
+  // The viewer SPA is served last, as a catch-all fallback. Every API route
+  // above is matched first; only unmatched GETs reach the static handler.
+  mountViewer(app);
 
   return app;
 }
