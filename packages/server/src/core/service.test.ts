@@ -119,6 +119,32 @@ describe('DeskService — relations', () => {
   });
 });
 
+describe('DeskService — delete', () => {
+  test('deleteArtifact removes it, emits s.deleted, and getArtifact then throws', () => {
+    const a = svc.createArtifact({ type: 'enriched-document', author: agent });
+    events.length = 0;
+    svc.deleteArtifact(a.id);
+    expect(kinds()).toContain('s.deleted');
+    expect(() => svc.getArtifact(a.id)).toThrow();
+  });
+
+  test('deleting a missing artifact throws', () => {
+    expect(() => svc.deleteArtifact('missing' as ArtifactId)).toThrow();
+  });
+
+  test('delete cascades to the artifact’s comments and history rows', () => {
+    const a = svc.createArtifact({ type: 'enriched-document', author: agent });
+    svc.postComment({ artifactId: a.id, anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' }, author: agent });
+    const count = (table: string) =>
+      (db.query(`SELECT count(*) c FROM ${table} WHERE artifact_id = ?`).get(a.id) as { c: number }).c;
+    expect(count('comments')).toBe(1);
+    expect(count('history_events')).toBeGreaterThan(0);
+    svc.deleteArtifact(a.id);
+    expect(count('comments')).toBe(0);
+    expect(count('history_events')).toBe(0);
+  });
+});
+
 describe('DeskService — auto-commit on idle', () => {
   test('a patch auto-commits after the idle delay', async () => {
     const service = makeService(15);

@@ -76,6 +76,18 @@ export class ArtifactRepository {
     return row ? rowToArtifact(row) : undefined;
   }
 
+  /** Remove an artifact and everything attached to it. Child rows are deleted
+   *  explicitly rather than relying on FK cascade, which depends on the
+   *  `foreign_keys` pragma being active on the connection. The FTS row isn't
+   *  FK-linked, so it always needs an explicit delete. */
+  delete(id: ArtifactId): void {
+    this.db.query('DELETE FROM comments WHERE artifact_id = ?').run(id);
+    this.db.query('DELETE FROM history_events WHERE artifact_id = ?').run(id);
+    this.db.query('DELETE FROM relations WHERE from_id = ? OR to_id = ?').run(id, id);
+    this.db.query('DELETE FROM artifacts_fts WHERE artifact_id = ?').run(id);
+    this.db.query('DELETE FROM artifacts WHERE id = ?').run(id);
+  }
+
   list(filter?: { type?: string; limit?: number; offset?: number }): Artifact[] {
     const where: string[] = [];
     const params: (string | number)[] = [];

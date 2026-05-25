@@ -167,6 +167,19 @@ export class DeskService {
     return committed;
   }
 
+  /**
+   * Permanently delete an artifact. Cascades to its history, comments, and
+   * relations (FK ON DELETE CASCADE). This is a lifecycle op, not a history
+   * rewrite — the append-only guarantee is about an artifact's own timeline,
+   * not about keeping every artifact forever.
+   */
+  deleteArtifact(id: ArtifactId): void {
+    if (!this.artifacts.get(id)) throw notFound(`Artifact "${id}" not found.`);
+    this.debouncer.cancel(id);
+    this.artifacts.delete(id);
+    this.hub.publish({ kind: 's.deleted', artifactId: id });
+  }
+
   // ─── reads ───────────────────────────────────────────────────────────
 
   getArtifact(id: ArtifactId, version?: number): Artifact {

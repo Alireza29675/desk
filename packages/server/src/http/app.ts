@@ -125,6 +125,12 @@ export function buildHttpApp(service: DeskService): Hono {
 
   const CommitBody = z.object({ author: AuthorSchema, reason: z.string().optional() });
 
+  api.delete('/a/:id', (c) => {
+    const id = c.req.param('id') as ArtifactId;
+    service.deleteArtifact(id);
+    return c.json({ ok: true, id });
+  });
+
   api.post('/a/:id/commit', async (c) => {
     const id = c.req.param('id') as ArtifactId;
     const { author, reason } = CommitBody.parse(await c.req.json());

@@ -194,6 +194,13 @@ export const useStore = create<State>((set, get) => {
         set({ artifacts: i === -1 ? [msg.artifact, ...arts] : arts.map((a) => (a.id === msg.artifact.id ? msg.artifact : a)) });
       }
 
+      if (msg.kind === 's.deleted') {
+        set({ artifacts: get().artifacts.filter((a) => a.id !== msg.artifactId) });
+        const current = get().open;
+        if (current && current.artifact.id === msg.artifactId) get().closeArtifact();
+        return;
+      }
+
       const open = get().open;
       if (!open) return;
       if (!('artifactId' in msg) || msg.artifactId !== open.artifact.id) return;

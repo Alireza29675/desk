@@ -35,7 +35,8 @@ export type RealtimeArtifactEvent =
   | { kind: 's.committed'; artifactId: ArtifactId; event: HistoryEvent; artifact: Artifact }
   | { kind: 's.commented'; artifactId: ArtifactId; comment: Comment }
   | { kind: 's.relation_added'; artifactId: ArtifactId; relation: Relation }
-  | { kind: 's.relation_removed'; artifactId: ArtifactId; relation: Relation };
+  | { kind: 's.relation_removed'; artifactId: ArtifactId; relation: Relation }
+  | { kind: 's.deleted'; artifactId: ArtifactId };
 
 const ArtifactIdSchema = z.string().min(1) as unknown as z.ZodType<ArtifactId>;
 const SubscriptionIdSchema = z.string().min(1) as unknown as z.ZodType<SubscriptionId>;
@@ -95,5 +96,6 @@ export const RealtimeServerMessageSchema: z.ZodType<RealtimeServerMessage> = z.d
       artifactId: ArtifactIdSchema,
       relation: RelationSchema,
     }),
+    z.object({ kind: z.literal('s.deleted'), artifactId: ArtifactIdSchema }),
   ],
 );

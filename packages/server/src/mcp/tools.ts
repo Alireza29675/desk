@@ -95,6 +95,17 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
         return service.commit(parsed.id as ArtifactId, parsed.author, parsed.reason);
       },
     },
+    {
+      name: 'delete_artifact',
+      description:
+        'Permanently delete an artifact and everything attached to it (history, comments, relations). This cannot be undone. Removes it from every connected viewer live.',
+      inputSchema: z.object({ id: z.string() }),
+      handler: (input) => {
+        const parsed = z.object({ id: z.string() }).parse(input);
+        service.deleteArtifact(parsed.id as ArtifactId);
+        return { ok: true, id: parsed.id };
+      },
+    },
 
     {
       name: 'get_artifact',
