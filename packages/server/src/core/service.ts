@@ -280,8 +280,10 @@ export class DeskService {
   }
 
   resolveComment(commentId: CommentId, resolved: boolean): void {
-    if (!this.comments.get(commentId)) throw notFound(`Comment "${commentId}" not found.`);
+    const comment = this.comments.get(commentId);
+    if (!comment) throw notFound(`Comment "${commentId}" not found.`);
     this.comments.setResolved(commentId, resolved);
+    this.hub.publish({ kind: 's.comment_resolved', artifactId: comment.artifactId, commentId, resolved });
   }
 
   // ─── relations ───────────────────────────────────────────────────────

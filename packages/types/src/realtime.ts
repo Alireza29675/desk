@@ -3,7 +3,7 @@ import { ArtifactSchema, type Artifact } from './artifact';
 import { CommentSchema, type Comment } from './comment';
 import { RelationSchema, type Relation } from './relation';
 import { HistoryEventSchema, type HistoryEvent } from './history';
-import type { ArtifactId, SubscriptionId } from './ids';
+import type { ArtifactId, CommentId, SubscriptionId } from './ids';
 
 /**
  * The bidirectional realtime envelope shared by agents (over MCP-bound
@@ -36,7 +36,8 @@ export type RealtimeArtifactEvent =
   | { kind: 's.commented'; artifactId: ArtifactId; comment: Comment }
   | { kind: 's.relation_added'; artifactId: ArtifactId; relation: Relation }
   | { kind: 's.relation_removed'; artifactId: ArtifactId; relation: Relation }
-  | { kind: 's.deleted'; artifactId: ArtifactId };
+  | { kind: 's.deleted'; artifactId: ArtifactId }
+  | { kind: 's.comment_resolved'; artifactId: ArtifactId; commentId: CommentId; resolved: boolean };
 
 const ArtifactIdSchema = z.string().min(1) as unknown as z.ZodType<ArtifactId>;
 const SubscriptionIdSchema = z.string().min(1) as unknown as z.ZodType<SubscriptionId>;
@@ -97,5 +98,11 @@ export const RealtimeServerMessageSchema: z.ZodType<RealtimeServerMessage> = z.d
       relation: RelationSchema,
     }),
     z.object({ kind: z.literal('s.deleted'), artifactId: ArtifactIdSchema }),
+    z.object({
+      kind: z.literal('s.comment_resolved'),
+      artifactId: ArtifactIdSchema,
+      commentId: z.string().min(1) as unknown as z.ZodType<CommentId>,
+      resolved: z.boolean(),
+    }),
   ],
 );

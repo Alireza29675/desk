@@ -92,6 +92,21 @@ describe('DeskService — comments & anchors', () => {
     expect(svc.listComments(a.id)).toHaveLength(1);
   });
 
+  test('resolving a comment persists the flag and emits s.comment_resolved', () => {
+    const a = svc.createArtifact({ type: 'enriched-document', author: agent });
+    const comment = svc.postComment({ artifactId: a.id, anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' }, author: agent });
+    events.length = 0;
+    svc.resolveComment(comment.id, true);
+    expect(kinds()).toContain('s.comment_resolved');
+    expect(svc.listComments(a.id)[0]?.resolved).toBe(true);
+    svc.resolveComment(comment.id, false);
+    expect(svc.listComments(a.id)[0]?.resolved).toBeUndefined();
+  });
+
+  test('resolving a missing comment throws', () => {
+    expect(() => svc.resolveComment('nope' as never, true)).toThrow();
+  });
+
   test('an element anchor must reference a real component', () => {
     const a = svc.createArtifact({
       type: 'enriched-document',

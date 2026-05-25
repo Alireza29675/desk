@@ -218,6 +218,13 @@ export const useStore = create<State>((set, get) => {
         });
       } else if (msg.kind === 's.commented') {
         set({ open: { ...open, comments: [...open.comments, msg.comment] } });
+      } else if (msg.kind === 's.comment_resolved') {
+        set({
+          open: {
+            ...open,
+            comments: open.comments.map((c) => (c.id === msg.commentId ? { ...c, resolved: msg.resolved } : c)),
+          },
+        });
       } else if (msg.kind === 's.relation_added') {
         set({
           open: {

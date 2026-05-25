@@ -78,6 +78,13 @@ describe('store.applyEvent — open artifact', () => {
     expect(useStore.getState().open?.comments).toHaveLength(0);
   });
 
+  it('marks a comment resolved on s.comment_resolved', () => {
+    const comment = { id: 'c1', artifactId: 'a', anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' } } as unknown as Comment;
+    useStore.setState({ open: openOf(artifact('a'), [comment]) as never });
+    apply({ kind: 's.comment_resolved', artifactId: 'a' as ArtifactId, commentId: 'c1', resolved: true } as RealtimeServerMessage);
+    expect(useStore.getState().open?.comments[0]?.resolved).toBe(true);
+  });
+
   it('reflects a commit to the open artifact in the open view', () => {
     useStore.setState({ artifacts: [artifact('a', 'Old')], open: openOf(artifact('a', 'Old')) as never });
     apply(committed(artifact('a', 'New', 2)));

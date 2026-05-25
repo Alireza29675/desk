@@ -160,7 +160,10 @@ function CommentCard({
         <span className="comment__author" data-kind={comment.author.kind}>
           {who}
         </span>
-        <span className="comment__when">{new Date(comment.createdAt).toLocaleTimeString()}</span>
+        <span className="comment__when">
+          {comment.resolved ? <span className="comment__resolved-tag">✓ resolved</span> : null}
+          {new Date(comment.createdAt).toLocaleTimeString()}
+        </span>
       </header>
       {comment.anchor.kind !== 'general' ? (
         <button
@@ -184,6 +187,13 @@ function CommentCard({
       <div className="comment__actions">
         <button className="comment__reply-btn" onClick={() => setReplying((v) => !v)}>
           {replying ? 'Cancel' : 'Reply'}
+        </button>
+        <button
+          className="comment__reply-btn"
+          title={comment.resolved ? 'Reopen this comment' : 'Mark this comment resolved'}
+          onClick={() => void api.resolveComment(comment.id, !comment.resolved)}
+        >
+          {comment.resolved ? 'Reopen' : 'Resolve'}
         </button>
       </div>
 
