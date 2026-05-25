@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
     "dev": "bun run --watch src/bin.ts",
-    "test": "vitest run"
+    "test": "bun test"
   },
   "dependencies": {
     "@desk/types": "workspace:*",
