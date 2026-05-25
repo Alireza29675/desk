@@ -7,12 +7,13 @@ import { CommandPalette } from './components/CommandPalette';
 import { CommentRail } from './components/CommentRail';
 import { DocumentView } from './views/DocumentView';
 import { PresentationView } from './views/PresentationView';
-import { EmptyState } from './views/EmptyState';
+import { EmptyState, NotFoundState } from './views/EmptyState';
 import './styles/app.css';
 
 export function App() {
   const init = useStore((s) => s.init);
   const open = useStore((s) => s.open);
+  const loadError = useStore((s) => s.loadError);
   const [paletteOpen, setPaletteOpen] = useState(false);
   useAnchorHighlights();
 
@@ -44,6 +45,8 @@ export function App() {
             ) : (
               <DocumentView artifact={open.artifact} />
             )
+          ) : loadError ? (
+            <NotFoundState id={loadError} />
           ) : (
             <EmptyState />
           )}

@@ -52,6 +52,8 @@ interface State {
   commentTarget: CommentAnchor | null;
   /** Anchor being momentarily highlighted because its comment was clicked. */
   focusedAnchor: CommentAnchor | null;
+  /** Id of an artifact that failed to load (e.g. a stale/deleted deep link). */
+  loadError: string | null;
 
   init(): Promise<void>;
   refresh(): Promise<void>;
@@ -85,6 +87,7 @@ export const useStore = create<State>((set, get) => {
     loading: false,
     commentTarget: null,
     focusedAnchor: null,
+    loadError: null,
     theme:
       (document.documentElement.dataset.theme as 'light' | 'dark') ??
       (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
@@ -114,8 +117,19 @@ export const useStore = create<State>((set, get) => {
       if (previous && previous.artifact.id !== id) {
         get().realtime.unsubscribe(previous.artifact.id);
       }
-      const bundle: ArtifactBundle = await api.getArtifact(id);
-      set({ open: { ...bundle, locator: segments }, commentTarget: null });
+      let bundle: ArtifactBundle;
+      try {
+        bundle = await api.getArtifact(id);
+      } catch {
+        // Stale/deleted deep link, or a bad id: surface a not-found state
+        // rather than the generic empty desk. Keep the URL so a retry/refresh
+        // hits the same id once the artifact (re)appears.
+        if (previous) get().realtime.unsubscribe(previous.artifact.id);
+        set({ open: null, commentTarget: null, loadError: id });
+        if (!opts.fromHistory) pushArtifact(id, segments);
+        return;
+      }
+      set({ open: { ...bundle, locator: segments }, commentTarget: null, loadError: null });
       get().realtime.subscribe(id);
       if (!opts.fromHistory) pushArtifact(id, segments);
     },
@@ -123,7 +137,7 @@ export const useStore = create<State>((set, get) => {
     closeArtifact() {
       const open = get().open;
       if (open) get().realtime.unsubscribe(open.artifact.id);
-      set({ open: null, commentTarget: null });
+      set({ open: null, commentTarget: null, loadError: null });
       goHome();
     },
 
@@ -152,10 +166,8 @@ export const useStore = create<State>((set, get) => {
       const { artifactId, segments } = readLocation();
       const open = get().open;
       if (!artifactId) {
-        if (open) {
-          get().realtime.unsubscribe(open.artifact.id);
-          set({ open: null });
-        }
+        if (open) get().realtime.unsubscribe(open.artifact.id);
+        set({ open: null, loadError: null });
         return;
       }
       if (open && open.artifact.id === artifactId) {
