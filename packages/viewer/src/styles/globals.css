@@ -47,6 +47,16 @@ code {
   box-shadow: var(--shadow-accent-focus);
   border-radius: var(--radius-sm);
 }
+/* Controls that carry their own box-shadow would otherwise suppress the focus
+   ring (equal specificity, defined later). Re-assert it at higher specificity
+   so every keyboard-focused control shows the same accent ring. */
+.btn:focus-visible,
+.commentable__tool:focus-visible,
+.selection-pill:focus-visible,
+.topbar__link:focus-visible,
+.history-bar__chip:focus-visible {
+  box-shadow: var(--shadow-accent-focus);
+}
 
 ::-webkit-scrollbar {
   width: 10px;
