@@ -197,6 +197,10 @@
 .presentation__slide[data-layout='two-column']  { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-9); }
 /* A title slide centers its content in the canvas instead of hugging the top. */
 .presentation__slide[data-layout='title'] { justify-content: center; }
+/* Keep a rendered diagram within the slide canvas: scale it down to fit
+   vertically rather than letting a tall graph stretch the slide. */
+.presentation__slide .diagram { background: transparent; border: 0; padding: 0; }
+.presentation__slide .diagram__svg svg { max-height: 58vh; }
 
 /* ── Empty state ────────────────────────────────────────────────── */
 .empty-state { display: grid; place-items: center; height: 100%; padding: var(--space-9); }
