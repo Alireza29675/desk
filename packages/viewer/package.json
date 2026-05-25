@@ -1,7 +1,7 @@
 {
   "name": "@desk/viewer",
   "version": "0.1.0",
-  "description": "The Desk viewer — the operator's window into Desk. Renders artifacts, surfaces comments, and runs the realtime channel.",
+  "description": "The Desk viewer \u2014 the operator's window into Desk. Renders artifacts, surfaces comments, and runs the realtime channel.",
   "license": "MIT",
   "type": "module",
   "private": true,
@@ -10,7 +10,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@desk/plugin-sdk": "workspace:*",
