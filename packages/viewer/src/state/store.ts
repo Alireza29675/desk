@@ -13,6 +13,9 @@ import { api, type ArtifactBundle } from '../lib/api';
 import { buildRealtimeClient, type RealtimeClient } from '../realtime/client';
 import { goHome, onPopState, pushArtifact, readLocation, replaceLocator } from '../lib/router';
 
+/** Firehose subscription target: receive realtime events for every artifact. */
+const FIREHOSE = '*' as ArtifactId;
+
 /**
  * UI store. Owns:
  *   - the list of artifacts (sidebar)
@@ -94,6 +97,11 @@ export const useStore = create<State>((set, get) => {
 
     async init() {
       get().realtime.connect();
+      // Subscribe to the firehose (all artifacts) rather than per-artifact, so
+      // the sidebar updates live when an agent creates or commits anything —
+      // and so events for the open artifact arrive exactly once (no per-id
+      // double-subscription).
+      get().realtime.subscribe(FIREHOSE);
       document.documentElement.dataset.theme = get().theme;
       onPopState(() => get().syncFromLocation(true));
       await get().refresh();
@@ -113,10 +121,6 @@ export const useStore = create<State>((set, get) => {
 
     async openArtifact(id, opts = {}) {
       const segments = opts.segments ?? [];
-      const previous = get().open;
-      if (previous && previous.artifact.id !== id) {
-        get().realtime.unsubscribe(previous.artifact.id);
-      }
       let bundle: ArtifactBundle;
       try {
         bundle = await api.getArtifact(id);
@@ -124,19 +128,17 @@ export const useStore = create<State>((set, get) => {
         // Stale/deleted deep link, or a bad id: surface a not-found state
         // rather than the generic empty desk. Keep the URL so a retry/refresh
         // hits the same id once the artifact (re)appears.
-        if (previous) get().realtime.unsubscribe(previous.artifact.id);
         set({ open: null, commentTarget: null, loadError: id });
         if (!opts.fromHistory) pushArtifact(id, segments);
         return;
       }
+      // No per-artifact subscribe — the firehose (subscribed in init) already
+      // delivers this artifact's events.
       set({ open: { ...bundle, locator: segments }, commentTarget: null, loadError: null });
-      get().realtime.subscribe(id);
       if (!opts.fromHistory) pushArtifact(id, segments);
     },
 
     closeArtifact() {
-      const open = get().open;
-      if (open) get().realtime.unsubscribe(open.artifact.id);
       set({ open: null, commentTarget: null, loadError: null });
       goHome();
     },
@@ -166,7 +168,6 @@ export const useStore = create<State>((set, get) => {
       const { artifactId, segments } = readLocation();
       const open = get().open;
       if (!artifactId) {
-        if (open) get().realtime.unsubscribe(open.artifact.id);
         set({ open: null, loadError: null });
         return;
       }
@@ -183,13 +184,23 @@ export const useStore = create<State>((set, get) => {
         set({ realtimeConnected: true });
         return;
       }
+
+      // Sidebar stays live off the firehose: a committed create/edit upserts
+      // the list regardless of what's open (new artifacts appear immediately;
+      // existing ones reflect title changes).
+      if (msg.kind === 's.committed') {
+        const arts = get().artifacts;
+        const i = arts.findIndex((a) => a.id === msg.artifact.id);
+        set({ artifacts: i === -1 ? [msg.artifact, ...arts] : arts.map((a) => (a.id === msg.artifact.id ? msg.artifact : a)) });
+      }
+
       const open = get().open;
       if (!open) return;
       if (!('artifactId' in msg) || msg.artifactId !== open.artifact.id) return;
 
       if (msg.kind === 's.working_changed' || msg.kind === 's.committed') {
         // If the user is time-traveling, leave their view pinned; just update
-        // the underlying artifact + relations.
+        // the underlying artifact.
         const pinned = open.pinnedVersion !== undefined;
         set({
           open: {
@@ -197,7 +208,6 @@ export const useStore = create<State>((set, get) => {
             artifact: pinned ? open.artifact : msg.artifact,
             ...(pinned ? {} : { pinnedVersion: undefined }),
           },
-          artifacts: get().artifacts.map((a) => (a.id === msg.artifact.id ? msg.artifact : a)),
         });
       } else if (msg.kind === 's.commented') {
         set({ open: { ...open, comments: [...open.comments, msg.comment] } });
