@@ -195,6 +195,8 @@
 }
 .presentation__slide[data-layout='full-bleed'] { padding: 0; overflow: hidden; }
 .presentation__slide[data-layout='two-column']  { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-9); }
+/* A title slide centers its content in the canvas instead of hugging the top. */
+.presentation__slide[data-layout='title'] { justify-content: center; }
 
 /* ── Empty state ────────────────────────────────────────────────── */
 .empty-state { display: grid; place-items: center; height: 100%; padding: var(--space-9); }
