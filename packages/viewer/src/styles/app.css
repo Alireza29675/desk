@@ -596,3 +596,39 @@
 
   @page { margin: 16mm; }
 }
+
+/* ── Responsive: off-canvas drawers on narrow viewports ─────────── */
+/* The fixed sidebar (240px) + comment rail (320px) crush the content pane
+   below ~860px (e.g. Desk in a half-width window next to an editor). Below
+   920px the workspace goes full-width and the panels become drawers toggled
+   from the topbar. */
+.topbar__mobile-only { display: none; }
+.mobile-backdrop { display: none; }
+
+@media (max-width: 920px) {
+  .app { grid-template-columns: 1fr; }
+  .topbar__mobile-only { display: inline-flex; }
+  .sidebar,
+  .comment-rail {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: min(85vw, 320px);
+    max-height: none;
+    z-index: var(--z-modal);
+    transition: transform var(--duration-base) var(--ease-standard);
+    box-shadow: var(--shadow-2);
+  }
+  .sidebar { left: 0; transform: translateX(-100%); }
+  .comment-rail { right: 0; transform: translateX(100%); }
+  .app[data-panel='nav'] .sidebar { transform: none; }
+  .app[data-panel='comments'] .comment-rail { transform: none; }
+  .mobile-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    border: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: var(--z-overlay);
+  }
+}

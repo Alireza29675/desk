@@ -7,10 +7,14 @@ export function Topbar({
   onOpenPalette,
   onToggleHistory,
   historyOpen,
+  onToggleNav,
+  onToggleComments,
 }: {
   onOpenPalette: () => void;
   onToggleHistory: () => void;
   historyOpen: boolean;
+  onToggleNav: () => void;
+  onToggleComments: () => void;
 }) {
   const open = useStore((s) => s.open);
   const closeArtifact = useStore((s) => s.closeArtifact);
@@ -38,6 +42,9 @@ export function Topbar({
   return (
     <div className="topbar">
       <div className="topbar__left">
+        <button className="topbar__icon topbar__mobile-only" onClick={onToggleNav} aria-label="Toggle artifacts" title="Artifacts">
+          ☰
+        </button>
         {open ? (
           <>
             <button className="topbar__back" onClick={closeArtifact} aria-label="Close artifact">
@@ -79,6 +86,11 @@ export function Topbar({
         >
           {theme === 'dark' ? '☀' : '☾'}
         </button>
+        {open ? (
+          <button className="topbar__icon topbar__mobile-only" onClick={onToggleComments} aria-label="Toggle comments" title="Comments">
+            💬
+          </button>
+        ) : null}
       </div>
     </div>
   );
