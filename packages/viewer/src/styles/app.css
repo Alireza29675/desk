@@ -299,6 +299,25 @@
   font-size: var(--text-2xs);
   color: var(--color-text-muted);
 }
+/* ── Related artifacts (relation graph) ─────────────────────────── */
+.relations { padding: var(--space-4) var(--space-7); border-bottom: 1px solid var(--color-border); flex: 0 0 auto; }
+.relations__label { font-size: var(--text-2xs); font-weight: var(--weight-medium); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: var(--space-2); }
+.relations__list { list-style: none; display: flex; flex-direction: column; gap: var(--space-1); }
+.relations__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+.relations__item:hover { background: var(--color-bg-inset); }
+.relations__arrow { color: var(--color-accent); font-size: var(--text-sm); }
+.relations__title { flex: 1 1 auto; font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.relations__type { font-size: var(--text-2xs); color: var(--color-text-subtle); font-family: var(--font-mono); white-space: nowrap; flex: 0 0 auto; }
+
 .comment-rail__list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: var(--space-5) var(--space-7); display: flex; flex-direction: column; gap: var(--space-5); }
 .comment-rail__empty { font-size: var(--text-xs); color: var(--color-text-subtle); line-height: var(--leading-relaxed); }
 .comment-rail__composer { border-top: 1px solid var(--color-border); padding: var(--space-5) var(--space-7); display: flex; flex-direction: column; gap: var(--space-4); }

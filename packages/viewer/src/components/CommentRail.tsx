@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../state/store';
+import { RelationsSection } from './RelationsSection';
 import type { ArtifactId, Author, Comment, CommentAnchor } from '@desk/types';
 
 export function CommentRail() {
@@ -37,6 +38,7 @@ export function CommentRail() {
         <span>Comments</span>
         <span className="comment-rail__count">{open.comments.length}</span>
       </header>
+      <RelationsSection relations={open.relations} />
       <div className="comment-rail__list">
         {roots.length === 0 ? (
           <p className="comment-rail__empty">
