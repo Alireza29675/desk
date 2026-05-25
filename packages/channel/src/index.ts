@@ -2,6 +2,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { captureAnchor } from './screenshot';
 
 /**
  * Desk → Claude Code channel bridge.
@@ -139,7 +140,13 @@ function connect(): void {
       artifactId: string;
       author: { kind: string; humanId?: string; agentId?: string };
       payload: { kind: string; text?: string };
-      anchor: { kind: string; componentId?: string; elementPath?: string };
+      anchor: {
+        kind: string;
+        componentId?: string;
+        elementPath?: string;
+        region?: { kind: string; x?: number; y?: number; width?: number; height?: number };
+        offset?: { x: number; y: number };
+      };
     };
 
     // Only forward human comments — agent replies must not echo back into the session.
@@ -149,16 +156,23 @@ function connect(): void {
     const who = comment.author.humanId ?? 'human';
     const body = comment.payload.kind === 'text' ? (comment.payload.text ?? '') : `[${comment.payload.kind}]`;
 
-    log(`forwarding comment ${comment.id} on ${comment.artifactId} from ${who}`);
+    // Render what the operator anchored to, so the agent can see it (not just
+    // read the anchor id). Best-effort: null for general anchors / on failure.
+    const shot = await captureAnchor(DESK_URL, comment.artifactId, comment.id, comment.anchor);
+
+    log(`forwarding comment ${comment.id} on ${comment.artifactId} from ${who}${shot ? ' (+screenshot)' : ''}`);
     await mcp.notification({
       method: 'notifications/claude/channel',
       params: {
-        content: `Comment on "${title}":\n\n${body}`,
+        content:
+          `Comment on "${title}":\n\n${body}` +
+          (shot ? `\n\nThe operator anchored this to ${describeAnchor(comment.anchor)}. Open this image to see exactly what they selected: ${shot}` : ''),
         meta: {
           artifact_id: comment.artifactId,
           comment_id: comment.id,
           author: who,
           anchor: describeAnchor(comment.anchor),
+          ...(shot ? { screenshot: shot } : {}),
         },
       },
     });

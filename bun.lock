@@ -21,6 +21,7 @@
       },
       "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.4",
+        "puppeteer-core": "^25.0.4",
       },
     },
     "packages/cli": {

@@ -13,7 +13,8 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.4"
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "puppeteer-core": "^25.0.4"
   },
   "publishConfig": {
     "access": "public"
