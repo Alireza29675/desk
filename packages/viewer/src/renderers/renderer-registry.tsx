@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 import type { Component } from '@desk/types';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 import { CalloutRenderer } from './callout';
 import { ChartRenderer } from './chart';
 import { ChecklistRenderer } from './checkbox';
@@ -56,5 +57,26 @@ export function RendererFallback({ component }: RendererProps) {
     <div className="renderer-fallback">
       <code>{component.type}</code> has no registered renderer.
     </div>
+  );
+}
+
+/**
+ * Looks up a component's renderer and renders it inside an error boundary, so a
+ * single failing component degrades to a fallback instead of crashing the whole
+ * artifact view. The component object is the reset key — new data retries.
+ */
+export function RenderedComponent({ component, artifactId }: RendererProps) {
+  const Renderer = renderers[component.type] ?? RendererFallback;
+  return (
+    <ErrorBoundary
+      resetKey={component}
+      fallback={
+        <div className="renderer-error">
+          <code>{component.type}</code> couldn’t render — the rest of the artifact is unaffected.
+        </div>
+      }
+    >
+      <Renderer component={component} artifactId={artifactId} />
+    </ErrorBoundary>
   );
 }

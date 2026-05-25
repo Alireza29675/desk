@@ -3,7 +3,7 @@ import type { Artifact } from '@desk/types';
 import { locatorValue } from '@desk/types';
 import { useStore } from '../state/store';
 import { Commentable } from '../components/Commentable';
-import { renderers, RendererFallback } from '../renderers/renderer-registry';
+import { RenderedComponent } from '../renderers/renderer-registry';
 import '../renderers/styles.css';
 
 /**
@@ -35,14 +35,11 @@ export function DocumentView({ artifact }: { artifact: Artifact }) {
         </div>
       </header>
       <div className="document__components">
-        {artifact.content.components.map((component) => {
-          const Renderer = renderers[component.type] ?? RendererFallback;
-          return (
-            <Commentable key={component.id} componentId={component.id} className="document__component">
-              <Renderer component={component} artifactId={artifact.id} />
-            </Commentable>
-          );
-        })}
+        {artifact.content.components.map((component) => (
+          <Commentable key={component.id} componentId={component.id} className="document__component">
+            <RenderedComponent component={component} artifactId={artifact.id} />
+          </Commentable>
+        ))}
       </div>
     </article>
   );

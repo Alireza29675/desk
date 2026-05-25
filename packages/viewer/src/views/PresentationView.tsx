@@ -3,7 +3,7 @@ import type { Artifact, Component } from '@desk/types';
 import { locatorValue } from '@desk/types';
 import { useStore } from '../state/store';
 import { Commentable } from '../components/Commentable';
-import { renderers, RendererFallback } from '../renderers/renderer-registry';
+import { RenderedComponent } from '../renderers/renderer-registry';
 import '../renderers/styles.css';
 
 /**
@@ -63,14 +63,11 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           </span>
         </header>
         <div className="presentation__slide" data-layout={slide?.layout ?? 'content'}>
-          {slide?.body.map((c) => {
-            const Renderer = renderers[c.type] ?? RendererFallback;
-            return (
-              <Commentable key={c.id} componentId={c.id}>
-                <Renderer component={c} artifactId={artifact.id} />
-              </Commentable>
-            );
-          })}
+          {slide?.body.map((c) => (
+            <Commentable key={c.id} componentId={c.id}>
+              <RenderedComponent component={c} artifactId={artifact.id} />
+            </Commentable>
+          ))}
         </div>
         <div className="presentation__nav">
           <button className="btn btn--ghost btn--sm" onClick={() => go(index - 1)} disabled={index === 0}>
@@ -93,10 +90,9 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           <section className="print-slide" key={`print-${i}`} data-layout={s.layout ?? 'content'}>
             {s.title ? <h2 className="print-slide__title serif-accent">{s.title}</h2> : null}
             <div className="print-slide__body">
-              {s.body.map((c) => {
-                const Renderer = renderers[c.type] ?? RendererFallback;
-                return <Renderer key={c.id} component={c} artifactId={artifact.id} />;
-              })}
+              {s.body.map((c) => (
+                <RenderedComponent key={c.id} component={c} artifactId={artifact.id} />
+              ))}
             </div>
           </section>
         ))}

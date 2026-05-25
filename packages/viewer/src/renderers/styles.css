@@ -32,6 +32,15 @@
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
+.renderer-error {
+  padding: var(--space-5) var(--space-6);
+  border: 1px dashed var(--color-accent);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  background: var(--color-accent-soft);
+}
+.renderer-error code { color: var(--color-accent-strong); }
 
 /* ── Callout ─────────────────────────────────────────────────────── */
 .callout {
