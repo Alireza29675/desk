@@ -81,6 +81,23 @@ describe('DeskService — artifact lifecycle', () => {
   test('getArtifact throws for a missing id', () => {
     expect(() => svc.getArtifact('missing' as ArtifactId)).toThrow();
   });
+
+  test('search ranks a title match above a body-only match', () => {
+    const bodyHit = svc.createArtifact({
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'Unrelated heading', components: [callout('c1')] },
+    });
+    // bodyHit mentions the term only in component text
+    svc.patchArtifact({
+      id: bodyHit.id,
+      patch: { components: [{ id: 'c1', type: 'callout', data: { tone: 'info', title: 'x', body: 'a kangaroo appears' } } as unknown as Component] },
+      author: agent,
+    });
+    const titleHit = svc.createArtifact({ type: 'enriched-document', author: agent, initialContent: { title: 'Kangaroo report', components: [] } });
+    const results = svc.searchArtifacts('kangaroo', 10);
+    expect(results[0]?.id).toBe(titleHit.id);
+  });
 });
 
 describe('DeskService — comments & anchors', () => {

@@ -107,7 +107,11 @@ export class ArtifactRepository {
     if (!query.trim()) return [];
     const rows = this.db
       .query<{ artifact_id: string }, [string, number]>(
-        `SELECT artifact_id FROM artifacts_fts WHERE artifacts_fts MATCH ? LIMIT ?`,
+        // Rank by bm25 with the title column weighted heavily over the body, so
+        // a title hit (e.g. "what I'd improve") outranks an artifact that only
+        // mentions the term in its content. Columns: artifact_id, title, body.
+        `SELECT artifact_id FROM artifacts_fts WHERE artifacts_fts MATCH ?
+         ORDER BY bm25(artifacts_fts, 0.0, 10.0, 1.0) LIMIT ?`,
       )
       .all(query, limit);
     return rows
