@@ -20,7 +20,9 @@ export interface LocatorSegment {
   value: string;
 }
 
-const SEGMENT = /^([a-z][a-z0-9-]*):(.*)$/;
+// Kind is matched case-insensitively then lowercased, so a hand-typed
+// `Slide:3` normalizes to `slide` rather than being silently dropped.
+const SEGMENT = /^([a-zA-Z][a-zA-Z0-9-]*):(.*)$/;
 
 /** Parse a hash string (with or without the leading `#`) into segments. */
 export function parseLocator(hash: string): LocatorSegment[] {
