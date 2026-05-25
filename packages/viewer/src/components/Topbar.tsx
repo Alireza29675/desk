@@ -18,18 +18,9 @@ export function Topbar({
   const setTheme = useStore((s) => s.setTheme);
   const [copied, setCopied] = useState(false);
 
-  function exportPdf() {
-    // Print in light theme regardless of the current one (saves ink / reads
-    // cleanly on paper), then restore once the print dialog closes.
-    const prev = document.documentElement.dataset.theme ?? 'light';
-    document.documentElement.dataset.theme = 'light';
-    const restore = () => {
-      document.documentElement.dataset.theme = prev;
-      window.removeEventListener('afterprint', restore);
-    };
-    window.addEventListener('afterprint', restore);
-    window.print();
-  }
+  // Theme-forcing for print lives in App's beforeprint/afterprint handler, so
+  // it applies whether you click Export or hit ⌘P.
+  const exportPdf = () => window.print();
 
   async function copyLink() {
     if (!open) return;
