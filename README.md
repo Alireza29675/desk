@@ -12,6 +12,11 @@ Agents draft, draw, present. The human watches it form in real time, comments on
 
 ---
 
+> [!WARNING]
+> **🚧 WIP experiment.** Desk is an early, fast-moving experiment built largely autonomously with Claude Code. Expect rough edges, breaking changes, and missing pieces. Not production-ready — explore it, don't depend on it yet.
+
+---
+
 ## Why
 
 Most AI tools talk to you through a chat box. That's fine for sentences. It is the wrong surface for anything visual — a slide deck, a system diagram, a chart, a tree of options. By the time an agent describes a diagram in prose, the diagram itself would have been clearer.
