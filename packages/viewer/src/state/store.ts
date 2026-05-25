@@ -211,6 +211,12 @@ export const useStore = create<State>((set, get) => {
 
     setTheme(theme) {
       document.documentElement.dataset.theme = theme;
+      // Persist the choice so it survives reloads and deep-link opens.
+      try {
+        localStorage.setItem('desk-theme', theme);
+      } catch {
+        // Storage unavailable (private mode): keep the in-memory theme only.
+      }
       set({ theme });
     },
   };

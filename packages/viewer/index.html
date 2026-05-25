@@ -5,11 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="color-scheme" content="light dark" />
     <script>
-      // Set the theme from system preference before first paint to avoid a flash.
+      // Set the theme before first paint to avoid a flash. A stored choice
+      // wins; otherwise fall back to the system preference.
       try {
-        document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light';
+        var stored = localStorage.getItem('desk-theme');
+        document.documentElement.dataset.theme =
+          stored === 'dark' || stored === 'light'
+            ? stored
+            : matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
       } catch (_) {
         document.documentElement.dataset.theme = 'light';
       }
