@@ -85,6 +85,22 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           </button>
         </div>
       </div>
+
+      {/* Print-only: every slide on its own page, for Export → PDF. Always
+          mounted (hidden on screen) so diagrams pre-render before printing. */}
+      <div className="print-deck" aria-hidden>
+        {slides.map((s, i) => (
+          <section className="print-slide" key={`print-${i}`} data-layout={s.layout ?? 'content'}>
+            {s.title ? <h2 className="print-slide__title serif-accent">{s.title}</h2> : null}
+            <div className="print-slide__body">
+              {s.body.map((c) => {
+                const Renderer = renderers[c.type] ?? RendererFallback;
+                return <Renderer key={c.id} component={c} artifactId={artifact.id} />;
+              })}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

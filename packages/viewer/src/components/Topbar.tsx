@@ -18,6 +18,19 @@ export function Topbar({
   const setTheme = useStore((s) => s.setTheme);
   const [copied, setCopied] = useState(false);
 
+  function exportPdf() {
+    // Print in light theme regardless of the current one (saves ink / reads
+    // cleanly on paper), then restore once the print dialog closes.
+    const prev = document.documentElement.dataset.theme ?? 'light';
+    document.documentElement.dataset.theme = 'light';
+    const restore = () => {
+      document.documentElement.dataset.theme = prev;
+      window.removeEventListener('afterprint', restore);
+    };
+    window.addEventListener('afterprint', restore);
+    window.print();
+  }
+
   async function copyLink() {
     if (!open) return;
     const url = absoluteUrl(artifactPath(open.artifact.id, open.locator));
@@ -55,9 +68,14 @@ export function Topbar({
       </div>
       <div className="topbar__right">
         {open ? (
-          <button className="topbar__link" onClick={copyLink} title="Copy a link to this view">
-            {copied ? 'Copied' : 'Copy link'}
-          </button>
+          <>
+            <button className="topbar__link" onClick={exportPdf} title="Export to PDF (print)">
+              Export
+            </button>
+            <button className="topbar__link" onClick={copyLink} title="Copy a link to this view">
+              {copied ? 'Copied' : 'Copy link'}
+            </button>
+          </>
         ) : null}
         <button className="topbar__search" onClick={onOpenPalette}>
           Search · <Kbd>⌘K</Kbd>

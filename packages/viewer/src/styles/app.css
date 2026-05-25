@@ -564,3 +564,35 @@
 .palette__item[data-active='true'] { background: var(--color-bg-sunken); }
 .palette__hint { font-family: var(--font-mono); font-size: var(--text-2xs); color: var(--color-text-subtle); }
 .palette__empty { color: var(--color-text-subtle); padding: var(--space-5) var(--space-4); font-size: var(--text-sm); }
+
+/* ── Print / Export to PDF ──────────────────────────────────────── */
+.print-deck { display: none; }
+@media print {
+  /* Strip all chrome and interaction affordances. */
+  .sidebar,
+  .topbar,
+  .comment-rail,
+  .history-bar,
+  .presentation__nav,
+  .commentable__tools,
+  .anchor-overlay,
+  .selection-pill { display: none !important; }
+
+  html, body { background: #ffffff; }
+  .app, .workspace { display: block; }
+  .workspace__body { overflow: visible; height: auto; }
+  .document { padding: 0; }
+
+  /* Presentations: swap the single-slide live view for the full paginated deck.
+     (.print-deck is a child of .presentation, so hide the live deck, not the
+     whole container.) */
+  .presentation { display: block; padding: 0; }
+  .presentation__deck { display: none !important; }
+  .print-deck { display: block; }
+  .print-slide { page-break-after: always; padding-bottom: 24pt; }
+  .print-slide:last-child { page-break-after: auto; }
+  .print-slide__title { font-size: 20pt; margin: 0 0 12pt; }
+  .print-slide__body { display: flex; flex-direction: column; gap: 12pt; }
+
+  @page { margin: 16mm; }
+}
