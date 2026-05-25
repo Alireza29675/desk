@@ -52,6 +52,7 @@ export const api = {
     ),
   search: (q: string) => request<{ items: Artifact[] }>(`/artifacts/search?q=${encodeURIComponent(q)}`),
   getArtifact: (id: ArtifactId) => request<ArtifactBundle>(`/a/${id}`),
+  deleteArtifact: (id: ArtifactId) => request<{ ok: boolean; id: string }>(`/a/${id}`, { method: 'DELETE' }),
   getArtifactAtVersion: (id: ArtifactId, version: number) =>
     request<{ artifact: Artifact }>(`/a/${id}/v/${version}`),
   history: (id: ArtifactId) => request<{ events: HistoryEvent[] }>(`/a/${id}/history`),
