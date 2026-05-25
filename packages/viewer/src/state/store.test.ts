@@ -85,6 +85,17 @@ describe('store.applyEvent — open artifact', () => {
     expect(useStore.getState().open?.comments[0]?.resolved).toBe(true);
   });
 
+  it('keeps a pinned (history) view untouched on a live commit, but still updates the sidebar', () => {
+    useStore.setState({
+      artifacts: [artifact('a', 'Live', 5)],
+      open: { ...openOf(artifact('a', 'Old v2', 2)), pinnedVersion: 2 } as never,
+    });
+    apply(committed(artifact('a', 'Live v6', 6)));
+    expect(useStore.getState().open?.artifact.version).toBe(2); // pinned view unchanged
+    expect(useStore.getState().open?.artifact.content.title).toBe('Old v2');
+    expect(useStore.getState().artifacts.find((x) => x.id === 'a')?.version).toBe(6); // sidebar live
+  });
+
   it('reflects a commit to the open artifact in the open view', () => {
     useStore.setState({ artifacts: [artifact('a', 'Old')], open: openOf(artifact('a', 'Old')) as never });
     apply(committed(artifact('a', 'New', 2)));

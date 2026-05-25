@@ -64,6 +64,8 @@ interface State {
   closeArtifact(): void;
   /** Update the active in-artifact locator and reflect it into the URL. */
   setLocator(segments: LocatorSegment[]): void;
+  /** Pin the open view to a past committed version, or `null` to return live. */
+  scrubToVersion(version: number | null): Promise<void>;
   /** Re-sync the open artifact from the current address bar (load + popstate). */
   syncFromLocation(fromHistory: boolean): void;
   /** Begin composing a comment anchored to a specific element. */
@@ -162,6 +164,19 @@ export const useStore = create<State>((set, get) => {
       if (!open) return;
       set({ open: { ...open, locator: segments } });
       replaceLocator(open.artifact.id, segments);
+    },
+
+    async scrubToVersion(version) {
+      const open = get().open;
+      if (!open) return;
+      if (version === null) {
+        // Back to live: re-load the current artifact and unpin.
+        const bundle = await api.getArtifact(open.artifact.id);
+        set({ open: { ...get().open!, artifact: bundle.artifact, pinnedVersion: undefined } });
+        return;
+      }
+      const { artifact } = await api.getArtifactAtVersion(open.artifact.id, version);
+      set({ open: { ...get().open!, artifact, pinnedVersion: version } });
     },
 
     syncFromLocation(fromHistory) {

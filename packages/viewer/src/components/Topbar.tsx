@@ -3,7 +3,15 @@ import { Kbd } from './Kbd';
 import { useStore } from '../state/store';
 import { absoluteUrl, artifactPath } from '../lib/router';
 
-export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
+export function Topbar({
+  onOpenPalette,
+  onToggleHistory,
+  historyOpen,
+}: {
+  onOpenPalette: () => void;
+  onToggleHistory: () => void;
+  historyOpen: boolean;
+}) {
   const open = useStore((s) => s.open);
   const closeArtifact = useStore((s) => s.closeArtifact);
   const theme = useStore((s) => s.theme);
@@ -32,7 +40,14 @@ export function Topbar({ onOpenPalette }: { onOpenPalette: () => void }) {
               ←
             </button>
             <span className="topbar__title">{open.artifact.content.title}</span>
-            <span className="topbar__badge">v{open.artifact.version}</span>
+            <button
+              className="topbar__badge"
+              data-active={historyOpen ? 'true' : undefined}
+              onClick={onToggleHistory}
+              title="Version history"
+            >
+              v{open.artifact.version}
+            </button>
           </>
         ) : (
           <span className="topbar__title topbar__title--dim">No artifact open</span>
