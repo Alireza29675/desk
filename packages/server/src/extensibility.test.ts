@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 import { defineArtifact, defineComponent } from '@desk/plugin-sdk';
-import type { Author, Component, DeskPlugin } from '@desk/types';
+import type { Author, Component } from '@desk/types';
 import { DeskService } from './core/service';
 import { buildRegistry } from './plugins';
 import { openDatabase } from './storage/db';
@@ -33,9 +33,8 @@ const corkboard = defineArtifact({
 
 function makeService() {
   const db = openDatabase(':memory:');
-  // Cast needed because a typed ComponentTypePlugin<T> isn't assignable to
-  // ComponentTypePlugin<unknown> (serialize param variance) — see #28.
-  const registry = buildRegistry([stickyNote as unknown as DeskPlugin, corkboard]);
+  // No cast needed: a typed component plugin flows straight into buildRegistry.
+  const registry = buildRegistry([stickyNote, corkboard]);
   return new DeskService({ db, registry, hub: new RealtimeHub(), autoCommitMs: 0 });
 }
 

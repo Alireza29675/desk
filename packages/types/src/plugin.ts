@@ -61,4 +61,9 @@ export interface RelationTypePlugin {
   inverse?: RelationType;
 }
 
-export type DeskPlugin = ComponentTypePlugin | ArtifactTypePlugin | RelationTypePlugin;
+// The component arm is `<any>` on purpose: a plugin collection is heterogeneous
+// in component data type, and a typed `ComponentTypePlugin<T>` is otherwise not
+// assignable to `<unknown>` (serialize param variance) — which would force every
+// plugin author to cast. `<any>` makes authored plugins flow into the registry.
+// biome-ignore lint/suspicious/noExplicitAny: heterogeneous plugin collection
+export type DeskPlugin = ComponentTypePlugin<any> | ArtifactTypePlugin | RelationTypePlugin;
