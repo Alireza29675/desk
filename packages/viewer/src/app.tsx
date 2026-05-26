@@ -5,6 +5,7 @@ import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { CommandPalette } from './components/CommandPalette';
 import { CommentRail } from './components/CommentRail';
+import { HistoryBar } from './components/HistoryBar';
 import { DocumentView } from './views/DocumentView';
 import { PresentationView } from './views/PresentationView';
 import { EmptyState, NotFoundState } from './views/EmptyState';
@@ -15,7 +16,15 @@ export function App() {
   const open = useStore((s) => s.open);
   const loadError = useStore((s) => s.loadError);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  // Which off-canvas panel is open on narrow viewports (ignored on wide via CSS).
+  const [panel, setPanel] = useState<'nav' | 'comments' | null>(null);
   useAnchorHighlights();
+
+  // Close the mobile panel when the open artifact changes (e.g. after picking
+  // one from the nav drawer).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: close on route change
+  useEffect(() => setPanel(null), [open?.artifact.id]);
 
   useEffect(() => {
     void init();
@@ -33,11 +42,37 @@ export function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Force light theme for any print path (the Export button *and* the browser's
+  // own ⌘P) so PDFs read cleanly on paper, then restore afterward.
+  useEffect(() => {
+    let prev: string | undefined;
+    const before = () => {
+      prev = document.documentElement.dataset.theme;
+      document.documentElement.dataset.theme = 'light';
+    };
+    const after = () => {
+      if (prev) document.documentElement.dataset.theme = prev;
+    };
+    window.addEventListener('beforeprint', before);
+    window.addEventListener('afterprint', after);
+    return () => {
+      window.removeEventListener('beforeprint', before);
+      window.removeEventListener('afterprint', after);
+    };
+  }, []);
+
   return (
-    <div className="app">
+    <div className="app" data-panel={panel ?? undefined}>
       <Sidebar />
       <main className="workspace">
-        <Topbar onOpenPalette={() => setPaletteOpen(true)} />
+        <Topbar
+          onOpenPalette={() => setPaletteOpen(true)}
+          onToggleHistory={() => setHistoryOpen((v) => !v)}
+          historyOpen={historyOpen}
+          onToggleNav={() => setPanel((p) => (p === 'nav' ? null : 'nav'))}
+          onToggleComments={() => setPanel((p) => (p === 'comments' ? null : 'comments'))}
+        />
+        {open && historyOpen ? <HistoryBar /> : null}
         <div className="workspace__body">
           {open ? (
             open.artifact.type === 'presentation' ? (
@@ -53,6 +88,9 @@ export function App() {
         </div>
       </main>
       {open ? <CommentRail /> : null}
+      {panel ? (
+        <button className="mobile-backdrop" aria-label="Close panel" onClick={() => setPanel(null)} />
+      ) : null}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>
   );
