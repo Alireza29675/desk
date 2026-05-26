@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './app';
+import { App } from './App';
 import { RegistryProvider, buildViewerRegistry } from './lib/registry';
 import './styles/globals.css';
 
