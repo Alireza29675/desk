@@ -122,6 +122,8 @@ export const checklist = defineComponent({
 
 Register it on the server and add a renderer on the viewer side — both look up by `type`. See [`packages/plugin-sdk/README.md`](packages/plugin-sdk/README.md) and [`packages/plugins-builtin/`](packages/plugins-builtin/) for the patterns.
 
+**Extension boundary (today):** plugins register through the **embedding API** — `startServer({ plugins: [...] })` — and the domain core validates against their schemas (covered by `extensibility.test.ts`). Two pieces aren't wired yet: loading plugins from a config file for the standalone server, and registering viewer renderers at runtime (the viewer's renderer map is build-time, so a third-party component validates server-side but falls back to a placeholder until its renderer is added to the viewer build). Tracked for post-v1.
+
 ## Design
 
 Linear + Raycast + Figma DNA. Restrained, modern, monochrome with a single coral accent (`#FF5A4D`). Light default; dark themed correctly from day 1 (dual-token system). Inter body + a serif accent for headings — the Linear detail that makes the page feel composed rather than generic.
