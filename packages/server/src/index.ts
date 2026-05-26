@@ -53,7 +53,13 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
 
       // ── MCP streamable HTTP transport ───────────────────────────────
       if (url.pathname === '/mcp' && req.method === 'POST') {
-        const body = (await req.json()) as McpRequest;
+        let body: McpRequest;
+        try {
+          body = (await req.json()) as McpRequest;
+        } catch {
+          // Malformed JSON: answer with a JSON-RPC parse error, not Bun's HTML page.
+          return Response.json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
+        }
         const response = await mcpServer.handle(body);
         return Response.json(response);
       }
