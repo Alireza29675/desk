@@ -14,6 +14,8 @@ export const imageComponent = defineComponent({
   serialize: (component) => ({ id: component.id, ...component.data }),
   describeElements: (component) => [
     { path: 'image', label: 'Image', kind: 'node' },
-    ...(component.data.caption ? [{ path: 'caption', label: 'Caption', kind: 'text' as const }] : []),
+    ...(component.data.caption
+      ? [{ path: 'caption', label: 'Caption', kind: 'text' as const }]
+      : []),
   ],
 });

@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
 import type { CommentAnchor } from '@desk/types';
+import { useEffect } from 'react';
 import { rangeFromTextOffsets } from '../lib/anchor-geometry';
 import { useStore } from './store';
 
@@ -21,6 +21,7 @@ export function useAnchorHighlights(): void {
   // Re-resolve when the open artifact (and thus the live DOM) changes.
   const open = useStore((s) => s.open);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `open` re-resolves highlights when the artifact/DOM swaps
   useEffect(() => {
     applyTextHighlight('desk-anchor-pending', target);
     applyTextHighlight('desk-anchor-focused', focused);
@@ -37,14 +38,18 @@ function applyTextHighlight(name: string, anchor: CommentAnchor | null): void {
     setHighlight(name, null);
     return;
   }
-  const root = document.querySelector(`[data-component-id="${CSS.escape(anchor.componentId)}"] .commentable__content`);
+  const root = document.querySelector(
+    `[data-component-id="${CSS.escape(anchor.componentId)}"] .commentable__content`,
+  );
   setHighlight(name, root ? rangeFromTextOffsets(root, anchor.start, anchor.end) : null);
 }
 
 /** Register or clear a CSS Custom Highlight by name. No-ops where unsupported. */
 function setHighlight(name: string, range: Range | null): void {
   const highlights = (CSS as unknown as { highlights?: Map<string, unknown> }).highlights;
-  const HighlightCtor = (globalThis as unknown as { Highlight?: new (...ranges: Range[]) => unknown }).Highlight;
+  const HighlightCtor = (
+    globalThis as unknown as { Highlight?: new (...ranges: Range[]) => unknown }
+  ).Highlight;
   if (!highlights || !HighlightCtor) return;
   if (range) highlights.set(name, new HighlightCtor(range));
   else highlights.delete(name);

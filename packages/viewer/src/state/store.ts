@@ -1,4 +1,3 @@
-import { create } from 'zustand';
 import type {
   Artifact,
   ArtifactId,
@@ -9,9 +8,10 @@ import type {
   RealtimeServerMessage,
   RelationGraph,
 } from '@desk/types';
-import { api, type ArtifactBundle } from '../lib/api';
-import { buildRealtimeClient, type RealtimeClient } from '../realtime/client';
+import { create } from 'zustand';
+import { type ArtifactBundle, api } from '../lib/api';
 import { goHome, onPopState, pushArtifact, readLocation, replaceLocator } from '../lib/router';
+import { type RealtimeClient, buildRealtimeClient } from '../realtime/client';
 
 /** Firehose subscription target: receive realtime events for every artifact. */
 const FIREHOSE = '*' as ArtifactId;
@@ -206,7 +206,12 @@ export const useStore = create<State>((set, get) => {
       if (msg.kind === 's.committed') {
         const arts = get().artifacts;
         const i = arts.findIndex((a) => a.id === msg.artifact.id);
-        set({ artifacts: i === -1 ? [msg.artifact, ...arts] : arts.map((a) => (a.id === msg.artifact.id ? msg.artifact : a)) });
+        set({
+          artifacts:
+            i === -1
+              ? [msg.artifact, ...arts]
+              : arts.map((a) => (a.id === msg.artifact.id ? msg.artifact : a)),
+        });
       }
 
       if (msg.kind === 's.deleted') {
@@ -237,7 +242,9 @@ export const useStore = create<State>((set, get) => {
         set({
           open: {
             ...open,
-            comments: open.comments.map((c) => (c.id === msg.commentId ? { ...c, resolved: msg.resolved } : c)),
+            comments: open.comments.map((c) =>
+              c.id === msg.commentId ? { ...c, resolved: msg.resolved } : c,
+            ),
           },
         });
       } else if (msg.kind === 's.relation_added') {

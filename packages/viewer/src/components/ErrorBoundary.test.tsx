@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import { act } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ErrorBoundary } from './ErrorBoundary';
 
@@ -27,20 +27,44 @@ afterEach(() => {
 
 describe('ErrorBoundary', () => {
   it('renders children when they do not throw', () => {
-    act(() => root.render(<ErrorBoundary fallback={<span>fallback</span>}><Boom explode={false} /></ErrorBoundary>));
+    act(() =>
+      root.render(
+        <ErrorBoundary fallback={<span>fallback</span>}>
+          <Boom explode={false} />
+        </ErrorBoundary>,
+      ),
+    );
     expect(container.textContent).toContain('healthy');
   });
 
   it('renders the fallback when a child throws', () => {
-    act(() => root.render(<ErrorBoundary fallback={<span>fallback-ui</span>}><Boom explode /></ErrorBoundary>));
+    act(() =>
+      root.render(
+        <ErrorBoundary fallback={<span>fallback-ui</span>}>
+          <Boom explode />
+        </ErrorBoundary>,
+      ),
+    );
     expect(container.textContent).toContain('fallback-ui');
     expect(container.textContent).not.toContain('healthy');
   });
 
   it('recovers when resetKey changes and the child stops throwing', () => {
-    act(() => root.render(<ErrorBoundary resetKey={1} fallback={<span>fallback-ui</span>}><Boom explode /></ErrorBoundary>));
+    act(() =>
+      root.render(
+        <ErrorBoundary resetKey={1} fallback={<span>fallback-ui</span>}>
+          <Boom explode />
+        </ErrorBoundary>,
+      ),
+    );
     expect(container.textContent).toContain('fallback-ui');
-    act(() => root.render(<ErrorBoundary resetKey={2} fallback={<span>fallback-ui</span>}><Boom explode={false} /></ErrorBoundary>));
+    act(() =>
+      root.render(
+        <ErrorBoundary resetKey={2} fallback={<span>fallback-ui</span>}>
+          <Boom explode={false} />
+        </ErrorBoundary>,
+      ),
+    );
     expect(container.textContent).toContain('healthy');
   });
 });

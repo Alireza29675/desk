@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { z } from 'zod';
 import { defineArtifact, defineComponent } from '@desk/plugin-sdk';
 import type { Author, Component } from '@desk/types';
+import { z } from 'zod';
 import { DeskService } from './core/service';
 import { buildRegistry } from './plugins';
 import { openDatabase } from './storage/db';
@@ -38,7 +38,8 @@ function makeService() {
   return new DeskService({ db, registry, hub: new RealtimeHub(), autoCommitMs: 0 });
 }
 
-const note = (data: unknown): Component => ({ id: 'n1', type: 'sticky-note', data }) as unknown as Component;
+const note = (data: unknown): Component =>
+  ({ id: 'n1', type: 'sticky-note', data }) as unknown as Component;
 
 describe('third-party plugin extensibility (public SDK)', () => {
   test('custom artifact + component types register and are looked up', () => {
@@ -71,9 +72,17 @@ describe('third-party plugin extensibility (public SDK)', () => {
 
   test('the custom artifact’s allowedComponentTypes is enforced', () => {
     const svc = makeService();
-    const callout = { id: 'c', type: 'callout', data: { tone: 'info', title: 'T', body: 'B' } } as unknown as Component;
+    const callout = {
+      id: 'c',
+      type: 'callout',
+      data: { tone: 'info', title: 'T', body: 'B' },
+    } as unknown as Component;
     expect(() =>
-      svc.createArtifact({ type: 'corkboard', author: agent, initialContent: { title: 'Board', components: [callout] } }),
+      svc.createArtifact({
+        type: 'corkboard',
+        author: agent,
+        initialContent: { title: 'Board', components: [callout] },
+      }),
     ).toThrow();
   });
 

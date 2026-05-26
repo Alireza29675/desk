@@ -4,7 +4,8 @@ import { builtinPlugins } from '@desk/plugins-builtin';
 import type { ArtifactContent, Component } from '@desk/types';
 import { buildRegistry } from './plugins';
 
-const callout = (data: unknown): Component => ({ id: 'c', type: 'callout', data }) as unknown as Component;
+const callout = (data: unknown): Component =>
+  ({ id: 'c', type: 'callout', data }) as unknown as Component;
 const content = (components: Component[]): ArtifactContent => ({ title: 'T', components });
 
 describe('PluginRegistry (built-in vocabulary)', () => {
@@ -27,7 +28,12 @@ describe('PluginRegistry (built-in vocabulary)', () => {
 
   test('validateContent accepts a well-formed component', () => {
     const r = buildRegistry();
-    expect(() => r.validateContent('enriched-document', content([callout({ tone: 'info', title: 'A', body: 'B' })]))).not.toThrow();
+    expect(() =>
+      r.validateContent(
+        'enriched-document',
+        content([callout({ tone: 'info', title: 'A', body: 'B' })]),
+      ),
+    ).not.toThrow();
   });
 
   test('validateContent rejects a component with invalid data', () => {
@@ -37,7 +43,11 @@ describe('PluginRegistry (built-in vocabulary)', () => {
 
   test('validateContent enforces allowedComponentTypes (no slide-break in a document)', () => {
     const r = buildRegistry();
-    const slideBreak = { id: 's', type: 'slide-break', data: { title: 'X', layout: 'title' } } as unknown as Component;
+    const slideBreak = {
+      id: 's',
+      type: 'slide-break',
+      data: { title: 'X', layout: 'title' },
+    } as unknown as Component;
     expect(() => r.validateContent('enriched-document', content([slideBreak]))).toThrow();
   });
 

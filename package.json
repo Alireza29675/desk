@@ -11,9 +11,7 @@
     "url": "git+https://github.com/Alireza29675/desk.git"
   },
   "bugs": "https://github.com/Alireza29675/desk/issues",
-  "workspaces": [
-    "packages/*"
-  ],
+  "workspaces": ["packages/*"],
   "scripts": {
     "build": "bun run --filter '*' build",
     "dev": "bun run --filter '@desk/cli' dev",

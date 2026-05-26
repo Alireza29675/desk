@@ -49,7 +49,10 @@ mcp.setRequestHandler(ListToolsRequestSchema, async () => ({
       inputSchema: {
         type: 'object',
         properties: {
-          artifact_id: { type: 'string', description: 'The artifact to comment on (from the channel tag).' },
+          artifact_id: {
+            type: 'string',
+            description: 'The artifact to comment on (from the channel tag).',
+          },
           text: { type: 'string', description: 'The reply text.' },
           thread_parent_id: {
             type: 'string',
@@ -82,11 +85,17 @@ mcp.setRequestHandler(CallToolRequestSchema, async (req) => {
     });
     if (!res.ok) {
       const body = await res.text();
-      return { content: [{ type: 'text', text: `reply failed: ${res.status} ${body}` }], isError: true };
+      return {
+        content: [{ type: 'text', text: `reply failed: ${res.status} ${body}` }],
+        isError: true,
+      };
     }
     return { content: [{ type: 'text', text: 'sent' }] };
   } catch (e) {
-    return { content: [{ type: 'text', text: `reply error: ${(e as Error).message}` }], isError: true };
+    return {
+      content: [{ type: 'text', text: `reply error: ${(e as Error).message}` }],
+      isError: true,
+    };
   }
 });
 
@@ -112,7 +121,11 @@ async function artifactTitle(id: string): Promise<string> {
   return id;
 }
 
-function describeAnchor(anchor: { kind: string; componentId?: string; elementPath?: string }): string {
+function describeAnchor(anchor: {
+  kind: string;
+  componentId?: string;
+  elementPath?: string;
+}): string {
   if (anchor.kind === 'general') return 'general';
   const path = anchor.elementPath ? `.${anchor.elementPath}` : '';
   return `${anchor.kind}:${anchor.componentId ?? '?'}${path}`;
@@ -123,7 +136,9 @@ function connect(): void {
 
   ws.addEventListener('open', () => {
     log('websocket open; subscribing to firehose');
-    ws.send(JSON.stringify({ kind: 'c.subscribe', artifactId: '*', subscriptionId: crypto.randomUUID() }));
+    ws.send(
+      JSON.stringify({ kind: 'c.subscribe', artifactId: '*', subscriptionId: crypto.randomUUID() }),
+    );
   });
 
   ws.addEventListener('message', async (ev: MessageEvent) => {
@@ -154,19 +169,24 @@ function connect(): void {
 
     const title = await artifactTitle(comment.artifactId);
     const who = comment.author.humanId ?? 'human';
-    const body = comment.payload.kind === 'text' ? (comment.payload.text ?? '') : `[${comment.payload.kind}]`;
+    const body =
+      comment.payload.kind === 'text' ? (comment.payload.text ?? '') : `[${comment.payload.kind}]`;
 
     // Render what the operator anchored to, so the agent can see it (not just
     // read the anchor id). Best-effort: null for general anchors / on failure.
     const shot = await captureAnchor(DESK_URL, comment.artifactId, comment.id, comment.anchor);
 
-    log(`forwarding comment ${comment.id} on ${comment.artifactId} from ${who}${shot ? ' (+screenshot)' : ''}`);
+    log(
+      `forwarding comment ${comment.id} on ${comment.artifactId} from ${who}${shot ? ' (+screenshot)' : ''}`,
+    );
     await mcp.notification({
       method: 'notifications/claude/channel',
       params: {
-        content:
-          `Comment on "${title}":\n\n${body}` +
-          (shot ? `\n\nThe operator anchored this to ${describeAnchor(comment.anchor)}. Open this image to see exactly what they selected: ${shot}` : ''),
+        content: `Comment on "${title}":\n\n${body}${
+          shot
+            ? `\n\nThe operator anchored this to ${describeAnchor(comment.anchor)}. Open this image to see exactly what they selected: ${shot}`
+            : ''
+        }`,
         meta: {
           artifact_id: comment.artifactId,
           comment_id: comment.id,

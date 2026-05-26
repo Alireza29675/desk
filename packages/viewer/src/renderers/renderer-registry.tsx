@@ -1,5 +1,5 @@
-import type { ComponentType } from 'react';
 import type { Component } from '@desk/types';
+import type { ComponentType } from 'react';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { CalloutRenderer } from './callout';
 import { ChartRenderer } from './chart';

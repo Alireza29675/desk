@@ -31,7 +31,7 @@ export {
   youtubeEmbedComponent,
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: a plugin collection is heterogeneous in component data type
 export const builtinComponentTypes: ComponentTypePlugin<any>[] = [
   diagramComponent,
   chartComponent,

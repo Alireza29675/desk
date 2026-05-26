@@ -22,7 +22,9 @@ const slides = [2, 4, 5, 6, 7, 8];
 for (const dark of [false, true]) {
   for (const n of slides) {
     const page = await browser.newPage();
-    await page.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }]);
+    await page.emulateMediaFeatures([
+      { name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' },
+    ]);
     await page.goto(`${BASE}/a/${DECK}#slide:${n}`, { waitUntil: 'networkidle0' });
     await wait(700);
     const pager = await page.$eval('.presentation__pager', (e) => e.textContent).catch(() => '?');

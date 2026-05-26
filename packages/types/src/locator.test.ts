@@ -48,12 +48,23 @@ describe('formatLocator', () => {
   });
 
   it('drops segments with an empty kind or value', () => {
-    expect(formatLocator([{ kind: 'slide', value: '' }, { kind: '', value: 'x' }, { kind: 'a', value: '1' }])).toBe('a:1');
+    expect(
+      formatLocator([
+        { kind: 'slide', value: '' },
+        { kind: '', value: 'x' },
+        { kind: 'a', value: '1' },
+      ]),
+    ).toBe('a:1');
   });
 });
 
 describe('round-trip', () => {
-  for (const hash of ['slide:3', 'slide:3/component:s7-code', 'element:rows.3.cells.title', 'q:a%2Fb']) {
+  for (const hash of [
+    'slide:3',
+    'slide:3/component:s7-code',
+    'element:rows.3.cells.title',
+    'q:a%2Fb',
+  ]) {
     it(`format(parse(${hash})) is stable`, () => {
       expect(formatLocator(parseLocator(hash))).toBe(hash);
     });

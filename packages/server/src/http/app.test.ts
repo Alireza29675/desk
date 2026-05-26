@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from 'bun:sqlite';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { DeskService } from '../core/service';
 import { buildRegistry } from '../plugins';
 import { openDatabase } from '../storage/db';
 import { RealtimeHub } from '../ws/hub';
-import { DeskService } from '../core/service';
 import { buildHttpApp } from './app';
 
 const agent = { kind: 'agent', agentId: 'a1', sessionId: 's1' };
@@ -12,20 +12,41 @@ let app: ReturnType<typeof buildHttpApp>;
 
 beforeEach(() => {
   db = openDatabase(':memory:');
-  const service = new DeskService({ db, registry: buildRegistry(), hub: new RealtimeHub(), autoCommitMs: 0 });
+  const service = new DeskService({
+    db,
+    registry: buildRegistry(),
+    hub: new RealtimeHub(),
+    autoCommitMs: 0,
+  });
   app = buildHttpApp(service);
 });
 afterEach(() => db.close());
 
 const post = (path: string, body: unknown) =>
-  app.fetch(new Request(`http://t${path}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+  app.fetch(
+    new Request(`http://t${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  );
 const patch = (path: string, body: unknown) =>
-  app.fetch(new Request(`http://t${path}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }));
+  app.fetch(
+    new Request(`http://t${path}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    }),
+  );
 const del = (path: string) => app.fetch(new Request(`http://t${path}`, { method: 'DELETE' }));
 const get = (path: string) => app.fetch(new Request(`http://t${path}`));
 
 async function createDoc(title = 'Doc') {
-  const res = await post('/api/artifacts', { type: 'enriched-document', author: agent, initialContent: { title, components: [] } });
+  const res = await post('/api/artifacts', {
+    type: 'enriched-document',
+    author: agent,
+    initialContent: { title, components: [] },
+  });
   return (await res.json()) as { id: string; version: number };
 }
 
@@ -41,7 +62,9 @@ describe('HTTP API', () => {
     const list = (await (await get('/api/artifacts')).json()) as { items: { id: string }[] };
     expect(list.items.some((x) => x.id === a.id)).toBe(true);
 
-    const bundle = (await (await get(`/api/a/${a.id}`)).json()) as { artifact: { content: { title: string } } };
+    const bundle = (await (await get(`/api/a/${a.id}`)).json()) as {
+      artifact: { content: { title: string } };
+    };
     expect(bundle.artifact.content.title).toBe('Hello');
   });
 
@@ -53,7 +76,9 @@ describe('HTTP API', () => {
     const a = await createDoc();
     const res = await patch(`/api/a/${a.id}`, { patch: { title: 'Renamed' }, author: agent });
     expect(res.status).toBe(200);
-    const bundle = (await (await get(`/api/a/${a.id}`)).json()) as { artifact: { content: { title: string } } };
+    const bundle = (await (await get(`/api/a/${a.id}`)).json()) as {
+      artifact: { content: { title: string } };
+    };
     expect(bundle.artifact.content.title).toBe('Renamed');
   });
 

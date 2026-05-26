@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import type { HistoryEvent } from '@desk/types';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../state/store';
 
@@ -19,6 +19,7 @@ export function HistoryBar() {
   const [events, setEvents] = useState<HistoryEvent[]>([]);
   const id = open?.artifact.id;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: refetch only on id + liveVersion (a new commit), not on api identity
   useEffect(() => {
     if (!id) return;
     let cancelled = false;
@@ -44,6 +45,7 @@ export function HistoryBar() {
   const current = pinned ?? latest;
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a labelled control group has no clean native element
     <div className="history-bar" role="group" aria-label="Version history">
       <span className="history-bar__label">History</span>
       <div className="history-bar__track">
@@ -52,6 +54,7 @@ export function HistoryBar() {
           const who = e.author.kind === 'human' ? e.author.humanId : e.author.agentId;
           return (
             <button
+              type="button"
               key={e.version}
               className="history-bar__chip"
               data-active={e.version === current ? 'true' : undefined}
@@ -67,7 +70,7 @@ export function HistoryBar() {
       {pinned !== undefined ? (
         <div className="history-bar__pinned">
           <span>Viewing v{pinned} (read-only)</span>
-          <button className="btn btn--ghost btn--sm" onClick={() => scrub(null)}>
+          <button type="button" className="btn btn--ghost btn--sm" onClick={() => scrub(null)}>
             Back to latest →
           </button>
         </div>

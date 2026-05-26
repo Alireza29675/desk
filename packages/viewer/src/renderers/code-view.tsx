@@ -44,7 +44,14 @@ export function CodeViewRenderer({ component }: RendererProps<Data>) {
         <span>{language}</span>
       </div>
       <div className="code-view__body">
-        {html ? <div dangerouslySetInnerHTML={{ __html: html }} /> : <pre><code>{code}</code></pre>}
+        {html ? (
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: trusted Shiki highlighter output
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        ) : (
+          <pre>
+            <code>{code}</code>
+          </pre>
+        )}
       </div>
     </div>
   );

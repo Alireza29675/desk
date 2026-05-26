@@ -1,4 +1,4 @@
-import { formatLocator, parseLocator, type LocatorSegment } from '@desk/types';
+import { type LocatorSegment, formatLocator, parseLocator } from '@desk/types';
 
 /**
  * Tiny history-API router. Desk URLs are unified and shareable:
@@ -28,7 +28,11 @@ export function readLocation(): ParsedLocation {
   return { artifactId: id, version: version ? Number(version) : undefined, segments };
 }
 
-export function artifactPath(id: string, segments: LocatorSegment[] = [], version?: number): string {
+export function artifactPath(
+  id: string,
+  segments: LocatorSegment[] = [],
+  version?: number,
+): string {
   const base = version ? `/a/${id}/v/${version}` : `/a/${id}`;
   const fragment = formatLocator(segments);
   return fragment ? `${base}#${fragment}` : base;

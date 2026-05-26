@@ -1,6 +1,12 @@
-import { type PointerEvent as ReactPointerEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import type { CommentAnchor, ComponentId } from '@desk/types';
-import { useStore } from '../state/store';
+import {
+  type ReactNode,
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   type Fraction,
   type FractionalRect,
@@ -9,6 +15,7 @@ import {
   selectedTextPreview,
   textOffsetsWithin,
 } from '../lib/anchor-geometry';
+import { useStore } from '../state/store';
 
 /**
  * Wraps a rendered component so the operator can anchor a comment to it. Four
@@ -47,7 +54,13 @@ export function Commentable({
   // Live drag rectangle while the region tool is dragging.
   const [drag, setDrag] = useState<{ from: Fraction; to: Fraction } | null>(null);
   // Floating selection pill: where to show it + the offsets it would anchor.
-  const [pill, setPill] = useState<{ x: number; y: number; start: number; end: number; preview: string } | null>(null);
+  const [pill, setPill] = useState<{
+    x: number;
+    y: number;
+    start: number;
+    end: number;
+    preview: string;
+  } | null>(null);
 
   const isTarget = anchorBelongsTo(target, cid);
   const isFocused = anchorBelongsTo(focused, cid);
@@ -79,7 +92,11 @@ export function Commentable({
     const box = boxOf();
     if (!box) return;
     if (mode === 'point') {
-      startComment({ kind: 'point', componentId: cid, offset: fractionalPoint(box, e.clientX, e.clientY) });
+      startComment({
+        kind: 'point',
+        componentId: cid,
+        offset: fractionalPoint(box, e.clientX, e.clientY),
+      });
       setMode(null);
     } else if (mode === 'region' && drag) {
       const rect = fractionalRect(box, drag.from, drag.to);
@@ -136,7 +153,9 @@ export function Commentable({
   // the CSS Highlight registry is a shared keyed map, so a single writer keeps
   // sibling Commentables from clobbering each other's range.
 
-  const liveRect = drag ? fractionalRect({ left: 0, top: 0, width: 1, height: 1 }, drag.from, drag.to) : null;
+  const liveRect = drag
+    ? fractionalRect({ left: 0, top: 0, width: 1, height: 1 }, drag.from, drag.to)
+    : null;
 
   return (
     <div
@@ -156,22 +175,39 @@ export function Commentable({
         {children}
 
         {/* Live drag rectangle while marking a region. */}
-        {liveRect ? <span className="anchor-overlay anchor-overlay--region is-live" style={rectStyle(liveRect)} /> : null}
+        {liveRect ? (
+          <span
+            className="anchor-overlay anchor-overlay--region is-live"
+            style={rectStyle(liveRect)}
+          />
+        ) : null}
 
         {/* Pending spatial anchor (what you're about to comment on). */}
         {isTarget && target?.kind === 'region' && target.region.kind === 'fractional' ? (
-          <span className="anchor-overlay anchor-overlay--region" style={rectStyle(target.region)} />
+          <span
+            className="anchor-overlay anchor-overlay--region"
+            style={rectStyle(target.region)}
+          />
         ) : null}
         {isTarget && target?.kind === 'point' ? (
-          <span className="anchor-overlay anchor-overlay--point" style={pointStyle(target.offset)} />
+          <span
+            className="anchor-overlay anchor-overlay--point"
+            style={pointStyle(target.offset)}
+          />
         ) : null}
 
         {/* Focused spatial anchor (a clicked comment revealing its location). */}
         {isFocused && focused?.kind === 'region' && focused.region.kind === 'fractional' ? (
-          <span className="anchor-overlay anchor-overlay--region is-focused" style={rectStyle(focused.region)} />
+          <span
+            className="anchor-overlay anchor-overlay--region is-focused"
+            style={rectStyle(focused.region)}
+          />
         ) : null}
         {isFocused && focused?.kind === 'point' ? (
-          <span className="anchor-overlay anchor-overlay--point is-focused" style={pointStyle(focused.offset)} />
+          <span
+            className="anchor-overlay anchor-overlay--point is-focused"
+            style={pointStyle(focused.offset)}
+          />
         ) : null}
 
         {/* Capture-mode hint. */}
@@ -183,7 +219,11 @@ export function Commentable({
       </div>
 
       <div className="commentable__tools" role="toolbar" aria-label="Comment anchors">
-        <button className="commentable__tool" title="Comment on this element" onClick={() => startComment({ kind: 'element', componentId: cid })}>
+        <button
+          className="commentable__tool"
+          title="Comment on this element"
+          onClick={() => startComment({ kind: 'element', componentId: cid })}
+        >
           Comment
         </button>
         <button

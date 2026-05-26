@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { AuthorSchema, type Author } from './author';
-import { ArtifactContentSchema, type ArtifactContent } from './artifact';
-import { CommentSchema, type Comment } from './comment';
-import { RelationSchema, type Relation } from './relation';
+import { type ArtifactContent, ArtifactContentSchema } from './artifact';
+import { type Author, AuthorSchema } from './author';
+import { type Comment, CommentSchema } from './comment';
 import type { ArtifactId, HistoryEventId } from './ids';
+import { type Relation, RelationSchema } from './relation';
 
 /**
  * History events — the meaningful changes that enter the append-only log.
@@ -65,9 +65,25 @@ const HistoryEventBaseSchema = {
 };
 
 export const HistoryEventSchema: z.ZodType<HistoryEvent> = z.discriminatedUnion('kind', [
-  z.object({ ...HistoryEventBaseSchema, kind: z.literal('created'), snapshot: ArtifactContentSchema }),
-  z.object({ ...HistoryEventBaseSchema, kind: z.literal('edited'), snapshot: ArtifactContentSchema }),
+  z.object({
+    ...HistoryEventBaseSchema,
+    kind: z.literal('created'),
+    snapshot: ArtifactContentSchema,
+  }),
+  z.object({
+    ...HistoryEventBaseSchema,
+    kind: z.literal('edited'),
+    snapshot: ArtifactContentSchema,
+  }),
   z.object({ ...HistoryEventBaseSchema, kind: z.literal('commented'), comment: CommentSchema }),
-  z.object({ ...HistoryEventBaseSchema, kind: z.literal('relation_added'), relation: RelationSchema }),
-  z.object({ ...HistoryEventBaseSchema, kind: z.literal('relation_removed'), relation: RelationSchema }),
+  z.object({
+    ...HistoryEventBaseSchema,
+    kind: z.literal('relation_added'),
+    relation: RelationSchema,
+  }),
+  z.object({
+    ...HistoryEventBaseSchema,
+    kind: z.literal('relation_removed'),
+    relation: RelationSchema,
+  }),
 ]);

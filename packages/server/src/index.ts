@@ -1,14 +1,14 @@
-import type { ServerWebSocket } from 'bun';
 import { join } from 'node:path';
 import type { DeskPlugin, RealtimeClientMessage, SubscriptionId } from '@desk/types';
 import { RealtimeClientMessageSchema } from '@desk/types';
-import { loadConfig, SERVER_VERSION, type ServerConfig } from './config';
+import type { ServerWebSocket } from 'bun';
+import { SERVER_VERSION, type ServerConfig, loadConfig } from './config';
 import { DeskService } from './core/service';
-import { RealtimeHub, type SubscriberSink } from './ws/hub';
 import { buildHttpApp } from './http/app';
+import { DeskMcpServer, type McpRequest } from './mcp/server';
 import { buildRegistry } from './plugins';
 import { openDatabase } from './storage/db';
-import { DeskMcpServer, type McpRequest } from './mcp/server';
+import { RealtimeHub, type SubscriberSink } from './ws/hub';
 
 export interface StartOptions {
   config?: Partial<ServerConfig>;

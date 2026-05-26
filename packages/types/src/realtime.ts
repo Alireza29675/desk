@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { ArtifactSchema, type Artifact } from './artifact';
-import { CommentSchema, type Comment } from './comment';
-import { RelationSchema, type Relation } from './relation';
-import { HistoryEventSchema, type HistoryEvent } from './history';
+import { type Artifact, ArtifactSchema } from './artifact';
+import { type Comment, CommentSchema } from './comment';
+import { type HistoryEvent, HistoryEventSchema } from './history';
 import type { ArtifactId, CommentId, SubscriptionId } from './ids';
+import { type Relation, RelationSchema } from './relation';
 
 /**
  * The bidirectional realtime envelope shared by agents (over MCP-bound

@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Kbd } from './Kbd';
-import { useStore } from '../state/store';
 import { absoluteUrl, artifactPath } from '../lib/router';
+import { useStore } from '../state/store';
+import { Kbd } from './Kbd';
 
 export function Topbar({
   onOpenPalette,
@@ -42,7 +42,12 @@ export function Topbar({
   return (
     <div className="topbar">
       <div className="topbar__left">
-        <button className="topbar__icon topbar__mobile-only" onClick={onToggleNav} aria-label="Toggle artifacts" title="Artifacts">
+        <button
+          className="topbar__icon topbar__mobile-only"
+          onClick={onToggleNav}
+          aria-label="Toggle artifacts"
+          title="Artifacts"
+        >
           ☰
         </button>
         {open ? (
@@ -87,7 +92,12 @@ export function Topbar({
           {theme === 'dark' ? '☀' : '☾'}
         </button>
         {open ? (
-          <button className="topbar__icon topbar__mobile-only" onClick={onToggleComments} aria-label="Toggle comments" title="Comments">
+          <button
+            className="topbar__icon topbar__mobile-only"
+            onClick={onToggleComments}
+            aria-label="Toggle comments"
+            title="Comments"
+          >
             💬
           </button>
         ) : null}

@@ -1,8 +1,8 @@
+import type { ArtifactId, Author, Comment, CommentAnchor } from '@desk/types';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { useStore } from '../state/store';
 import { RelationsSection } from './RelationsSection';
-import type { ArtifactId, Author, Comment, CommentAnchor } from '@desk/types';
 
 export function CommentRail() {
   const open = useStore((s) => s.open);
@@ -42,7 +42,8 @@ export function CommentRail() {
       <div className="comment-rail__list">
         {roots.length === 0 ? (
           <p className="comment-rail__empty">
-            No comments yet. Hover any element and click “Comment” to anchor one, or leave a general note below.
+            No comments yet. Hover any element and click “Comment” to anchor one, or leave a general
+            note below.
           </p>
         ) : (
           roots.map((c) => (
@@ -62,7 +63,11 @@ export function CommentRail() {
             <span>
               Commenting on <code>{describeAnchor(commentTarget)}</code>
             </span>
-            <button className="comment-rail__target-clear" onClick={clearCommentTarget} title="Make it a general comment">
+            <button
+              className="comment-rail__target-clear"
+              onClick={clearCommentTarget}
+              title="Make it a general comment"
+            >
               ✕
             </button>
           </div>
@@ -70,7 +75,11 @@ export function CommentRail() {
         <textarea
           ref={textareaRef}
           className="comment-rail__textarea"
-          placeholder={commentTarget && commentTarget.kind !== 'general' ? `Comment on this ${commentTarget.kind === 'text-selection' ? 'selection' : commentTarget.kind}…` : 'Leave a general comment…'}
+          placeholder={
+            commentTarget && commentTarget.kind !== 'general'
+              ? `Comment on this ${commentTarget.kind === 'text-selection' ? 'selection' : commentTarget.kind}…`
+              : 'Leave a general comment…'
+          }
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -184,7 +193,9 @@ function CommentCard({
           ⌖ {describeAnchor(comment.anchor)}
         </button>
       ) : null}
-      {comment.payload.kind === 'text' ? <div className="comment__body">{comment.payload.text}</div> : null}
+      {comment.payload.kind === 'text' ? (
+        <div className="comment__body">{comment.payload.text}</div>
+      ) : null}
 
       <div className="comment__actions">
         <button className="comment__reply-btn" onClick={() => setReplying((v) => !v)}>
@@ -205,7 +216,6 @@ function CommentCard({
             className="comment-rail__textarea"
             placeholder={`Reply to ${who}…`}
             value={text}
-            autoFocus
             rows={2}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => {
@@ -218,7 +228,11 @@ function CommentCard({
           />
           <div className="comment-rail__composer-row">
             <span className="comment-rail__hint">⌘+Enter to reply · Esc to cancel</span>
-            <button className="btn btn--primary btn--sm" disabled={!text.trim()} onClick={submitReply}>
+            <button
+              className="btn btn--primary btn--sm"
+              disabled={!text.trim()}
+              onClick={submitReply}
+            >
               Reply
             </button>
           </div>

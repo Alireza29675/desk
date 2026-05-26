@@ -24,8 +24,14 @@ export function ChecklistRenderer({ component }: RendererProps<Data>) {
               {item.checked ? '✓' : ''}
             </span>
             <div>
-              <span className="checklist__label" data-checked={String(item.checked)}>{item.label}</span>
-              {item.note ? <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-subtle)' }}>{item.note}</div> : null}
+              <span className="checklist__label" data-checked={String(item.checked)}>
+                {item.label}
+              </span>
+              {item.note ? (
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-subtle)' }}>
+                  {item.note}
+                </div>
+              ) : null}
             </div>
           </li>
         ))}

@@ -1,9 +1,9 @@
 #!/usr/bin/env bun
 import { startServer } from '@desk/server';
-import { runMcp } from './commands/mcp';
-import { runWhere } from './commands/where';
 import { runDoctor } from './commands/doctor';
 import { printHelp } from './commands/help';
+import { runMcp } from './commands/mcp';
+import { runWhere } from './commands/where';
 
 async function main(): Promise<void> {
   const [, , command, ...rest] = process.argv;

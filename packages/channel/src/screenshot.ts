@@ -128,7 +128,11 @@ function clipForAnchor(
 }
 
 /** For presentations, the deep-link hash that lands on the component's slide. */
-async function slideHash(deskUrl: string, artifactId: string, componentId: string): Promise<string> {
+async function slideHash(
+  deskUrl: string,
+  artifactId: string,
+  componentId: string,
+): Promise<string> {
   try {
     const res = await fetch(`${deskUrl}/api/a/${artifactId}`);
     if (!res.ok) return '';
@@ -154,7 +158,10 @@ async function waitForDiagrams(page: Awaited<ReturnType<Browser['newPage']>>): P
     const hasDiagram = (await page.$('.diagram')) !== null;
     if (!hasDiagram) return;
     await page.waitForFunction(
-      () => Array.from(document.querySelectorAll('.diagram')).every((d) => d.getAttribute('data-status') !== 'loading'),
+      () =>
+        Array.from(document.querySelectorAll('.diagram')).every(
+          (d) => d.getAttribute('data-status') !== 'loading',
+        ),
       { timeout: 6000 },
     );
   } catch {

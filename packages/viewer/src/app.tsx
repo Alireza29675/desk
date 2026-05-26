@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useStore } from './state/store';
-import { useAnchorHighlights } from './state/use-anchor-highlights';
-import { Sidebar } from './components/Sidebar';
-import { Topbar } from './components/Topbar';
 import { CommandPalette } from './components/CommandPalette';
 import { CommentRail } from './components/CommentRail';
 import { HistoryBar } from './components/HistoryBar';
+import { Sidebar } from './components/Sidebar';
+import { Topbar } from './components/Topbar';
+import { useStore } from './state/store';
+import { useAnchorHighlights } from './state/use-anchor-highlights';
 import { DocumentView } from './views/DocumentView';
-import { PresentationView } from './views/PresentationView';
 import { EmptyState, NotFoundState } from './views/EmptyState';
+import { PresentationView } from './views/PresentationView';
 import './styles/app.css';
 
 export function App() {
@@ -89,7 +89,12 @@ export function App() {
       </main>
       {open ? <CommentRail /> : null}
       {panel ? (
-        <button className="mobile-backdrop" aria-label="Close panel" onClick={() => setPanel(null)} />
+        <button
+          type="button"
+          className="mobile-backdrop"
+          aria-label="Close panel"
+          onClick={() => setPanel(null)}
+        />
       ) : null}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </div>

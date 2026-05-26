@@ -41,6 +41,8 @@ export const diagramComponent = defineComponent({
       label: `Edge ${name}`,
       kind: 'edge' as const,
     })),
-    ...(component.data.caption ? [{ path: 'caption', label: 'Caption', kind: 'text' as const }] : []),
+    ...(component.data.caption
+      ? [{ path: 'caption', label: 'Caption', kind: 'text' as const }]
+      : []),
   ],
 });

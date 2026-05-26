@@ -1,9 +1,5 @@
 import type { Database } from 'bun:sqlite';
-import type {
-  ArtifactId,
-  HistoryEvent,
-  HistoryEventId,
-} from '@desk/types';
+import type { ArtifactId, HistoryEvent, HistoryEventId } from '@desk/types';
 
 interface HistoryRow {
   id: string;
@@ -70,7 +66,10 @@ export class HistoryRepository {
       );
   }
 
-  list(artifactId: ArtifactId, range?: { from?: number; to?: number; limit?: number }): HistoryEvent[] {
+  list(
+    artifactId: ArtifactId,
+    range?: { from?: number; to?: number; limit?: number },
+  ): HistoryEvent[] {
     const where: string[] = ['artifact_id = ?'];
     const params: (string | number)[] = [artifactId];
     if (range?.from !== undefined) {
@@ -81,11 +80,11 @@ export class HistoryRepository {
       where.push('version <= ?');
       params.push(range.to);
     }
-    const sql =
-      `SELECT * FROM history_events WHERE ${where.join(' AND ')} ` +
-      `ORDER BY version ASC, created_at ASC ` +
-      `LIMIT ${Math.min(range?.limit ?? 500, 5000)}`;
-    return this.db.query<HistoryRow, typeof params>(sql).all(...params).map(rowToEvent);
+    const sql = `SELECT * FROM history_events WHERE ${where.join(' AND ')} ORDER BY version ASC, created_at ASC LIMIT ${Math.min(range?.limit ?? 500, 5000)}`;
+    return this.db
+      .query<HistoryRow, typeof params>(sql)
+      .all(...params)
+      .map(rowToEvent);
   }
 
   /** Find the most recent committed snapshot at or before `version`. */

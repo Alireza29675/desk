@@ -54,7 +54,9 @@ for (const dark of [false, true]) {
   await p.reload({ waitUntil: 'networkidle0' });
   await wait(300);
   const theme = await p.evaluate(() => document.documentElement.dataset.theme);
-  console.log(`#18 persistence: stored=light, system=dark -> resolved=${theme} (${theme === 'light' ? 'PASS' : 'FAIL'})`);
+  console.log(
+    `#18 persistence: stored=light, system=dark -> resolved=${theme} (${theme === 'light' ? 'PASS' : 'FAIL'})`,
+  );
   await p.evaluate(() => localStorage.removeItem('desk-theme'));
   await p.close();
 }
@@ -73,7 +75,12 @@ for (const dark of [false, true]) {
     const last = cards[cards.length - 1] as HTMLElement | undefined;
     const lastBottom = last?.getBoundingClientRect().bottom ?? 0;
     const composerTop = composer.getBoundingClientRect().top;
-    return { ok: true, lastBottom: Math.round(lastBottom), composerTop: Math.round(composerTop), clears: lastBottom <= composerTop + 1 };
+    return {
+      ok: true,
+      lastBottom: Math.round(lastBottom),
+      composerTop: Math.round(composerTop),
+      clears: lastBottom <= composerTop + 1,
+    };
   });
   await wait(200);
   await p.screenshot({ path: `${OUT}/comments-scrolled.png` });

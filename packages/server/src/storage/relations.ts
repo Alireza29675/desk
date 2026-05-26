@@ -1,11 +1,5 @@
 import type { Database } from 'bun:sqlite';
-import type {
-  ArtifactId,
-  Relation,
-  RelationGraph,
-  RelationId,
-  RelationType,
-} from '@desk/types';
+import type { ArtifactId, Relation, RelationGraph, RelationId, RelationType } from '@desk/types';
 
 interface RelationRow {
   id: string;

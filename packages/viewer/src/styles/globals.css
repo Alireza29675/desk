@@ -1,5 +1,5 @@
-@import './tokens.css';
-@import './reset.css';
+@import "./tokens.css";
+@import "./reset.css";
 
 html {
   font-family: var(--font-sans);
@@ -7,7 +7,7 @@ html {
   line-height: var(--leading-normal);
   color: var(--color-text);
   background: var(--color-bg);
-  font-feature-settings: 'cv11', 'ss01', 'ss03', 'calt';
+  font-feature-settings: "cv11", "ss01", "ss03", "calt";
 }
 
 body {

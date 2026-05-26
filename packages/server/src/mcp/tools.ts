@@ -1,5 +1,3 @@
-import { z } from 'zod';
-import type { DeskService } from '../core/service';
 import type {
   ArtifactId,
   CommentAnchor,
@@ -13,6 +11,8 @@ import {
   CommentAnchorSchema,
   CommentPayloadSchema,
 } from '@desk/types';
+import { z } from 'zod';
+import type { DeskService } from '../core/service';
 
 /**
  * Each tool: input schema, the call into `DeskService`, and a small JSON
@@ -31,9 +31,11 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
     {
       name: 'create_artifact',
       description:
-        'Create a new artifact of the given type. `initial_content` is optional; if omitted, the artifact-type plugin\'s empty content is used. Returns the artifact, including its id and current version.',
+        "Create a new artifact of the given type. `initial_content` is optional; if omitted, the artifact-type plugin's empty content is used. Returns the artifact, including its id and current version.",
       inputSchema: z.object({
-        type: z.string().describe('Plugin-registered artifact type, e.g. "enriched-document" or "presentation".'),
+        type: z
+          .string()
+          .describe('Plugin-registered artifact type, e.g. "enriched-document" or "presentation".'),
         author: AuthorSchema,
         initial_content: z
           .object({ title: z.string().optional(), components: z.array(z.unknown()).optional() })
@@ -45,7 +47,9 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
           .object({
             type: z.string(),
             author: AuthorSchema,
-            initial_content: z.object({ title: z.string().optional(), components: z.array(z.unknown()).optional() }).optional(),
+            initial_content: z
+              .object({ title: z.string().optional(), components: z.array(z.unknown()).optional() })
+              .optional(),
             reason: z.string().optional(),
           })
           .parse(input);
@@ -61,7 +65,7 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
     {
       name: 'update_artifact',
       description:
-        'Apply a patch to an artifact\'s working state. Working-state changes do not enter the history log until they are committed (explicitly via `commit`, or automatically after 2s of idle). Returns the updated artifact.',
+        "Apply a patch to an artifact's working state. Working-state changes do not enter the history log until they are committed (explicitly via `commit`, or automatically after 2s of idle). Returns the updated artifact.",
       inputSchema: z.object({
         id: z.string(),
         patch: ArtifactPatchSchema,
@@ -113,7 +117,9 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
         'Fetch an artifact. Returns the current state by default; pass `version` to time-travel to a past committed snapshot.',
       inputSchema: z.object({ id: z.string(), version: z.number().int().nonnegative().optional() }),
       handler: (input) => {
-        const parsed = z.object({ id: z.string(), version: z.number().int().nonnegative().optional() }).parse(input);
+        const parsed = z
+          .object({ id: z.string(), version: z.number().int().nonnegative().optional() })
+          .parse(input);
         return {
           artifact: service.getArtifact(parsed.id as ArtifactId, parsed.version),
           relations: service.getRelations(parsed.id as ArtifactId),
@@ -131,7 +137,13 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
         offset: z.number().int().nonnegative().optional(),
       }),
       handler: (input) => {
-        const parsed = z.object({ type: z.string().optional(), limit: z.number().optional(), offset: z.number().optional() }).parse(input);
+        const parsed = z
+          .object({
+            type: z.string().optional(),
+            limit: z.number().optional(),
+            offset: z.number().optional(),
+          })
+          .parse(input);
         return { items: service.listArtifacts(parsed) };
       },
     },
@@ -139,7 +151,10 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
     {
       name: 'search_artifacts',
       description: 'Full-text + structural search across artifact title and content.',
-      inputSchema: z.object({ query: z.string().min(1), limit: z.number().int().positive().max(100).optional() }),
+      inputSchema: z.object({
+        query: z.string().min(1),
+        limit: z.number().int().positive().max(100).optional(),
+      }),
       handler: (input) => {
         const parsed = z.object({ query: z.string(), limit: z.number().optional() }).parse(input);
         return { items: service.searchArtifacts(parsed.query, parsed.limit) };
@@ -149,8 +164,11 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
     {
       name: 'find_similar',
       description:
-        'Content-based similarity. Returns artifacts whose text overlaps the target\'s. v1 is keyword-overlap; the backend can be swapped for a vector engine without affecting the tool surface.',
-      inputSchema: z.object({ id: z.string(), limit: z.number().int().positive().max(50).optional() }),
+        "Content-based similarity. Returns artifacts whose text overlaps the target's. v1 is keyword-overlap; the backend can be swapped for a vector engine without affecting the tool surface.",
+      inputSchema: z.object({
+        id: z.string(),
+        limit: z.number().int().positive().max(50).optional(),
+      }),
       handler: (input) => {
         const parsed = z.object({ id: z.string(), limit: z.number().optional() }).parse(input);
         return { items: service.findSimilar(parsed.id as ArtifactId, parsed.limit) };
@@ -177,7 +195,9 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
         type: z.string().min(1),
       }),
       handler: (input) => {
-        const parsed = z.object({ from_id: z.string(), to_id: z.string(), type: z.string() }).parse(input);
+        const parsed = z
+          .object({ from_id: z.string(), to_id: z.string(), type: z.string() })
+          .parse(input);
         return service.addRelation({
           from: parsed.from_id as ArtifactId,
           to: parsed.to_id as ArtifactId,
@@ -195,13 +215,16 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
         type: z.string().min(1),
       }),
       handler: (input) => {
-        const parsed = z.object({ from_id: z.string(), to_id: z.string(), type: z.string() }).parse(input);
+        const parsed = z
+          .object({ from_id: z.string(), to_id: z.string(), type: z.string() })
+          .parse(input);
         return {
-          removed: service.removeRelation({
-            from: parsed.from_id as ArtifactId,
-            to: parsed.to_id as ArtifactId,
-            type: parsed.type,
-          }) ?? null,
+          removed:
+            service.removeRelation({
+              from: parsed.from_id as ArtifactId,
+              to: parsed.to_id as ArtifactId,
+              type: parsed.type,
+            }) ?? null,
         };
       },
     },
@@ -232,14 +255,17 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
           anchor: parsed.anchor as CommentAnchor,
           payload: parsed.body as CommentPayload,
           author: parsed.author,
-          ...(parsed.thread_parent_id ? { threadParentId: parsed.thread_parent_id as CommentId } : {}),
+          ...(parsed.thread_parent_id
+            ? { threadParentId: parsed.thread_parent_id as CommentId }
+            : {}),
         });
       },
     },
 
     {
       name: 'get_history',
-      description: 'Fetch the append-only history log for an artifact, with optional version range.',
+      description:
+        'Fetch the append-only history log for an artifact, with optional version range.',
       inputSchema: z.object({
         id: z.string(),
         from: z.number().int().nonnegative().optional(),
@@ -247,7 +273,14 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
         limit: z.number().int().positive().max(5000).optional(),
       }),
       handler: (input) => {
-        const parsed = z.object({ id: z.string(), from: z.number().optional(), to: z.number().optional(), limit: z.number().optional() }).parse(input);
+        const parsed = z
+          .object({
+            id: z.string(),
+            from: z.number().optional(),
+            to: z.number().optional(),
+            limit: z.number().optional(),
+          })
+          .parse(input);
         return { events: service.getHistory(parsed.id as ArtifactId, parsed) };
       },
     },

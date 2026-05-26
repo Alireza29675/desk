@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import type { DeskService } from '../core/service';
-import { buildMcpTools, type DeskMcpTool } from './tools';
 import { SERVER_VERSION } from '../config';
+import type { DeskService } from '../core/service';
+import { type DeskMcpTool, buildMcpTools } from './tools';
 
 /**
  * Minimal MCP-over-HTTP implementation matching the JSON-RPC 2.0 shape of
@@ -101,13 +101,15 @@ function zodToJsonSchema(schema: z.ZodTypeAny): unknown {
   if (schema instanceof z.ZodString) return { type: 'string' };
   if (schema instanceof z.ZodNumber) return { type: 'number' };
   if (schema instanceof z.ZodBoolean) return { type: 'boolean' };
-  if (schema instanceof z.ZodArray) return { type: 'array', items: zodToJsonSchema(schema.element) };
+  if (schema instanceof z.ZodArray)
+    return { type: 'array', items: zodToJsonSchema(schema.element) };
   if (schema instanceof z.ZodUnion || schema instanceof z.ZodDiscriminatedUnion) {
     const options = (schema as unknown as { options: z.ZodTypeAny[] }).options ?? [];
     return { anyOf: options.map(zodToJsonSchema) };
   }
   if (schema instanceof z.ZodLiteral) return { const: (schema as z.ZodLiteral<unknown>).value };
-  if (schema instanceof z.ZodEnum) return { type: 'string', enum: (schema as z.ZodEnum<[string, ...string[]]>).options };
+  if (schema instanceof z.ZodEnum)
+    return { type: 'string', enum: (schema as z.ZodEnum<[string, ...string[]]>).options };
   if (schema instanceof z.ZodRecord) return { type: 'object', additionalProperties: true };
   return {};
 }

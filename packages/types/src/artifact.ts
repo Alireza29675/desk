@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { AuthorSchema, type Author } from './author';
-import { ComponentSchema, type Component } from './component';
+import { type Author, AuthorSchema } from './author';
+import { type Component, ComponentSchema } from './component';
 import type { AgentId, ArtifactId, SessionId } from './ids';
 
 /**

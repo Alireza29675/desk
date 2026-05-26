@@ -24,15 +24,15 @@ export const tableComponent = defineComponent({
   serialize: (component) => ({ id: component.id, ...component.data }),
   describeElements: (component) => {
     const cells: { path: string; label: string; kind: 'cell' }[] = [];
-    component.data.rows.forEach((row, rowIndex) => {
-      component.data.columns.forEach((col) => {
+    for (const [rowIndex] of component.data.rows.entries()) {
+      for (const col of component.data.columns) {
         cells.push({
           path: `rows.${rowIndex}.cells.${col.key}`,
           label: `Row ${rowIndex + 1}, ${col.label}`,
           kind: 'cell',
         });
-      });
-    });
+      }
+    }
     return cells;
   },
 });

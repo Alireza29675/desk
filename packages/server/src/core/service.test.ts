@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { Database } from 'bun:sqlite';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { ArtifactId, Author, Component, RealtimeServerMessage } from '@desk/types';
 import { buildRegistry } from '../plugins';
 import { openDatabase } from '../storage/db';
@@ -47,7 +47,11 @@ describe('DeskService — artifact lifecycle', () => {
   test('createArtifact rejects content that fails component validation', () => {
     const bad = { id: 'x', type: 'callout', data: {} } as unknown as Component;
     expect(() =>
-      svc.createArtifact({ type: 'enriched-document', author: agent, initialContent: { title: 'X', components: [bad] } }),
+      svc.createArtifact({
+        type: 'enriched-document',
+        author: agent,
+        initialContent: { title: 'X', components: [bad] },
+      }),
     ).toThrow();
   });
 
@@ -71,7 +75,11 @@ describe('DeskService — artifact lifecycle', () => {
   });
 
   test('time-travel: getArtifact at an old version returns that snapshot', () => {
-    const a = svc.createArtifact({ type: 'enriched-document', author: agent, initialContent: { title: 'one', components: [] } });
+    const a = svc.createArtifact({
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'one', components: [] },
+    });
     svc.patchArtifact({ id: a.id, patch: { title: 'two' }, author: agent });
     svc.commit(a.id, agent);
     expect(svc.getArtifact(a.id).content.title).toBe('two');
@@ -91,10 +99,22 @@ describe('DeskService — artifact lifecycle', () => {
     // bodyHit mentions the term only in component text
     svc.patchArtifact({
       id: bodyHit.id,
-      patch: { components: [{ id: 'c1', type: 'callout', data: { tone: 'info', title: 'x', body: 'a kangaroo appears' } } as unknown as Component] },
+      patch: {
+        components: [
+          {
+            id: 'c1',
+            type: 'callout',
+            data: { tone: 'info', title: 'x', body: 'a kangaroo appears' },
+          } as unknown as Component,
+        ],
+      },
       author: agent,
     });
-    const titleHit = svc.createArtifact({ type: 'enriched-document', author: agent, initialContent: { title: 'Kangaroo report', components: [] } });
+    const titleHit = svc.createArtifact({
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'Kangaroo report', components: [] },
+    });
     const results = svc.searchArtifacts('kangaroo', 10);
     expect(results[0]?.id).toBe(titleHit.id);
   });
@@ -104,14 +124,24 @@ describe('DeskService — comments & anchors', () => {
   test('a general comment posts and emits s.commented', () => {
     const a = svc.createArtifact({ type: 'enriched-document', author: agent });
     events.length = 0;
-    svc.postComment({ artifactId: a.id, anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' }, author: agent });
+    svc.postComment({
+      artifactId: a.id,
+      anchor: { kind: 'general' },
+      payload: { kind: 'text', text: 'hi' },
+      author: agent,
+    });
     expect(kinds()).toContain('s.commented');
     expect(svc.listComments(a.id)).toHaveLength(1);
   });
 
   test('resolving a comment persists the flag and emits s.comment_resolved', () => {
     const a = svc.createArtifact({ type: 'enriched-document', author: agent });
-    const comment = svc.postComment({ artifactId: a.id, anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' }, author: agent });
+    const comment = svc.postComment({
+      artifactId: a.id,
+      anchor: { kind: 'general' },
+      payload: { kind: 'text', text: 'hi' },
+      author: agent,
+    });
     events.length = 0;
     svc.resolveComment(comment.id, true);
     expect(kinds()).toContain('s.comment_resolved');
@@ -132,11 +162,21 @@ describe('DeskService — comments & anchors', () => {
     });
     // valid
     expect(() =>
-      svc.postComment({ artifactId: a.id, anchor: { kind: 'element', componentId: 'c1' as never }, payload: { kind: 'text', text: 'ok' }, author: agent }),
+      svc.postComment({
+        artifactId: a.id,
+        anchor: { kind: 'element', componentId: 'c1' as never },
+        payload: { kind: 'text', text: 'ok' },
+        author: agent,
+      }),
     ).not.toThrow();
     // dangling
     expect(() =>
-      svc.postComment({ artifactId: a.id, anchor: { kind: 'element', componentId: 'nope' as never }, payload: { kind: 'text', text: 'no' }, author: agent }),
+      svc.postComment({
+        artifactId: a.id,
+        anchor: { kind: 'element', componentId: 'nope' as never },
+        payload: { kind: 'text', text: 'no' },
+        author: agent,
+      }),
     ).toThrow();
   });
 });
@@ -166,9 +206,15 @@ describe('DeskService — delete', () => {
 
   test('delete cascades to the artifact’s comments and history rows', () => {
     const a = svc.createArtifact({ type: 'enriched-document', author: agent });
-    svc.postComment({ artifactId: a.id, anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' }, author: agent });
+    svc.postComment({
+      artifactId: a.id,
+      anchor: { kind: 'general' },
+      payload: { kind: 'text', text: 'hi' },
+      author: agent,
+    });
     const count = (table: string) =>
-      (db.query(`SELECT count(*) c FROM ${table} WHERE artifact_id = ?`).get(a.id) as { c: number }).c;
+      (db.query(`SELECT count(*) c FROM ${table} WHERE artifact_id = ?`).get(a.id) as { c: number })
+        .c;
     expect(count('comments')).toBe(1);
     expect(count('history_events')).toBeGreaterThan(0);
     svc.deleteArtifact(a.id);

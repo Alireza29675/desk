@@ -32,7 +32,8 @@ export function NotFoundState({ id }: { id: string }) {
         <div className="empty-state__mark" aria-hidden />
         <h2 className="empty-state__title serif-accent">That artifact isn’t here.</h2>
         <p className="empty-state__sub">
-          Nothing is stored under <code>{id}</code>. It may have been removed, or the link is out of date.
+          Nothing is stored under <code>{id}</code>. It may have been removed, or the link is out of
+          date.
         </p>
         <div className="empty-state__row">
           <button className="btn btn--ghost btn--sm" onClick={closeArtifact}>

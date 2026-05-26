@@ -17,18 +17,13 @@ import type {
   RelationType,
   SubscriptionId,
 } from '@desk/types';
+import { newArtifactId, newCommentId, newHistoryEventId, newRelationId } from '../ids';
 import { ArtifactRepository } from '../storage/artifacts';
 import { CommentRepository } from '../storage/comments';
 import { HistoryRepository } from '../storage/history';
 import { RelationRepository } from '../storage/relations';
-import { ALL_ARTIFACTS, RealtimeHub, type SubscriberSink } from '../ws/hub';
+import { ALL_ARTIFACTS, type RealtimeHub, type SubscriberSink } from '../ws/hub';
 import { CommitDebouncer } from './commit-debouncer';
-import {
-  newArtifactId,
-  newCommentId,
-  newHistoryEventId,
-  newRelationId,
-} from '../ids';
 import { illegalState, notFound, unknownPlugin, validationFailed } from './errors';
 
 export interface DeskServiceOptions {
@@ -216,14 +211,20 @@ export class DeskService {
     if (!target) throw notFound(`Artifact "${id}" not found.`);
     const tokens = uniqueTokens(`${target.content.title} ${flattenStrings(target.content)}`);
     if (tokens.length === 0) return [];
-    const query = tokens.slice(0, 8).map((t) => `"${t}"`).join(' OR ');
+    const query = tokens
+      .slice(0, 8)
+      .map((t) => `"${t}"`)
+      .join(' OR ');
     return this.artifacts
       .search(query, limit + 1)
       .filter((a) => a.id !== id)
       .slice(0, limit);
   }
 
-  getHistory(id: ArtifactId, range?: { from?: number; to?: number; limit?: number }): HistoryEvent[] {
+  getHistory(
+    id: ArtifactId,
+    range?: { from?: number; to?: number; limit?: number },
+  ): HistoryEvent[] {
     if (!this.artifacts.get(id)) throw notFound(`Artifact "${id}" not found.`);
     return this.history.list(id, range);
   }
@@ -283,7 +284,12 @@ export class DeskService {
     const comment = this.comments.get(commentId);
     if (!comment) throw notFound(`Comment "${commentId}" not found.`);
     this.comments.setResolved(commentId, resolved);
-    this.hub.publish({ kind: 's.comment_resolved', artifactId: comment.artifactId, commentId, resolved });
+    this.hub.publish({
+      kind: 's.comment_resolved',
+      artifactId: comment.artifactId,
+      commentId,
+      resolved,
+    });
   }
 
   // ─── relations ───────────────────────────────────────────────────────
@@ -292,7 +298,8 @@ export class DeskService {
     if (!this.artifacts.get(input.from)) throw notFound(`Artifact "${input.from}" not found.`);
     if (!this.artifacts.get(input.to)) throw notFound(`Artifact "${input.to}" not found.`);
     if (input.from === input.to) throw validationFailed('Self-relations are not allowed.');
-    if (!this.registry.relationType(input.type)) throw unknownPlugin(`Unknown relation type "${input.type}".`);
+    if (!this.registry.relationType(input.type))
+      throw unknownPlugin(`Unknown relation type "${input.type}".`);
 
     const now = new Date().toISOString();
     const relation: Relation = {
@@ -308,7 +315,9 @@ export class DeskService {
     return relation;
   }
 
-  removeRelation(input: { from: ArtifactId; to: ArtifactId; type: RelationType }): Relation | undefined {
+  removeRelation(input: { from: ArtifactId; to: ArtifactId; type: RelationType }):
+    | Relation
+    | undefined {
     const removed = this.relations.remove(input.from, input.to, input.type);
     if (removed) {
       this.hub.publish({ kind: 's.relation_removed', artifactId: input.from, relation: removed });
@@ -368,11 +377,12 @@ function addContributor<T extends { author: Author; firstTouchedAt: string }>(
   author: Author,
   at: string,
 ): T[] {
-  const exists = contributors.some((c) =>
-    c.author.kind === author.kind &&
-    (author.kind === 'agent'
-      ? c.author.kind === 'agent' && c.author.agentId === author.agentId
-      : c.author.kind === 'human' && c.author.humanId === author.humanId),
+  const exists = contributors.some(
+    (c) =>
+      c.author.kind === author.kind &&
+      (author.kind === 'agent'
+        ? c.author.kind === 'agent' && c.author.agentId === author.agentId
+        : c.author.kind === 'human' && c.author.humanId === author.humanId),
   );
   if (exists) return contributors;
   return [...contributors, { author, firstTouchedAt: at } as T];

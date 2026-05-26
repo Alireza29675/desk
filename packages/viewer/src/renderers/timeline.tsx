@@ -26,7 +26,9 @@ export function TimelineRenderer({ component }: RendererProps<Data>) {
             <div>
               <div style={{ fontWeight: 500 }}>{event.label}</div>
               {event.note ? (
-                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>{event.note}</div>
+                <div style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
+                  {event.note}
+                </div>
               ) : null}
             </div>
           </div>

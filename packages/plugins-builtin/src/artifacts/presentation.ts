@@ -21,7 +21,9 @@ export const slideBreakComponent = defineComponent({
   }),
   serialize: (component) => ({ id: component.id, ...component.data }),
   describeElements: (component) => [
-    ...(component.data.title ? [{ path: 'title', label: 'Slide title', kind: 'text' as const }] : []),
+    ...(component.data.title
+      ? [{ path: 'title', label: 'Slide title', kind: 'text' as const }]
+      : []),
     ...(component.data.speakerNotes
       ? [{ path: 'speakerNotes', label: 'Speaker notes', kind: 'text' as const }]
       : []),

@@ -30,6 +30,7 @@ export function TableRenderer({ component }: RendererProps<Data>) {
           </thead>
           <tbody>
             {rows.map((row, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: table rows render in fixed source order
               <tr key={i}>
                 {columns.map((c) => (
                   <td key={c.key} data-align={c.align ?? 'left'}>

@@ -84,7 +84,9 @@ export function openDatabase(path: string): Database {
 }
 
 function migrate(db: Database): void {
-  const current = Number((db.query<{ user_version: number }, []>('PRAGMA user_version').get())?.user_version ?? 0);
+  const current = Number(
+    db.query<{ user_version: number }, []>('PRAGMA user_version').get()?.user_version ?? 0,
+  );
   for (let i = current; i < MIGRATIONS.length; i++) {
     db.transaction(() => {
       MIGRATIONS[i]!(db);

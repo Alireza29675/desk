@@ -1,4 +1,3 @@
-import { customAlphabet } from 'nanoid';
 import type {
   ArtifactId,
   CommentId,
@@ -7,6 +6,7 @@ import type {
   RelationId,
   SubscriptionId,
 } from '@desk/types';
+import { customAlphabet } from 'nanoid';
 
 /**
  * Crockford-style base32 (no I/L/O/U). 14 chars ≈ 70 bits of entropy — plenty

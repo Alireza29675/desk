@@ -21,8 +21,20 @@ export function RelationsSection({ relations }: { relations: RelationGraph }) {
   const titleOf = (id: string) => artifacts.find((a) => a.id === id)?.content.title ?? id;
 
   const rows = [
-    ...relations.outgoing.map((r) => ({ id: r.id, dir: '↗' as const, otherId: r.to, type: r.type, incoming: false })),
-    ...relations.incoming.map((r) => ({ id: r.id, dir: '↙' as const, otherId: r.from, type: r.type, incoming: true })),
+    ...relations.outgoing.map((r) => ({
+      id: r.id,
+      dir: '↗' as const,
+      otherId: r.to,
+      type: r.type,
+      incoming: false,
+    })),
+    ...relations.incoming.map((r) => ({
+      id: r.id,
+      dir: '↙' as const,
+      otherId: r.from,
+      type: r.type,
+      incoming: true,
+    })),
   ];
   if (rows.length === 0) return null;
 
@@ -33,6 +45,7 @@ export function RelationsSection({ relations }: { relations: RelationGraph }) {
         {rows.map((row) => (
           <li key={row.id}>
             <button
+              type="button"
               className="relations__item"
               title={`${row.incoming ? 'Incoming' : 'Outgoing'} · ${label(row.type)}`}
               onClick={() => openArtifact(row.otherId as ArtifactId)}

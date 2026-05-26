@@ -32,7 +32,9 @@ const browser = await puppeteer.launch({
   await page.keyboard.type('improve');
   await wait(400);
   await page.screenshot({ path: `${OUT}/flow-palette-query.png` });
-  const inputVal = await page.evaluate(() => (document.querySelector('input') as HTMLInputElement | null)?.value ?? null);
+  const inputVal = await page.evaluate(
+    () => (document.querySelector('input') as HTMLInputElement | null)?.value ?? null,
+  );
   console.log('palette input value:', inputVal);
   await page.close();
 }
@@ -60,7 +62,9 @@ for (const path of ['/totally-not-a-route', '/a/doesnotexist123']) {
   await wait(500);
   const slug = path.replace(/\W+/g, '-');
   await page.screenshot({ path: `${OUT}/flow-404${slug}.png` });
-  const text = await page.evaluate(() => document.body.innerText.slice(0, 120).replace(/\s+/g, ' '));
+  const text = await page.evaluate(() =>
+    document.body.innerText.slice(0, 120).replace(/\s+/g, ' '),
+  );
   console.log(`route ${path} -> http ${resp?.status()} | ${text}`);
   await page.close();
 }

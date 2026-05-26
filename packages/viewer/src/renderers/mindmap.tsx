@@ -33,7 +33,9 @@ function Branch({ node, depth }: { node: Node; depth: number }) {
       >
         {node.label}
         {node.note ? (
-          <span style={{ marginLeft: 8, color: 'var(--color-text-subtle)', fontSize: 'var(--text-xs)' }}>
+          <span
+            style={{ marginLeft: 8, color: 'var(--color-text-subtle)', fontSize: 'var(--text-xs)' }}
+          >
             — {node.note}
           </span>
         ) : null}

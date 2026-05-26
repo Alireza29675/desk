@@ -33,7 +33,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code?: string) {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
     super(message);
     this.name = 'ApiError';
   }
@@ -50,9 +54,11 @@ export const api = {
     request<{ items: Artifact[] }>(
       `/artifacts?${new URLSearchParams(params as Record<string, string>).toString()}`,
     ),
-  search: (q: string) => request<{ items: Artifact[] }>(`/artifacts/search?q=${encodeURIComponent(q)}`),
+  search: (q: string) =>
+    request<{ items: Artifact[] }>(`/artifacts/search?q=${encodeURIComponent(q)}`),
   getArtifact: (id: ArtifactId) => request<ArtifactBundle>(`/a/${id}`),
-  deleteArtifact: (id: ArtifactId) => request<{ ok: boolean; id: string }>(`/a/${id}`, { method: 'DELETE' }),
+  deleteArtifact: (id: ArtifactId) =>
+    request<{ ok: boolean; id: string }>(`/a/${id}`, { method: 'DELETE' }),
   getArtifactAtVersion: (id: ArtifactId, version: number) =>
     request<{ artifact: Artifact }>(`/a/${id}/v/${version}`),
   history: (id: ArtifactId) => request<{ events: HistoryEvent[] }>(`/a/${id}/history`),
@@ -62,13 +68,24 @@ export const api = {
   patchArtifact: (id: ArtifactId, patch: ArtifactPatch, author: Author) =>
     request<Artifact>(`/a/${id}`, { method: 'PATCH', body: JSON.stringify({ patch, author }) }),
   commit: (id: ArtifactId, author: Author, reason?: string) =>
-    request<Artifact>(`/a/${id}/commit`, { method: 'POST', body: JSON.stringify({ author, reason }) }),
+    request<Artifact>(`/a/${id}/commit`, {
+      method: 'POST',
+      body: JSON.stringify({ author, reason }),
+    }),
   comment: (
     id: ArtifactId,
-    body: { anchor: CommentAnchor; payload: CommentPayload; author: Author; threadParentId?: CommentId },
+    body: {
+      anchor: CommentAnchor;
+      payload: CommentPayload;
+      author: Author;
+      threadParentId?: CommentId;
+    },
   ) => request<Comment>(`/a/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),
   resolveComment: (id: CommentId, resolved: boolean) =>
-    request<{ ok: true }>(`/comments/${id}/resolve`, { method: 'POST', body: JSON.stringify({ resolved }) }),
+    request<{ ok: true }>(`/comments/${id}/resolve`, {
+      method: 'POST',
+      body: JSON.stringify({ resolved }),
+    }),
   addRelation: (from: ArtifactId, to: ArtifactId, type: RelationType) =>
     request<Relation>('/relations', { method: 'POST', body: JSON.stringify({ from, to, type }) }),
   plugins: () =>

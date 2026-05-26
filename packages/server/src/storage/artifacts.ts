@@ -1,5 +1,5 @@
 import type { Database } from 'bun:sqlite';
-import type { Artifact, ArtifactId, ArtifactContent } from '@desk/types';
+import type { Artifact, ArtifactContent, ArtifactId } from '@desk/types';
 
 interface ArtifactRow {
   id: string;
@@ -72,7 +72,9 @@ export class ArtifactRepository {
   }
 
   get(id: ArtifactId): Artifact | undefined {
-    const row = this.db.query<ArtifactRow, [string]>('SELECT * FROM artifacts WHERE id = ?').get(id);
+    const row = this.db
+      .query<ArtifactRow, [string]>('SELECT * FROM artifacts WHERE id = ?')
+      .get(id);
     return row ? rowToArtifact(row) : undefined;
   }
 
@@ -95,12 +97,11 @@ export class ArtifactRepository {
       where.push('type = ?');
       params.push(filter.type);
     }
-    const sql =
-      'SELECT * FROM artifacts ' +
-      (where.length ? `WHERE ${where.join(' AND ')} ` : '') +
-      'ORDER BY updated_at DESC ' +
-      `LIMIT ${Math.min(filter?.limit ?? 100, 500)} OFFSET ${filter?.offset ?? 0}`;
-    return this.db.query<ArtifactRow, typeof params>(sql).all(...params).map(rowToArtifact);
+    const sql = `SELECT * FROM artifacts ${where.length ? `WHERE ${where.join(' AND ')} ` : ''}ORDER BY updated_at DESC LIMIT ${Math.min(filter?.limit ?? 100, 500)} OFFSET ${filter?.offset ?? 0}`;
+    return this.db
+      .query<ArtifactRow, typeof params>(sql)
+      .all(...params)
+      .map(rowToArtifact);
   }
 
   search(query: string, limit = 25): Artifact[] {

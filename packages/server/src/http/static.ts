@@ -32,7 +32,10 @@ function contentType(path: string): string | undefined {
   return dot === -1 ? undefined : CONTENT_TYPES[path.slice(dot)];
 }
 
-export function mountViewer(app: Hono, viewerDist: string = process.env.DESK_VIEWER_DIST ?? DEFAULT_VIEWER_DIST): void {
+export function mountViewer(
+  app: Hono,
+  viewerDist: string = process.env.DESK_VIEWER_DIST ?? DEFAULT_VIEWER_DIST,
+): void {
   app.get('*', async (c) => {
     const pathname = new URL(c.req.url).pathname;
     const requested = pathname === '/' ? '/index.html' : pathname;

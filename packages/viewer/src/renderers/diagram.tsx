@@ -17,7 +17,10 @@ const D2_DARK = 200;
 // One D2 instance (and thus one wasm worker) shared across all diagrams,
 // loaded lazily the first time a diagram mounts so the ~MB wasm stays out of
 // the initial bundle.
-type D2Engine = { compile: (src: string, opts?: unknown) => Promise<{ diagram: unknown; renderOptions: unknown }>; render: (diagram: unknown, opts?: unknown) => Promise<string> };
+type D2Engine = {
+  compile: (src: string, opts?: unknown) => Promise<{ diagram: unknown; renderOptions: unknown }>;
+  render: (diagram: unknown, opts?: unknown) => Promise<string>;
+};
 let d2Promise: Promise<D2Engine> | null = null;
 function getD2(): Promise<D2Engine> {
   if (!d2Promise) {
@@ -75,7 +78,8 @@ export function DiagramRenderer({ component }: RendererProps<Data>) {
         }
         if (!cancelled) setState({ status: 'ready', svg });
       } catch (err) {
-        if (!cancelled) setState({ status: 'error', message: err instanceof Error ? err.message : String(err) });
+        if (!cancelled)
+          setState({ status: 'error', message: err instanceof Error ? err.message : String(err) });
       }
     })();
     return () => {
@@ -83,7 +87,10 @@ export function DiagramRenderer({ component }: RendererProps<Data>) {
     };
   }, [engine, source, theme]);
 
-  const anchors = [...(namedNodes ?? []).map((n) => `nodes.${n}`), ...(namedEdges ?? []).map((e) => `edges.${e}`)];
+  const anchors = [
+    ...(namedNodes ?? []).map((n) => `nodes.${n}`),
+    ...(namedEdges ?? []).map((e) => `edges.${e}`),
+  ];
 
   return (
     <figure className="component-block">
@@ -98,7 +105,10 @@ export function DiagramRenderer({ component }: RendererProps<Data>) {
         ) : (
           <div className="diagram__fallback">
             <span className="diagram__engine">{engine.toUpperCase()}</span>
-            <span className="diagram__status" title={state.status === 'error' ? state.message : undefined}>
+            <span
+              className="diagram__status"
+              title={state.status === 'error' ? state.message : undefined}
+            >
               {state.status === 'loading' ? 'rendering…' : 'source'}
             </span>
             <pre className="diagram__source">{source}</pre>

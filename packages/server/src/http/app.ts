@@ -1,11 +1,16 @@
-import { Hono, type Context } from 'hono';
+import type { ArtifactId, CommentAnchor, CommentId, CommentPayload } from '@desk/types';
+import {
+  ArtifactPatchSchema,
+  AuthorSchema,
+  CommentAnchorSchema,
+  CommentPayloadSchema,
+} from '@desk/types';
+import { type Context, Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { z } from 'zod';
-import type { DeskService } from '../core/service';
-import { DeskError } from '../core/errors';
 import { SERVER_VERSION } from '../config';
-import type { ArtifactId, CommentAnchor, CommentId, CommentPayload } from '@desk/types';
-import { ArtifactPatchSchema, AuthorSchema, CommentAnchorSchema, CommentPayloadSchema } from '@desk/types';
+import { DeskError } from '../core/errors';
+import type { DeskService } from '../core/service';
 import { mountViewer } from './static';
 
 /**

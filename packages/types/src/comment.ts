@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AuthorSchema, type Author } from './author';
+import { type Author, AuthorSchema } from './author';
 import type { ArtifactId, CommentId, ComponentId } from './ids';
 
 /**
@@ -73,8 +73,16 @@ const SemanticRegionSchema: z.ZodType<SemanticRegion> = z.discriminatedUnion('ki
 const ComponentIdSchema = z.string().min(1) as unknown as z.ZodType<ComponentId>;
 
 export const CommentAnchorSchema: z.ZodType<CommentAnchor> = z.discriminatedUnion('kind', [
-  z.object({ kind: z.literal('element'), componentId: ComponentIdSchema, elementPath: z.string().optional() }),
-  z.object({ kind: z.literal('region'), componentId: ComponentIdSchema, region: SemanticRegionSchema }),
+  z.object({
+    kind: z.literal('element'),
+    componentId: ComponentIdSchema,
+    elementPath: z.string().optional(),
+  }),
+  z.object({
+    kind: z.literal('region'),
+    componentId: ComponentIdSchema,
+    region: SemanticRegionSchema,
+  }),
   z.object({
     kind: z.literal('text-selection'),
     componentId: ComponentIdSchema,
@@ -96,8 +104,7 @@ export const CommentAnchorSchema: z.ZodType<CommentAnchor> = z.discriminatedUnio
  * `pen-stroke`, `sketch`, `image-overlay`, and `voice-clip` payloads land
  * here without schema changes to the rest of the comment envelope.
  */
-export type CommentPayload =
-  | { kind: 'text'; text: string };
+export type CommentPayload = { kind: 'text'; text: string };
 
 export const CommentPayloadSchema: z.ZodType<CommentPayload> = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('text'), text: z.string().min(1) }),

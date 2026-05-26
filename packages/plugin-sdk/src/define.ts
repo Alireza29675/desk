@@ -1,8 +1,4 @@
-import type {
-  ArtifactTypePlugin,
-  ComponentTypePlugin,
-  RelationTypePlugin,
-} from '@desk/types';
+import type { ArtifactTypePlugin, ComponentTypePlugin, RelationTypePlugin } from '@desk/types';
 
 /**
  * Helper builders. These exist so plugin authors can hold typed inference
@@ -15,14 +11,10 @@ export function defineComponent<TData>(
   return { kind: 'component-type', ...plugin };
 }
 
-export function defineArtifact(
-  plugin: Omit<ArtifactTypePlugin, 'kind'>,
-): ArtifactTypePlugin {
+export function defineArtifact(plugin: Omit<ArtifactTypePlugin, 'kind'>): ArtifactTypePlugin {
   return { kind: 'artifact-type', ...plugin };
 }
 
-export function defineRelation(
-  plugin: Omit<RelationTypePlugin, 'kind'>,
-): RelationTypePlugin {
+export function defineRelation(plugin: Omit<RelationTypePlugin, 'kind'>): RelationTypePlugin {
   return { kind: 'relation-type', ...plugin };
 }

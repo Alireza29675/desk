@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from 'react';
 import type { Artifact, Component } from '@desk/types';
 import { locatorValue } from '@desk/types';
-import { useStore } from '../state/store';
+import { useEffect, useMemo } from 'react';
 import { Commentable } from '../components/Commentable';
 import { RenderedComponent } from '../renderers/renderer-registry';
+import { useStore } from '../state/store';
 import '../renderers/styles.css';
 
 /**
@@ -22,7 +22,10 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
   const setLocator = useStore((s) => s.setLocator);
 
   const slideParam = Number(locatorValue(locator, 'slide') ?? '1');
-  const index = Math.min(Math.max(0, (Number.isFinite(slideParam) ? slideParam : 1) - 1), slides.length - 1);
+  const index = Math.min(
+    Math.max(0, (Number.isFinite(slideParam) ? slideParam : 1) - 1),
+    slides.length - 1,
+  );
 
   const go = (next: number) => {
     const clamped = Math.min(Math.max(0, next), slides.length - 1);
@@ -41,9 +44,12 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
 
   // Scroll to a deep-linked component within the active slide.
   const component = locatorValue(locator, 'component');
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `index` re-runs the scroll when the slide changes, though it isn't read in the body
   useEffect(() => {
     if (!component) return;
-    const el = document.querySelector<HTMLElement>(`[data-component-id="${component.replace(/["\\]/g, '\\$&')}"]`);
+    const el = document.querySelector<HTMLElement>(
+      `[data-component-id="${component.replace(/["\\]/g, '\\$&')}"]`,
+    );
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.classList.add('deep-link-target');
@@ -57,7 +63,9 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
     <div className="presentation">
       <div className="presentation__deck">
         <header className="presentation__head">
-          <span className="presentation__title serif-accent">{slide?.title ?? artifact.content.title}</span>
+          <span className="presentation__title serif-accent">
+            {slide?.title ?? artifact.content.title}
+          </span>
           <span className="presentation__pager">
             {index + 1} / {slides.length}
           </span>
@@ -70,10 +78,16 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           ))}
         </div>
         <div className="presentation__nav">
-          <button className="btn btn--ghost btn--sm" onClick={() => go(index - 1)} disabled={index === 0}>
+          <button
+            type="button"
+            className="btn btn--ghost btn--sm"
+            onClick={() => go(index - 1)}
+            disabled={index === 0}
+          >
             ← Prev
           </button>
           <button
+            type="button"
             className="btn btn--ghost btn--sm"
             onClick={() => go(index + 1)}
             disabled={index === slides.length - 1}
@@ -87,6 +101,7 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           mounted (hidden on screen) so diagrams pre-render before printing. */}
       <div className="print-deck" aria-hidden>
         {slides.map((s, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: the print deck is a static, never-reordered projection of slides
           <section className="print-slide" key={`print-${i}`} data-layout={s.layout ?? 'content'}>
             {s.title ? <h2 className="print-slide__title serif-accent">{s.title}</h2> : null}
             <div className="print-slide__body">

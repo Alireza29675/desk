@@ -1,6 +1,6 @@
-import { useStore } from '../state/store';
 import type { ArtifactId } from '@desk/types';
 import { api } from '../lib/api';
+import { useStore } from '../state/store';
 
 export function Sidebar() {
   const artifacts = useStore((s) => s.artifacts);
@@ -9,7 +9,12 @@ export function Sidebar() {
   const realtimeConnected = useStore((s) => s.realtimeConnected);
 
   async function remove(id: ArtifactId, title: string) {
-    if (!window.confirm(`Delete “${title}”? This removes it and all its comments and history. This can't be undone.`)) return;
+    if (
+      !window.confirm(
+        `Delete “${title}”? This removes it and all its comments and history. This can't be undone.`,
+      )
+    )
+      return;
     // The s.deleted firehose event removes it from the list (and closes it if open).
     await api.deleteArtifact(id).catch(() => {});
   }
@@ -18,7 +23,9 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar__brand">
         <span className="sidebar__mark" aria-hidden />
-        <span className="serif-accent" style={{ fontSize: 'var(--text-md)' }}>Desk</span>
+        <span className="serif-accent" style={{ fontSize: 'var(--text-md)' }}>
+          Desk
+        </span>
         <span
           className="sidebar__pulse"
           data-on={String(realtimeConnected)}
@@ -33,6 +40,7 @@ export function Sidebar() {
           artifacts.map((artifact) => (
             <li key={artifact.id} className="sidebar__row">
               <button
+                type="button"
                 className="sidebar__item"
                 data-active={openId === artifact.id}
                 onClick={() => openArtifact(artifact.id as ArtifactId)}
@@ -41,10 +49,13 @@ export function Sidebar() {
                 <span className="sidebar__item-meta">{artifact.type}</span>
               </button>
               <button
+                type="button"
                 className="sidebar__delete"
                 title="Delete artifact"
                 aria-label={`Delete ${artifact.content.title || artifact.id}`}
-                onClick={() => remove(artifact.id as ArtifactId, artifact.content.title || artifact.id)}
+                onClick={() =>
+                  remove(artifact.id as ArtifactId, artifact.content.title || artifact.id)
+                }
               >
                 ✕
               </button>

@@ -1,6 +1,6 @@
-import { createContext, useContext, type ReactNode } from 'react';
 import { PluginRegistry } from '@desk/plugin-sdk';
 import { builtinPlugins } from '@desk/plugins-builtin';
+import { type ReactNode, createContext, useContext } from 'react';
 
 export function buildViewerRegistry(): PluginRegistry {
   const registry = new PluginRegistry();

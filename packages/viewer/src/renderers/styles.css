@@ -40,7 +40,9 @@
   color: var(--color-text-muted);
   background: var(--color-accent-soft);
 }
-.renderer-error code { color: var(--color-accent-strong); }
+.renderer-error code {
+  color: var(--color-accent-strong);
+}
 
 /* ── Callout ─────────────────────────────────────────────────────── */
 .callout {
@@ -50,11 +52,26 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
-.callout[data-tone='info']    { background: var(--color-info-soft);    border-color: var(--color-info); }
-.callout[data-tone='warn']    { background: var(--color-warn-soft);    border-color: var(--color-warn); }
-.callout[data-tone='danger']  { background: var(--color-danger-soft);  border-color: var(--color-danger); }
-.callout[data-tone='success'] { background: var(--color-success-soft); border-color: var(--color-success); }
-.callout__title  { font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
+.callout[data-tone="info"] {
+  background: var(--color-info-soft);
+  border-color: var(--color-info);
+}
+.callout[data-tone="warn"] {
+  background: var(--color-warn-soft);
+  border-color: var(--color-warn);
+}
+.callout[data-tone="danger"] {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
+}
+.callout[data-tone="success"] {
+  background: var(--color-success-soft);
+  border-color: var(--color-success);
+}
+.callout__title {
+  font-weight: var(--weight-semibold);
+  margin-bottom: var(--space-2);
+}
 
 /* ── Quote ───────────────────────────────────────────────────────── */
 .quote {
@@ -96,20 +113,46 @@
   overflow-x: auto;
   padding: var(--space-5);
 }
-.code-view__body pre { margin: 0; }
-.code-view[data-wrap='true'] .code-view__body pre {
+.code-view__body pre {
+  margin: 0;
+}
+.code-view[data-wrap="true"] .code-view__body pre {
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 /* ── Table ───────────────────────────────────────────────────────── */
-.table-wrap { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-md); }
-.table { width: 100%; border-collapse: collapse; font-size: var(--text-sm); }
-.table th, .table td { padding: var(--space-4) var(--space-5); border-bottom: 1px solid var(--color-divider); text-align: left; }
-.table th { background: var(--color-bg-sunken); font-weight: var(--weight-semibold); color: var(--color-text-muted); }
-.table tr:last-child td { border-bottom: 0; }
-.table td[data-align='right']  { text-align: right;  font-variant-numeric: tabular-nums; }
-.table td[data-align='center'] { text-align: center; }
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.table th,
+.table td {
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+  text-align: left;
+}
+.table th {
+  background: var(--color-bg-sunken);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-muted);
+}
+.table tr:last-child td {
+  border-bottom: 0;
+}
+.table td[data-align="right"] {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.table td[data-align="center"] {
+  text-align: center;
+}
 
 /* ── Image, iframe, YouTube ──────────────────────────────────────── */
 .media {
@@ -119,8 +162,17 @@
   border: 1px solid var(--color-border);
   background: var(--color-bg-sunken);
 }
-.media iframe, .media img { width: 100%; height: 100%; border: 0; }
-.media__caption { font-size: var(--text-xs); color: var(--color-text-subtle); margin-top: var(--space-3); }
+.media iframe,
+.media img {
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+.media__caption {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  margin-top: var(--space-3);
+}
 
 /* ── Diagram ─────────────────────────────────────────────────────── */
 .diagram {
@@ -131,34 +183,72 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
 }
-.diagram__source { color: var(--color-text-muted); white-space: pre-wrap; }
-.diagram__engine { display: inline-block; padding: 2px 6px; border-radius: var(--radius-xs); background: var(--color-bg-inset); color: var(--color-text-muted); font-size: var(--text-2xs); }
+.diagram__source {
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+}
+.diagram__engine {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--color-bg-inset);
+  color: var(--color-text-muted);
+  font-size: var(--text-2xs);
+}
 
 /* Rendered SVG (D2 WASM output). The engine sizes the SVG to fit; we cap it. */
-.diagram__svg { display: flex; justify-content: center; }
-.diagram__svg svg { max-width: 100%; height: auto; }
+.diagram__svg {
+  display: flex;
+  justify-content: center;
+}
+.diagram__svg svg {
+  max-width: 100%;
+  height: auto;
+}
 /* Drop D2's full-canvas background rect (theme neutral fill-N7) so the diagram
    blends with Desk's surface instead of sitting in a mismatched box — most
    visible in dark, where D2's dark-mauve bg clashed with the near-black slide.
    Nodes use B-series fills and text uses N1, so this only clears the canvas. */
-.diagram__svg svg > rect.fill-N7 { fill: transparent; }
+.diagram__svg svg > rect.fill-N7 {
+  fill: transparent;
+}
 /* Graphviz output is fixed black-on-transparent; give it a light surface so
    it stays legible in dark mode (D2 is theme-aware and needs no surface). */
-.diagram[data-engine='graphviz'] .diagram__svg {
+.diagram[data-engine="graphviz"] .diagram__svg {
   background: #ffffff;
   padding: var(--space-5);
   border-radius: var(--radius-sm);
 }
-.diagram__fallback { display: flex; flex-direction: column; gap: var(--space-3); }
-.diagram__fallback .diagram__engine { align-self: flex-start; }
-.diagram__status { font-size: var(--text-2xs); color: var(--color-text-subtle); }
-.diagram__anchors { margin-top: var(--space-5); font-size: var(--text-2xs); color: var(--color-text-subtle); }
+.diagram__fallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.diagram__fallback .diagram__engine {
+  align-self: flex-start;
+}
+.diagram__status {
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+}
+.diagram__anchors {
+  margin-top: var(--space-5);
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+}
 
 /* ── Mindmap / Folder / Timeline ─────────────────────────────────── */
-.tree { list-style: none; padding-left: var(--space-7); border-left: 1px dashed var(--color-border-strong); }
-.tree li { position: relative; padding: var(--space-2) 0; }
+.tree {
+  list-style: none;
+  padding-left: var(--space-7);
+  border-left: 1px dashed var(--color-border-strong);
+}
+.tree li {
+  position: relative;
+  padding: var(--space-2) 0;
+}
 .tree li::before {
-  content: '';
+  content: "";
   position: absolute;
   left: calc(-1 * var(--space-7));
   top: 14px;
@@ -166,7 +256,11 @@
   border-top: 1px dashed var(--color-border-strong);
 }
 
-.timeline { display: flex; flex-direction: column; gap: var(--space-4); }
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
 .timeline__event {
   display: grid;
   grid-template-columns: 120px 1fr;
@@ -174,11 +268,23 @@
   padding: var(--space-4) 0;
   border-bottom: 1px dashed var(--color-divider);
 }
-.timeline__when { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-muted); }
+.timeline__when {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
 
 /* ── Checklist ───────────────────────────────────────────────────── */
-.checklist { display: flex; flex-direction: column; gap: var(--space-3); }
-.checklist__item { display: flex; align-items: flex-start; gap: var(--space-4); }
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.checklist__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
 .checklist__box {
   flex-shrink: 0;
   width: 16px;
@@ -189,15 +295,24 @@
   place-items: center;
   background: var(--color-bg-elevated);
 }
-.checklist__box[data-checked='true'] {
+.checklist__box[data-checked="true"] {
   background: var(--color-accent);
   border-color: var(--color-accent);
   color: var(--color-text-on-accent);
 }
-.checklist__label[data-checked='true'] { text-decoration: line-through; color: var(--color-text-muted); }
+.checklist__label[data-checked="true"] {
+  text-decoration: line-through;
+  color: var(--color-text-muted);
+}
 
 /* ── Math ────────────────────────────────────────────────────────── */
-.math { font-family: var(--font-serif); padding: var(--space-5); background: var(--color-bg-sunken); border-radius: var(--radius-md); overflow-x: auto; }
+.math {
+  font-family: var(--font-serif);
+  padding: var(--space-5);
+  background: var(--color-bg-sunken);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
 
 /* ── Slide break ─────────────────────────────────────────────────── */
 .slide-break {
@@ -210,8 +325,9 @@
   text-transform: uppercase;
   letter-spacing: var(--tracking-wide);
 }
-.slide-break::before, .slide-break::after {
-  content: '';
+.slide-break::before,
+.slide-break::after {
+  content: "";
   flex: 1;
   height: 1px;
   background: var(--color-border);

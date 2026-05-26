@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useStore } from '../state/store';
-import { api } from '../lib/api';
 import type { Artifact, ArtifactId } from '@desk/types';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { api } from '../lib/api';
+import { useStore } from '../state/store';
 
 /**
  * ⌘K / Ctrl-K command palette. Raycast-grade: opens instantly, keyboard
@@ -78,7 +78,12 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         hint: a.type,
       })),
       ...(query.trim() === ''
-        ? actions.map((act) => ({ kind: 'action' as const, action: act, label: act.label, hint: act.hint }))
+        ? actions.map((act) => ({
+            kind: 'action' as const,
+            action: act,
+            label: act.label,
+            hint: act.hint,
+          }))
         : []),
     ],
     [results, actions, query],
@@ -96,7 +101,12 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
 
   return (
     <div className="palette-backdrop" onClick={onClose} role="presentation">
-      <div className="palette" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Command palette">
+      <div
+        className="palette"
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label="Command palette"
+      >
         <input
           ref={inputRef}
           className="palette__input"
@@ -118,13 +128,13 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
             }
           }}
         />
-        <ul className="palette__list" role="listbox">
+        <ul className="palette__list">
           {items.length === 0 ? (
             <li className="palette__empty">No results.</li>
           ) : (
             items.map((item, i) => (
               <li
-                key={i}
+                key={`${item.kind}-${item.label}`}
                 className="palette__item"
                 data-active={i === highlight}
                 onMouseEnter={() => setHighlight(i)}

@@ -1,6 +1,6 @@
+import type { Artifact, ArtifactId, Comment, RealtimeServerMessage } from '@desk/types';
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
-import type { Artifact, ArtifactId, Comment, RealtimeServerMessage } from '@desk/types';
 import { useStore } from './store';
 
 function artifact(id: string, title = id, version = 1): Artifact {
@@ -16,7 +16,12 @@ function artifact(id: string, title = id, version = 1): Artifact {
   };
 }
 const committed = (a: Artifact): RealtimeServerMessage =>
-  ({ kind: 's.committed', artifactId: a.id, artifact: a, event: { kind: 'edited' } }) as unknown as RealtimeServerMessage;
+  ({
+    kind: 's.committed',
+    artifactId: a.id,
+    artifact: a,
+    event: { kind: 'edited' },
+  }) as unknown as RealtimeServerMessage;
 const openOf = (a: Artifact, comments: Comment[] = []) => ({
   artifact: a,
   relations: { outgoing: [], incoming: [] },
@@ -66,14 +71,24 @@ describe('store.applyEvent — sidebar (firehose)', () => {
 describe('store.applyEvent — open artifact', () => {
   it('appends a comment to the open artifact', () => {
     useStore.setState({ open: openOf(artifact('a')) as never });
-    const comment = { id: 'c1', artifactId: 'a', anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' } } as unknown as Comment;
+    const comment = {
+      id: 'c1',
+      artifactId: 'a',
+      anchor: { kind: 'general' },
+      payload: { kind: 'text', text: 'hi' },
+    } as unknown as Comment;
     apply({ kind: 's.commented', artifactId: 'a' as ArtifactId, comment } as RealtimeServerMessage);
     expect(useStore.getState().open?.comments).toHaveLength(1);
   });
 
   it('ignores a comment for a different artifact', () => {
     useStore.setState({ open: openOf(artifact('a')) as never });
-    const comment = { id: 'c1', artifactId: 'b', anchor: { kind: 'general' }, payload: { kind: 'text', text: 'x' } } as unknown as Comment;
+    const comment = {
+      id: 'c1',
+      artifactId: 'b',
+      anchor: { kind: 'general' },
+      payload: { kind: 'text', text: 'x' },
+    } as unknown as Comment;
     apply({ kind: 's.commented', artifactId: 'b' as ArtifactId, comment } as RealtimeServerMessage);
     expect(useStore.getState().open?.comments).toHaveLength(0);
   });
@@ -81,16 +96,33 @@ describe('store.applyEvent — open artifact', () => {
   it('streams a live working-state edit into the open view (the "watch it form" path)', () => {
     useStore.setState({ open: openOf(artifact('a', 'Start', 1)) as never });
     // s.working_changed carries the uncommitted artifact; version stays 1.
-    const edited = { ...artifact('a', 'Forming…', 1), content: { title: 'Forming…', components: [] } };
-    apply({ kind: 's.working_changed', artifactId: 'a' as ArtifactId, artifact: edited } as RealtimeServerMessage);
+    const edited = {
+      ...artifact('a', 'Forming…', 1),
+      content: { title: 'Forming…', components: [] },
+    };
+    apply({
+      kind: 's.working_changed',
+      artifactId: 'a' as ArtifactId,
+      artifact: edited,
+    } as RealtimeServerMessage);
     expect(useStore.getState().open?.artifact.content.title).toBe('Forming…');
     expect(useStore.getState().open?.artifact.version).toBe(1); // not a commit
   });
 
   it('marks a comment resolved on s.comment_resolved', () => {
-    const comment = { id: 'c1', artifactId: 'a', anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' } } as unknown as Comment;
+    const comment = {
+      id: 'c1',
+      artifactId: 'a',
+      anchor: { kind: 'general' },
+      payload: { kind: 'text', text: 'hi' },
+    } as unknown as Comment;
     useStore.setState({ open: openOf(artifact('a'), [comment]) as never });
-    apply({ kind: 's.comment_resolved', artifactId: 'a' as ArtifactId, commentId: 'c1', resolved: true } as RealtimeServerMessage);
+    apply({
+      kind: 's.comment_resolved',
+      artifactId: 'a' as ArtifactId,
+      commentId: 'c1',
+      resolved: true,
+    } as RealtimeServerMessage);
     expect(useStore.getState().open?.comments[0]?.resolved).toBe(true);
   });
 
@@ -106,7 +138,10 @@ describe('store.applyEvent — open artifact', () => {
   });
 
   it('reflects a commit to the open artifact in the open view', () => {
-    useStore.setState({ artifacts: [artifact('a', 'Old')], open: openOf(artifact('a', 'Old')) as never });
+    useStore.setState({
+      artifacts: [artifact('a', 'Old')],
+      open: openOf(artifact('a', 'Old')) as never,
+    });
     apply(committed(artifact('a', 'New', 2)));
     expect(useStore.getState().open?.artifact.content.title).toBe('New');
     expect(useStore.getState().open?.artifact.version).toBe(2);

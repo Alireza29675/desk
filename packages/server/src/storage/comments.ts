@@ -53,7 +53,9 @@ export class CommentRepository {
 
   listByArtifact(artifactId: ArtifactId): Comment[] {
     return this.db
-      .query<CommentRow, [string]>('SELECT * FROM comments WHERE artifact_id = ? ORDER BY created_at ASC')
+      .query<CommentRow, [string]>(
+        'SELECT * FROM comments WHERE artifact_id = ? ORDER BY created_at ASC',
+      )
       .all(artifactId)
       .map(rowToComment);
   }

@@ -16,7 +16,6 @@ export function runMcp(rest: string[]): void {
     case 'cursor':
       printCursor(endpoint);
       return;
-    case 'generic':
     default:
       printGeneric(endpoint);
       return;
@@ -68,7 +67,7 @@ function printGeneric(endpoint: string): void {
       '',
       'Example: list available tools',
       `  curl -s ${endpoint} -H 'content-type: application/json' \\`,
-      "    -d '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\"}'",
+      '    -d \'{"jsonrpc":"2.0","id":1,"method":"tools/list"}\'',
     ].join('\n'),
   );
 }

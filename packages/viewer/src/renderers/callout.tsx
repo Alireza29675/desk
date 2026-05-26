@@ -17,7 +17,9 @@ export function CalloutRenderer({ component }: RendererProps<Data>) {
   const { tone, title, body } = component.data;
   return (
     <aside className="callout" data-tone={tone} role="note">
-      <span aria-hidden style={{ fontSize: 18, lineHeight: 1 }}>{ICONS[tone]}</span>
+      <span aria-hidden style={{ fontSize: 18, lineHeight: 1 }}>
+        {ICONS[tone]}
+      </span>
       <div>
         {title ? <div className="callout__title">{title}</div> : null}
         <div>{body}</div>

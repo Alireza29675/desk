@@ -42,7 +42,7 @@ export function fractionalPoint(box: Box, clientX: number, clientY: number): Fra
 }
 
 /** The rectangle spanned by two pointer positions, as fractions of `box`. */
-export function fractionalRect(box: Box, a: Fraction, b: Fraction): FractionalRect {
+export function fractionalRect(_box: Box, a: Fraction, b: Fraction): FractionalRect {
   const x = Math.min(a.x, b.x);
   const y = Math.min(a.y, b.y);
   return { x, y, width: Math.abs(b.x - a.x), height: Math.abs(b.y - a.y) };
@@ -54,7 +54,10 @@ export function fractionalRect(box: Box, a: Fraction, b: Fraction): FractionalRe
  * (its `textContent`), so they're stable across re-renders that preserve the
  * text — which is exactly the "resolved semantic text" the anchor model means.
  */
-export function textOffsetsWithin(root: Node, selection: Selection | null): { start: number; end: number } | null {
+export function textOffsetsWithin(
+  root: Node,
+  selection: Selection | null,
+): { start: number; end: number } | null {
   if (!selection || selection.isCollapsed || selection.rangeCount === 0) return null;
   const range = selection.getRangeAt(0);
   if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) return null;

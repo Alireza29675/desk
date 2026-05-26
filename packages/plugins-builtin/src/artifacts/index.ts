@@ -10,5 +10,5 @@ export const builtinArtifactTypes: ArtifactTypePlugin[] = [
 ];
 
 /** Presentation-only components that the artifact module owns. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// biome-ignore lint/suspicious/noExplicitAny: a plugin collection is heterogeneous in component data type
 export const presentationOnlyComponentTypes: ComponentTypePlugin<any>[] = [slideBreakComponent];

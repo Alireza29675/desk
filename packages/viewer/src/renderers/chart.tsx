@@ -29,11 +29,28 @@ export function ChartRenderer({ component }: RendererProps<Data>) {
     <figure className="component-block">
       {title ? <div style={{ fontWeight: 600, fontSize: 'var(--text-md)' }}>{title}</div> : null}
       <div className="component-surface component-surface--inset">
-        <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={title ?? `${kind} chart`}>
-          {kind === 'pie' ? <Pie series={series} /> : <CartesianChart kind={kind} series={series} />}
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          width="100%"
+          role="img"
+          aria-label={title ?? `${kind} chart`}
+        >
+          {kind === 'pie' ? (
+            <Pie series={series} />
+          ) : (
+            <CartesianChart kind={kind} series={series} />
+          )}
         </svg>
         {(xLabel || yLabel) && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 'var(--space-3)', fontSize: 'var(--text-2xs)', color: 'var(--color-text-subtle)' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: 'var(--space-3)',
+              fontSize: 'var(--text-2xs)',
+              color: 'var(--color-text-subtle)',
+            }}
+          >
             <span>{xLabel ?? ''}</span>
             <span>{yLabel ?? ''}</span>
           </div>
@@ -44,7 +61,10 @@ export function ChartRenderer({ component }: RendererProps<Data>) {
   );
 }
 
-function CartesianChart({ kind, series }: { kind: 'bar' | 'line' | 'area' | 'scatter'; series: Series[] }) {
+function CartesianChart({
+  kind,
+  series,
+}: { kind: 'bar' | 'line' | 'area' | 'scatter'; series: Series[] }) {
   const allY = series.flatMap((s) => s.values.map((v) => v[1]));
   const minY = Math.min(0, ...allY);
   const maxY = Math.max(0, ...allY);
@@ -55,25 +75,39 @@ function CartesianChart({ kind, series }: { kind: 'bar' | 'line' | 'area' | 'sca
   const innerH = H - PADDING.top - PADDING.bottom;
   const xPos = (idx: number) =>
     PADDING.left + (xs.length <= 1 ? innerW / 2 : (idx / (xs.length - 1)) * innerW);
-  const yPos = (v: number) =>
-    PADDING.top + innerH - ((v - minY) / (maxY - minY || 1)) * innerH;
+  const yPos = (v: number) => PADDING.top + innerH - ((v - minY) / (maxY - minY || 1)) * innerH;
 
   return (
     <g>
       {/* axes */}
-      <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={H - PADDING.bottom} stroke="currentColor" opacity={0.2} />
-      <line x1={PADDING.left} y1={H - PADDING.bottom} x2={W - PADDING.right} y2={H - PADDING.bottom} stroke="currentColor" opacity={0.2} />
+      <line
+        x1={PADDING.left}
+        y1={PADDING.top}
+        x2={PADDING.left}
+        y2={H - PADDING.bottom}
+        stroke="currentColor"
+        opacity={0.2}
+      />
+      <line
+        x1={PADDING.left}
+        y1={H - PADDING.bottom}
+        x2={W - PADDING.right}
+        y2={H - PADDING.bottom}
+        stroke="currentColor"
+        opacity={0.2}
+      />
       {series.map((s, i) => {
         const points = s.values.map((v) => {
           const idx = xs.indexOf(String(v[0]));
           return { x: xPos(idx), y: yPos(v[1]) };
         });
         if (kind === 'bar') {
-          const barW = Math.max(4, (innerW / Math.max(xs.length, 1)) / series.length - 2);
+          const barW = Math.max(4, innerW / Math.max(xs.length, 1) / series.length - 2);
           return (
             <g key={s.name}>
               {points.map((p, j) => (
                 <rect
+                  // biome-ignore lint/suspicious/noArrayIndexKey: static chart data, fixed order
                   key={j}
                   x={p.x - (series.length * barW) / 2 + i * barW}
                   y={Math.min(p.y, yPos(0))}
@@ -87,11 +121,24 @@ function CartesianChart({ kind, series }: { kind: 'bar' | 'line' | 'area' | 'sca
           );
         }
         const d = points.map((p, j) => `${j === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-        if (kind === 'line') return <path key={s.name} d={d} stroke={colors[i]} strokeWidth={2} fill="none" />;
-        if (kind === 'area') return <path key={s.name} d={`${d} L ${points[points.length - 1]!.x} ${yPos(0)} L ${points[0]!.x} ${yPos(0)} Z`} fill={colors[i]} opacity={0.4} stroke={colors[i]} />;
+        if (kind === 'line')
+          return <path key={s.name} d={d} stroke={colors[i]} strokeWidth={2} fill="none" />;
+        if (kind === 'area')
+          return (
+            <path
+              key={s.name}
+              d={`${d} L ${points[points.length - 1]!.x} ${yPos(0)} L ${points[0]!.x} ${yPos(0)} Z`}
+              fill={colors[i]}
+              opacity={0.4}
+              stroke={colors[i]}
+            />
+          );
         return (
           <g key={s.name}>
-            {points.map((p, j) => <circle key={j} cx={p.x} cy={p.y} r={4} fill={colors[i]} />)}
+            {points.map((p, j) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: static chart data, fixed order
+              <circle key={j} cx={p.x} cy={p.y} r={4} fill={colors[i]} />
+            ))}
           </g>
         );
       })}
@@ -128,7 +175,15 @@ function Pie({ series }: { series: Series[] }) {
 function Legend({ series }: { series: Series[] }) {
   const colors = paletteFor(series.length);
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)', marginTop: 'var(--space-4)', fontSize: 'var(--text-xs)' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 'var(--space-5)',
+        marginTop: 'var(--space-4)',
+        fontSize: 'var(--text-xs)',
+      }}
+    >
       {series.map((s, i) => (
         <span key={s.name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
           <span style={{ width: 10, height: 10, borderRadius: 2, background: colors[i] }} />
@@ -154,7 +209,16 @@ function uniqueXs(series: Series[]): string[] {
   return order;
 }
 
-const PALETTE = ['#ff5a4d', '#2563eb', '#059669', '#d97706', '#7c3aed', '#dc2626', '#0ea5e9', '#a16207'];
+const PALETTE = [
+  '#ff5a4d',
+  '#2563eb',
+  '#059669',
+  '#d97706',
+  '#7c3aed',
+  '#dc2626',
+  '#0ea5e9',
+  '#a16207',
+];
 function paletteFor(n: number): string[] {
   const out: string[] = [];
   for (let i = 0; i < n; i++) out.push(PALETTE[i % PALETTE.length]!);

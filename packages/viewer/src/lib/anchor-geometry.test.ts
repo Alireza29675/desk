@@ -17,7 +17,13 @@ describe('fractionalPoint', () => {
 });
 
 describe('fractionalRect', () => {
-  const expectRect = (r: { x: number; y: number; width: number; height: number }, x: number, y: number, w: number, h: number) => {
+  const expectRect = (
+    r: { x: number; y: number; width: number; height: number },
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+  ) => {
     expect(r.x).toBeCloseTo(x);
     expect(r.y).toBeCloseTo(y);
     expect(r.width).toBeCloseTo(w);
@@ -33,7 +39,12 @@ describe('fractionalRect', () => {
   });
 
   it('yields a zero-area rect for a click without drag', () => {
-    expect(fractionalRect(box, { x: 0.4, y: 0.4 }, { x: 0.4, y: 0.4 })).toEqual({ x: 0.4, y: 0.4, width: 0, height: 0 });
+    expect(fractionalRect(box, { x: 0.4, y: 0.4 }, { x: 0.4, y: 0.4 })).toEqual({
+      x: 0.4,
+      y: 0.4,
+      width: 0,
+      height: 0,
+    });
   });
 });
 

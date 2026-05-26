@@ -1,9 +1,9 @@
-import { useEffect } from 'react';
 import type { Artifact } from '@desk/types';
 import { locatorValue } from '@desk/types';
-import { useStore } from '../state/store';
+import { useEffect } from 'react';
 import { Commentable } from '../components/Commentable';
 import { RenderedComponent } from '../renderers/renderer-registry';
+import { useStore } from '../state/store';
 import '../renderers/styles.css';
 
 /**
@@ -30,13 +30,17 @@ export function DocumentView({ artifact }: { artifact: Artifact }) {
       <header className="document__header">
         <h1 className="document__title serif-accent">{artifact.content.title}</h1>
         <div className="document__meta">
-          {artifact.type} · {artifact.contributors.length} contributor{artifact.contributors.length === 1 ? '' : 's'} ·
-          v{artifact.version}
+          {artifact.type} · {artifact.contributors.length} contributor
+          {artifact.contributors.length === 1 ? '' : 's'} · v{artifact.version}
         </div>
       </header>
       <div className="document__components">
         {artifact.content.components.map((component) => (
-          <Commentable key={component.id} componentId={component.id} className="document__component">
+          <Commentable
+            key={component.id}
+            componentId={component.id}
+            className="document__component"
+          >
             <RenderedComponent component={component} artifactId={artifact.id} />
           </Commentable>
         ))}

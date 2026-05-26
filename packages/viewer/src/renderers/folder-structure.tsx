@@ -17,7 +17,9 @@ export function FolderStructureRenderer({ component }: RendererProps<Data>) {
   return (
     <div className="component-surface">
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>
-        <div style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-3)' }}>{root}</div>
+        <div style={{ color: 'var(--color-text-muted)', marginBottom: 'var(--space-3)' }}>
+          {root}
+        </div>
         <NodeList nodes={nodes} />
       </div>
     </div>
@@ -30,10 +32,18 @@ function NodeList({ nodes }: { nodes: Node[] }) {
       {nodes.map((node) => (
         <li key={node.name}>
           <span>
-            <span aria-hidden style={{ marginRight: 6 }}>{node.kind === 'dir' ? '▸' : '·'}</span>
+            <span aria-hidden style={{ marginRight: 6 }}>
+              {node.kind === 'dir' ? '▸' : '·'}
+            </span>
             <strong>{node.name}</strong>
             {node.note ? (
-              <span style={{ marginLeft: 8, color: 'var(--color-text-subtle)', fontFamily: 'var(--font-sans)' }}>
+              <span
+                style={{
+                  marginLeft: 8,
+                  color: 'var(--color-text-subtle)',
+                  fontFamily: 'var(--font-sans)',
+                }}
+              >
                 — {node.note}
               </span>
             ) : null}
