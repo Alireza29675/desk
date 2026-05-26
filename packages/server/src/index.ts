@@ -58,7 +58,11 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
           body = (await req.json()) as McpRequest;
         } catch {
           // Malformed JSON: answer with a JSON-RPC parse error, not Bun's HTML page.
-          return Response.json({ jsonrpc: '2.0', id: null, error: { code: -32700, message: 'Parse error' } });
+          return Response.json({
+            jsonrpc: '2.0',
+            id: null,
+            error: { code: -32700, message: 'Parse error' },
+          });
         }
         const response = await mcpServer.handle(body);
         return Response.json(response);
