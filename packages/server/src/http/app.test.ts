@@ -102,8 +102,23 @@ describe('HTTP API', () => {
     expect((await get(`/api/a/${a.id}`)).status).toBe(404);
   });
 
-  test('a malformed create body is rejected (non-2xx)', async () => {
+  test('a malformed create body is a 400 (not a 500)', async () => {
     const res = await post('/api/artifacts', { nope: true });
-    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      'validation_failed',
+    );
+  });
+
+  test('invalid component data is a 400 validation error (not a 500)', async () => {
+    const res = await post('/api/artifacts', {
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'Bad', components: [{ id: 'x', type: 'callout', data: {} }] },
+    });
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      'validation_failed',
+    );
   });
 });

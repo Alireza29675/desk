@@ -1,3 +1,4 @@
+import { PluginRegistryError } from '@desk/plugin-sdk';
 import type { ArtifactId, CommentAnchor, CommentId, CommentPayload } from '@desk/types';
 import {
   ArtifactPatchSchema,
@@ -28,6 +29,11 @@ export function buildHttpApp(service: DeskService): Hono {
   const onError = (err: Error, c: Context) => {
     if (err instanceof DeskError) {
       return c.json({ error: { code: err.code, message: err.message } }, err.status as never);
+    }
+    // Invalid input — bad component/artifact data (registry validation) or a
+    // malformed request body (route-level zod parse) — is a 400, not a 500.
+    if (err instanceof PluginRegistryError || err instanceof z.ZodError) {
+      return c.json({ error: { code: 'validation_failed', message: err.message } }, 400);
     }
     console.error('[desk-server] unhandled error', err);
     return c.json({ error: { code: 'internal', message: 'Internal server error' } }, 500);
