@@ -1,22 +1,17 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
-import { RegistryProvider, buildViewerRegistry } from './lib/registry';
 import './styles/globals.css';
 
 /**
- * Bootstrap. The plugin registry holds the same artifact + component +
- * relation set as the server (built-ins for now; user plugins land here
- * through a future config loader). Renderers are looked up by component
- * type from the React-side registry in `lib/renderers.tsx`.
+ * Bootstrap. Renderers are looked up by component type from the static
+ * registry in `renderers/renderer-registry.tsx`. (Runtime plugin-driven
+ * renderer registration is tracked as post-v1 — see task #28.)
  */
 const root = createRoot(document.getElementById('root')!);
-const registry = buildViewerRegistry();
 
 root.render(
   <StrictMode>
-    <RegistryProvider registry={registry}>
-      <App />
-    </RegistryProvider>
+    <App />
   </StrictMode>,
 );
