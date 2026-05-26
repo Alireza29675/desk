@@ -87,6 +87,7 @@ Adding new types — artifact, component, or relation — is one file in a plugi
 | `create_artifact(type, author, initial_content?)` | Create a new artifact; returns id, url, current state. |
 | `update_artifact(id, patch, author)` | Apply a patch to the working state. |
 | `commit(id, author, reason?)` | Promote working state to a history event. |
+| `delete_artifact(id)` | Permanently delete an artifact and all attached comments, history, and relations. |
 | `get_artifact(id, version?)` | Fetch current state, or a past committed snapshot. |
 | `list_artifacts(filter?)` | List artifacts; filter by type. |
 | `search_artifacts(query)` | Full-text + structural search. |
@@ -148,8 +149,8 @@ Each package has its own README documenting the part it owns.
 
 | Cut | What lands |
 | --- | --- |
-| **v0.1** (this) | Local server, MCP, viewer, 14 components, 2 artifact types, comments (5 anchor shapes), history with time-travel, search, realtime channel. |
-| v0.2 | Visual comments (pen / sketch / image overlay) — payload schema is already typed-extensible. Inline component editing in the viewer. D2 + Graphviz live SVG rendering. |
+| **v0.1** (this) | Local server, MCP (incl. delete), viewer, 14 components, 2 artifact types, comments (5 anchor shapes) with threads + resolve/reopen, append-only history with time-travel **and an in-viewer scrubber**, search, realtime channel, **live D2 + Graphviz SVG diagrams**, a **relations panel**, **PDF export**, theme persistence, responsive drawers, keyboard-focus + reduced-motion a11y, per-component error boundaries. |
+| v0.2 | Visual comments (pen / sketch / image overlay) — payload schema is already typed-extensible. Inline component editing in the viewer. Third-party plugin loading from config + runtime viewer renderers. |
 | v0.3 | Live presentation mode for human audiences. Multi-agent CRDT/OT beyond last-write-wins. Vector-backed similarity. |
 
 ## License
