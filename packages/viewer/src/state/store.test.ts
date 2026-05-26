@@ -78,6 +78,15 @@ describe('store.applyEvent — open artifact', () => {
     expect(useStore.getState().open?.comments).toHaveLength(0);
   });
 
+  it('streams a live working-state edit into the open view (the "watch it form" path)', () => {
+    useStore.setState({ open: openOf(artifact('a', 'Start', 1)) as never });
+    // s.working_changed carries the uncommitted artifact; version stays 1.
+    const edited = { ...artifact('a', 'Forming…', 1), content: { title: 'Forming…', components: [] } };
+    apply({ kind: 's.working_changed', artifactId: 'a' as ArtifactId, artifact: edited } as RealtimeServerMessage);
+    expect(useStore.getState().open?.artifact.content.title).toBe('Forming…');
+    expect(useStore.getState().open?.artifact.version).toBe(1); // not a commit
+  });
+
   it('marks a comment resolved on s.comment_resolved', () => {
     const comment = { id: 'c1', artifactId: 'a', anchor: { kind: 'general' }, payload: { kind: 'text', text: 'hi' } } as unknown as Comment;
     useStore.setState({ open: openOf(artifact('a'), [comment]) as never });
