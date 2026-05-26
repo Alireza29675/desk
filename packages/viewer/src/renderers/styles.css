@@ -142,6 +142,13 @@
    visible in dark, where D2's dark-mauve bg clashed with the near-black slide.
    Nodes use B-series fills and text uses N1, so this only clears the canvas. */
 .diagram__svg svg > rect.fill-N7 { fill: transparent; }
+/* Graphviz output is fixed black-on-transparent; give it a light surface so
+   it stays legible in dark mode (D2 is theme-aware and needs no surface). */
+.diagram[data-engine='graphviz'] .diagram__svg {
+  background: #ffffff;
+  padding: var(--space-5);
+  border-radius: var(--radius-sm);
+}
 .diagram__fallback { display: flex; flex-direction: column; gap: var(--space-3); }
 .diagram__fallback .diagram__engine { align-self: flex-start; }
 .diagram__status { font-size: var(--text-2xs); color: var(--color-text-subtle); }
