@@ -104,18 +104,26 @@ export class ArtifactRepository {
       .map(rowToArtifact);
   }
 
+  /** Search from raw *user* input — sanitized into safe literal tokens. */
   search(query: string, limit = 25): Artifact[] {
     const match = toFtsMatch(query);
     if (!match) return [];
+    return this.searchExpr(match, limit);
+  }
+
+  /** Search with a caller-built FTS5 MATCH expression (trusted; e.g. the
+   *  `"a" OR "b"` overlap query from findSimilar). Not for raw user input —
+   *  use `search()` for that. */
+  searchExpr(matchExpr: string, limit = 25): Artifact[] {
+    if (!matchExpr.trim()) return [];
+    // Rank by bm25 with the title column weighted heavily over the body.
+    // Columns: artifact_id, title, body.
     const rows = this.db
       .query<{ artifact_id: string }, [string, number]>(
-        // Rank by bm25 with the title column weighted heavily over the body, so
-        // a title hit (e.g. "what I'd improve") outranks an artifact that only
-        // mentions the term in its content. Columns: artifact_id, title, body.
         `SELECT artifact_id FROM artifacts_fts WHERE artifacts_fts MATCH ?
          ORDER BY bm25(artifacts_fts, 0.0, 10.0, 1.0) LIMIT ?`,
       )
-      .all(match, limit);
+      .all(matchExpr, limit);
     return rows
       .map((r) => this.get(r.artifact_id as ArtifactId))
       .filter((a): a is Artifact => Boolean(a));

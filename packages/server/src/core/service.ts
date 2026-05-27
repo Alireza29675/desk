@@ -211,12 +211,15 @@ export class DeskService {
     if (!target) throw notFound(`Artifact "${id}" not found.`);
     const tokens = uniqueTokens(`${target.content.title} ${flattenStrings(target.content)}`);
     if (tokens.length === 0) return [];
+    // A trusted FTS OR-expression over the artifact's own tokens — passed to
+    // searchExpr (raw), NOT search (which sanitizes user input and would quote
+    // the OR operator into a literal, matching nothing).
     const query = tokens
       .slice(0, 8)
-      .map((t) => `"${t}"`)
+      .map((t) => `"${t.replace(/"/g, '')}"`)
       .join(' OR ');
     return this.artifacts
-      .search(query, limit + 1)
+      .searchExpr(query, limit + 1)
       .filter((a) => a.id !== id)
       .slice(0, limit);
   }

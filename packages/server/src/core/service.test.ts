@@ -106,6 +106,27 @@ describe('DeskService — artifact lifecycle', () => {
     ).toBe(true);
   });
 
+  test('findSimilar surfaces artifacts sharing vocabulary (not broken by search sanitization)', () => {
+    const a = svc.createArtifact({
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'Quarterly kangaroo migration report', components: [] },
+    });
+    svc.createArtifact({
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'Kangaroo migration notes and report', components: [] },
+    });
+    svc.createArtifact({
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'Unrelated penguin spreadsheet', components: [] },
+    });
+    const similar = svc.findSimilar(a.id, 10);
+    expect(similar.some((s) => s.content.title.includes('Kangaroo migration notes'))).toBe(true);
+    expect(similar.some((s) => s.id === a.id)).toBe(false); // never itself
+  });
+
   test('search ranks a title match above a body-only match', () => {
     const bodyHit = svc.createArtifact({
       type: 'enriched-document',
