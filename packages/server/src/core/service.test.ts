@@ -90,6 +90,22 @@ describe('DeskService — artifact lifecycle', () => {
     expect(() => svc.getArtifact('missing' as ArtifactId)).toThrow();
   });
 
+  test('search tolerates FTS-special input instead of throwing', () => {
+    svc.createArtifact({
+      type: 'enriched-document',
+      author: agent,
+      initialContent: { title: 'Searchable doc', components: [] },
+    });
+    // These would be FTS5 syntax errors if passed raw to MATCH.
+    for (const q of ['"', 'foo(bar', 'AND', 'a:b', '*', 'desk OR', 'x"y"z']) {
+      expect(() => svc.searchArtifacts(q, 10)).not.toThrow();
+    }
+    // A normal multi-token query still matches (implicit AND).
+    expect(
+      svc.searchArtifacts('searchable doc', 10).some((a) => a.content.title === 'Searchable doc'),
+    ).toBe(true);
+  });
+
   test('search ranks a title match above a body-only match', () => {
     const bodyHit = svc.createArtifact({
       type: 'enriched-document',

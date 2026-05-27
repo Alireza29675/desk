@@ -105,7 +105,8 @@ export class ArtifactRepository {
   }
 
   search(query: string, limit = 25): Artifact[] {
-    if (!query.trim()) return [];
+    const match = toFtsMatch(query);
+    if (!match) return [];
     const rows = this.db
       .query<{ artifact_id: string }, [string, number]>(
         // Rank by bm25 with the title column weighted heavily over the body, so
@@ -114,7 +115,7 @@ export class ArtifactRepository {
         `SELECT artifact_id FROM artifacts_fts WHERE artifacts_fts MATCH ?
          ORDER BY bm25(artifacts_fts, 0.0, 10.0, 1.0) LIMIT ?`,
       )
-      .all(query, limit);
+      .all(match, limit);
     return rows
       .map((r) => this.get(r.artifact_id as ArtifactId))
       .filter((a): a is Artifact => Boolean(a));
@@ -126,6 +127,19 @@ export class ArtifactRepository {
       .query('INSERT INTO artifacts_fts (artifact_id, title, body) VALUES (?, ?, ?)')
       .run(artifact.id, artifact.content.title, extractBody(artifact.content));
   }
+}
+
+/**
+ * Turn raw user input into a safe FTS5 MATCH expression. Each whitespace token
+ * becomes a quoted literal (embedded `"` doubled), so query operators and
+ * punctuation (`"`, `(`, `:`, `*`, `AND`/`OR`/`NEAR`) are matched as text
+ * rather than parsed as FTS syntax — which would otherwise throw and 500.
+ * Tokens are space-joined (implicit AND: every term must appear).
+ */
+function toFtsMatch(query: string): string {
+  const tokens = query.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return '';
+  return tokens.map((t) => `"${t.replace(/"/g, '""')}"`).join(' ');
 }
 
 /**
