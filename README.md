@@ -45,7 +45,7 @@ desk mcp cursor           # ditto for Cursor
 desk mcp generic          # transport details + a curl example
 ```
 
-Your agent now has fourteen tools: `create_artifact`, `update_artifact`, `commit`, `get_artifact`, `list_artifacts`, `search_artifacts`, `find_similar`, `get_related`, `add_relation`, `remove_relation`, `comment`, `get_history`, `subscribe`, `unsubscribe`.
+Your agent now has fifteen tools: `create_artifact`, `update_artifact`, `commit`, `delete_artifact`, `get_artifact`, `list_artifacts`, `search_artifacts`, `find_similar`, `get_related`, `add_relation`, `remove_relation`, `comment`, `get_history`, `subscribe`, `unsubscribe`.
 
 ## How it works
 
@@ -66,7 +66,7 @@ Your agent now has fourteen tools: `create_artifact`, `update_artifact`, `commit
 - **Storage.** `bun:sqlite` in `$DESK_HOME/desk.db`. Four tables: `artifacts`, `history_events`, `comments`, `relations`, plus an FTS5 virtual table for search.
 - **Commit semantics.** Hybrid: agents call `commit(reason?)` at meaningful boundaries; if they don't, a 2-second debounce timer auto-commits. Transient drafts, undo churn, and pre-commit edits stay out of history.
 - **Time travel.** Every commit appends a snapshot. Open `/a/<id>/v/<n>` to see the artifact as it was at version `n`.
-- **Realtime.** A single WebSocket per client. Subscribe to an artifact id; receive `s.working_changed`, `s.committed`, `s.commented`, `s.relation_added`, `s.relation_removed` events.
+- **Realtime.** A single WebSocket per client. Subscribe to an artifact id (or `*` for the firehose); receive `s.working_changed`, `s.committed`, `s.commented`, `s.comment_resolved`, `s.relation_added`, `s.relation_removed`, `s.deleted` events.
 
 ## What lives in an artifact
 
