@@ -221,6 +221,35 @@ export const useStore = create<State>((set, get) => {
         return;
       }
 
+      // Relation events fire with artifactId = the relation's `from`, but the
+      // `to` artifact's open view also needs them (as an *incoming* edge). Key
+      // off relation.from/to against the open artifact, not msg.artifactId.
+      if (msg.kind === 's.relation_added' || msg.kind === 's.relation_removed') {
+        const o = get().open;
+        if (!o) return;
+        const rel = msg.relation;
+        if (rel.from !== o.artifact.id && rel.to !== o.artifact.id) return;
+        const without = {
+          outgoing: o.relations.outgoing.filter((r) => r.id !== rel.id),
+          incoming: o.relations.incoming.filter((r) => r.id !== rel.id),
+        };
+        set({
+          open: {
+            ...o,
+            relations:
+              msg.kind === 's.relation_removed'
+                ? without
+                : {
+                    outgoing:
+                      rel.from === o.artifact.id ? [...without.outgoing, rel] : without.outgoing,
+                    incoming:
+                      rel.to === o.artifact.id ? [...without.incoming, rel] : without.incoming,
+                  },
+          },
+        });
+        return;
+      }
+
       const open = get().open;
       if (!open) return;
       if (!('artifactId' in msg) || msg.artifactId !== open.artifact.id) return;
@@ -245,23 +274,6 @@ export const useStore = create<State>((set, get) => {
             comments: open.comments.map((c) =>
               c.id === msg.commentId ? { ...c, resolved: msg.resolved } : c,
             ),
-          },
-        });
-      } else if (msg.kind === 's.relation_added') {
-        set({
-          open: {
-            ...open,
-            relations: { ...open.relations, outgoing: [...open.relations.outgoing, msg.relation] },
-          },
-        });
-      } else if (msg.kind === 's.relation_removed') {
-        set({
-          open: {
-            ...open,
-            relations: {
-              outgoing: open.relations.outgoing.filter((r) => r.id !== msg.relation.id),
-              incoming: open.relations.incoming.filter((r) => r.id !== msg.relation.id),
-            },
           },
         });
       }

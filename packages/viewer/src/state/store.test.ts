@@ -126,6 +126,24 @@ describe('store.applyEvent — open artifact', () => {
     expect(useStore.getState().open?.comments[0]?.resolved).toBe(true);
   });
 
+  it('live-updates incoming AND outgoing relations regardless of event artifactId', () => {
+    useStore.setState({ open: openOf(artifact('a')) as never });
+    const rel = (id: string, from: string, to: string) => ({ id, from, to, type: 'refers-to' });
+    // Incoming: b → a. The event's artifactId is the `from` (b), not the open artifact (a).
+    apply({ kind: 's.relation_added', artifactId: 'b' as ArtifactId, relation: rel('r1', 'b', 'a') } as unknown as RealtimeServerMessage);
+    expect(useStore.getState().open?.relations.incoming.map((r) => r.id)).toEqual(['r1']);
+    // Outgoing: a → c.
+    apply({ kind: 's.relation_added', artifactId: 'a' as ArtifactId, relation: rel('r2', 'a', 'c') } as unknown as RealtimeServerMessage);
+    expect(useStore.getState().open?.relations.outgoing.map((r) => r.id)).toEqual(['r2']);
+    // A relation not involving the open artifact is ignored.
+    apply({ kind: 's.relation_added', artifactId: 'x' as ArtifactId, relation: rel('r3', 'x', 'y') } as unknown as RealtimeServerMessage);
+    expect(useStore.getState().open?.relations.incoming).toHaveLength(1);
+    expect(useStore.getState().open?.relations.outgoing).toHaveLength(1);
+    // Removal clears from whichever side.
+    apply({ kind: 's.relation_removed', artifactId: 'b' as ArtifactId, relation: rel('r1', 'b', 'a') } as unknown as RealtimeServerMessage);
+    expect(useStore.getState().open?.relations.incoming).toHaveLength(0);
+  });
+
   it('keeps a pinned (history) view untouched on a live commit, but still updates the sidebar', () => {
     useStore.setState({
       artifacts: [artifact('a', 'Live', 5)],
