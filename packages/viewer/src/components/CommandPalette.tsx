@@ -69,6 +69,18 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     [theme, setTheme],
   );
 
+  // Commands stay findable by name: filter them by the query (label/hint
+  // substring) rather than hiding them the moment the user types. An empty
+  // query shows all commands. This keeps the "or run a command" promise true —
+  // typing "theme" surfaces the theme toggle instead of "No results.".
+  const matchedActions = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return actions;
+    return actions.filter(
+      (a) => a.label.toLowerCase().includes(q) || a.hint?.toLowerCase().includes(q),
+    );
+  }, [actions, query]);
+
   const items = useMemo(
     () => [
       ...results.map((a) => ({
@@ -77,16 +89,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         label: a.content.title || a.id,
         hint: a.type,
       })),
-      ...(query.trim() === ''
-        ? actions.map((act) => ({
-            kind: 'action' as const,
-            action: act,
-            label: act.label,
-            hint: act.hint,
-          }))
-        : []),
+      ...matchedActions.map((act) => ({
+        kind: 'action' as const,
+        action: act,
+        label: act.label,
+        hint: act.hint,
+      })),
     ],
-    [results, actions, query],
+    [results, matchedActions],
   );
 
   if (!open) return null;
