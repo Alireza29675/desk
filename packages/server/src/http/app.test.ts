@@ -121,4 +121,14 @@ describe('HTTP API', () => {
       'validation_failed',
     );
   });
+
+  test('non-numeric query params (limit/offset) do not 500', async () => {
+    await createDoc();
+    expect((await get('/api/artifacts?limit=abc&offset=xyz')).status).toBe(200);
+    expect((await get('/api/artifacts/search?q=doc&limit=abc')).status).toBe(200);
+  });
+
+  test('search with FTS-special characters does not 500', async () => {
+    expect((await get(`/api/artifacts/search?q=${encodeURIComponent('"(AND')}`)).status).toBe(200);
+  });
 });

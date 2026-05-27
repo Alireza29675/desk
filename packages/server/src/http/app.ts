@@ -20,6 +20,16 @@ import { mountViewer } from './static';
  * than an API endpoint). Routes are thin: validate, call `DeskService`, shape
  * the response. No domain logic lives in here.
  */
+/** Parse a query param as a finite integer, or undefined — so junk like
+ *  `?limit=abc` becomes a default rather than `NaN` flowing into SQL (LIMIT NaN
+ *  throws → 500). */
+function intQuery(c: Context, name: string): number | undefined {
+  const raw = c.req.query(name);
+  if (raw === undefined) return undefined;
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.trunc(n) : undefined;
+}
+
 export function buildHttpApp(service: DeskService): Hono {
   const app = new Hono();
   const api = new Hono();
@@ -85,15 +95,18 @@ export function buildHttpApp(service: DeskService): Hono {
 
   api.get('/artifacts', (c) => {
     const type = c.req.query('type');
-    const limit = c.req.query('limit') ? Number(c.req.query('limit')) : undefined;
-    const offset = c.req.query('offset') ? Number(c.req.query('offset')) : undefined;
-    return c.json({ items: service.listArtifacts({ type, limit, offset }) });
+    return c.json({
+      items: service.listArtifacts({
+        type,
+        limit: intQuery(c, 'limit'),
+        offset: intQuery(c, 'offset'),
+      }),
+    });
   });
 
   api.get('/artifacts/search', (c) => {
     const q = c.req.query('q') ?? '';
-    const limit = c.req.query('limit') ? Number(c.req.query('limit')) : undefined;
-    return c.json({ items: service.searchArtifacts(q, limit) });
+    return c.json({ items: service.searchArtifacts(q, intQuery(c, 'limit')) });
   });
 
   api.get('/a/:id', (c) => {
@@ -112,14 +125,14 @@ export function buildHttpApp(service: DeskService): Hono {
 
   api.get('/a/:id/history', (c) => {
     const id = c.req.param('id') as ArtifactId;
-    const from = c.req.query('from') ? Number(c.req.query('from')) : undefined;
-    const to = c.req.query('to') ? Number(c.req.query('to')) : undefined;
-    return c.json({ events: service.getHistory(id, { from, to }) });
+    return c.json({
+      events: service.getHistory(id, { from: intQuery(c, 'from'), to: intQuery(c, 'to') }),
+    });
   });
 
   api.get('/a/:id/similar', (c) => {
     const id = c.req.param('id') as ArtifactId;
-    const limit = c.req.query('limit') ? Number(c.req.query('limit')) : undefined;
+    const limit = intQuery(c, 'limit');
     return c.json({ items: service.findSimilar(id, limit) });
   });
 
