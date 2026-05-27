@@ -143,8 +143,20 @@
   align-items: center;
   gap: var(--space-4);
 }
+/* Left grows and may shrink so the title truncates; the controls stay put. */
+.topbar__left {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.topbar__right {
+  flex: 0 0 auto;
+}
 .topbar__title {
   font-weight: var(--weight-medium);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .topbar__title--dim {
   color: var(--color-text-subtle);
