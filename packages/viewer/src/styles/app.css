@@ -922,6 +922,41 @@
   display: none;
 }
 @media print {
+  /* Always print on the light palette. A dark-theme export is ink-heavy and
+     hard to read on paper, and the page background can't reliably override the
+     dark surface tokens. Re-point the dark palette to the light values for
+     print only (keep in sync with the light block in tokens.css).
+     `html[data-theme]` (0,1,1) outranks tokens.css's `[data-theme]` (0,1,0),
+     which is required because app.css is bundled *before* tokens.css (App is
+     imported ahead of globals.css in main.tsx), so equal specificity loses. */
+  html[data-theme="dark"] {
+    --color-bg: #fbfaf8;
+    --color-bg-elevated: #ffffff;
+    --color-bg-sunken: #f4f2ee;
+    --color-bg-inset: #efece6;
+    --color-overlay: rgba(15, 14, 13, 0.42);
+    --color-border: #e8e3da;
+    --color-border-strong: #d4ccbe;
+    --color-divider: #efece6;
+    --color-text: #1a1815;
+    --color-text-muted: #6b6357;
+    --color-text-subtle: #9a9181;
+    --color-text-inverse: #fbfaf8;
+    --color-text-on-accent: #ffffff;
+    --color-accent: #ff5a4d;
+    --color-accent-strong: #e8412f;
+    --color-accent-soft: #ffe0db;
+    --color-accent-ring: rgba(255, 90, 77, 0.32);
+    --color-info: #2563eb;
+    --color-info-soft: #dbeafe;
+    --color-warn: #d97706;
+    --color-warn-soft: #fef3c7;
+    --color-danger: #dc2626;
+    --color-danger-soft: #fee2e2;
+    --color-success: #059669;
+    --color-success-soft: #d1fae5;
+  }
+
   /* Strip all chrome and interaction affordances. */
   .sidebar,
   .topbar,
