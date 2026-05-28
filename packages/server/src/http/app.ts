@@ -45,6 +45,11 @@ export function buildHttpApp(service: DeskService): Hono {
     if (err instanceof PluginRegistryError || err instanceof z.ZodError) {
       return c.json({ error: { code: 'validation_failed', message: err.message } }, 400);
     }
+    // A request body that isn't valid JSON makes `c.req.json()` throw a
+    // SyntaxError. That's a client mistake (400), not a server fault (500).
+    if (err instanceof SyntaxError) {
+      return c.json({ error: { code: 'validation_failed', message: 'Malformed JSON body' } }, 400);
+    }
     console.error('[desk-server] unhandled error', err);
     return c.json({ error: { code: 'internal', message: 'Internal server error' } }, 500);
   };

@@ -110,6 +110,21 @@ describe('HTTP API', () => {
     );
   });
 
+  test('an unparseable JSON body is a 400, not a 500', async () => {
+    // Raw bytes that aren't valid JSON make c.req.json() throw a SyntaxError.
+    const res = await app.fetch(
+      new Request('http://t/api/artifacts', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{"type":"enriched-document", BROKEN',
+      }),
+    );
+    expect(res.status).toBe(400);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe(
+      'validation_failed',
+    );
+  });
+
   test('invalid component data is a 400 validation error (not a 500)', async () => {
     const res = await post('/api/artifacts', {
       type: 'enriched-document',
