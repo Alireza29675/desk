@@ -698,6 +698,22 @@
   box-shadow: 0 0 0 2px var(--color-accent-ring);
   border-radius: var(--radius-md);
 }
+/* Brief pulse when an element-anchored comment is clicked in the rail. The
+   store auto-clears `focusedAnchor` after ~1.6s (see store.ts focusTimer), so
+   match that duration. text-selection / region / point have their own focused
+   visuals; this fills the gap for `element` anchors. */
+.commentable[data-comment-focused="true"] {
+  border-radius: var(--radius-md);
+  animation: commentable-focus-pulse 1.6s ease-out;
+}
+@keyframes commentable-focus-pulse {
+  0% {
+    box-shadow: 0 0 0 2px var(--color-accent-ring), 0 0 0 6px var(--color-accent-soft);
+  }
+  100% {
+    box-shadow: 0 0 0 2px transparent, 0 0 0 6px transparent;
+  }
+}
 /* While a point/region tool is armed, the content invites a click/drag. */
 .commentable[data-capture="point"] .commentable__content,
 .commentable[data-capture="region"] .commentable__content {

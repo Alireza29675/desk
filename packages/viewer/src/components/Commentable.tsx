@@ -162,6 +162,11 @@ export function Commentable({
       className={['commentable', className].filter(Boolean).join(' ')}
       data-component-id={componentId}
       data-comment-target={isTarget && target?.kind === 'element' ? 'true' : undefined}
+      // Click-to-reveal feedback for element anchors. text-selection is painted
+      // by the CSS Highlight registry; region/point draw their own overlays;
+      // element had nothing — clicking the comment did nothing visible. This
+      // attribute drives a brief outline pulse on the whole component.
+      data-comment-focused={isFocused && focused?.kind === 'element' ? 'true' : undefined}
       data-capture={mode ?? undefined}
     >
       <div
