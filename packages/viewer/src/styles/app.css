@@ -5,9 +5,13 @@
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr min-content;
   /* Pin the single row to the viewport so tall columns scroll internally
-     instead of growing the grid and overflowing the page. */
+     instead of growing the grid and overflowing the page. dvh tracks the
+     real visible height on mobile (collapsing browser chrome); vh is the
+     fallback for engines without it. */
   grid-template-rows: 100vh;
+  grid-template-rows: 100dvh;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -18,6 +22,7 @@
   background: var(--color-bg-sunken);
   border-right: 1px solid var(--color-border);
   padding: var(--space-7) var(--space-5);
+  padding-top: calc(var(--space-7) + env(safe-area-inset-top, 0px));
   gap: var(--space-6);
   overflow-y: auto;
 }
@@ -132,8 +137,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--topbar-h);
-  padding: 0 var(--space-7);
+  gap: var(--space-4);
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  padding: env(safe-area-inset-top, 0px) var(--space-7) 0;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
 }
@@ -280,6 +286,44 @@
   color: var(--color-text);
 }
 
+/* Overflow menu — on phones the secondary topbar actions collapse behind ⋯
+   so the artifact title keeps its room. Hidden on wide viewports. */
+.topbar__more {
+  position: relative;
+  display: none;
+}
+.topbar__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  z-index: var(--z-overlay);
+}
+.topbar__menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  text-align: left;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+.topbar__menu-item:hover {
+  background: var(--color-bg-sunken);
+}
+.topbar__menu-hint {
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+}
+
 /* ── Workspace body ─────────────────────────────────────────────── */
 .workspace__body {
   flex: 1 1 auto;
@@ -292,15 +336,18 @@
 .document {
   max-width: 760px;
   margin: 0 auto;
-  padding: var(--space-12) var(--space-8) var(--space-12);
+  /* Fluid padding: desktop air shrinks gracefully on small screens instead of
+     wasting a phone's width. */
+  padding: clamp(var(--space-9), 8vh, var(--space-12)) clamp(var(--space-6), 4vw, var(--space-8));
   display: flex;
   flex-direction: column;
-  gap: var(--space-9);
+  gap: clamp(var(--space-8), 4vh, var(--space-9));
 }
 .document__title {
-  font-size: var(--text-4xl);
+  font-size: clamp(var(--text-3xl), 5.4vw + 8px, var(--text-4xl));
   line-height: var(--leading-tight);
   font-weight: var(--weight-semibold);
+  text-wrap: balance;
 }
 .document__meta {
   font-size: var(--text-xs);
@@ -883,11 +930,12 @@
   z-index: var(--z-modal);
   display: flex;
   justify-content: center;
-  padding-top: 18vh;
-  backdrop-filter: blur(2px);
+  padding-top: 16vh;
+  backdrop-filter: blur(4px);
 }
 .palette {
   width: min(var(--command-palette-w), calc(100vw - var(--space-9)));
+  height: fit-content;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -897,16 +945,19 @@
   overflow: hidden;
 }
 .palette__input {
-  padding: var(--space-7) var(--space-7);
+  padding: var(--space-7) var(--space-8);
   border: 0;
   background: transparent;
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   outline: none;
   border-bottom: 1px solid var(--color-border);
 }
+.palette__input::placeholder {
+  color: var(--color-text-subtle);
+}
 .palette__list {
   list-style: none;
-  max-height: 320px;
+  max-height: 348px;
   overflow-y: auto;
   padding: var(--space-3);
 }
@@ -914,9 +965,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
   cursor: pointer;
 }
 .palette__item[data-active="true"] {
@@ -946,31 +998,31 @@
      which is required because app.css is bundled *before* tokens.css (App is
      imported ahead of globals.css in main.tsx), so equal specificity loses. */
   html[data-theme="dark"] {
-    --color-bg: #fbfaf8;
+    --color-bg: #fafafa;
     --color-bg-elevated: #ffffff;
-    --color-bg-sunken: #f4f2ee;
-    --color-bg-inset: #efece6;
-    --color-overlay: rgba(15, 14, 13, 0.42);
-    --color-border: #e8e3da;
-    --color-border-strong: #d4ccbe;
-    --color-divider: #efece6;
-    --color-text: #1a1815;
-    --color-text-muted: #6b6357;
-    --color-text-subtle: #9a9181;
-    --color-text-inverse: #fbfaf8;
+    --color-bg-sunken: #f4f4f5;
+    --color-bg-inset: #ececee;
+    --color-overlay: rgba(10, 10, 11, 0.4);
+    --color-border: #e4e4e7;
+    --color-border-strong: #d4d4d8;
+    --color-divider: #ececee;
+    --color-text: #171717;
+    --color-text-muted: #62626b;
+    --color-text-subtle: #9b9ba3;
+    --color-text-inverse: #fafafa;
     --color-text-on-accent: #ffffff;
     --color-accent: #ff5a4d;
     --color-accent-strong: #e8412f;
-    --color-accent-soft: #ffe0db;
-    --color-accent-ring: rgba(255, 90, 77, 0.32);
+    --color-accent-soft: #ffe4e0;
+    --color-accent-ring: rgba(255, 90, 77, 0.3);
     --color-info: #2563eb;
-    --color-info-soft: #dbeafe;
+    --color-info-soft: #e8f0fe;
     --color-warn: #d97706;
-    --color-warn-soft: #fef3c7;
+    --color-warn-soft: #fdf3e1;
     --color-danger: #dc2626;
-    --color-danger-soft: #fee2e2;
+    --color-danger-soft: #fdeaea;
     --color-success: #059669;
-    --color-success-soft: #d1fae5;
+    --color-success-soft: #e3f6ee;
   }
 
   /* Strip all chrome and interaction affordances. */
@@ -1036,11 +1088,13 @@
   }
 }
 
-/* ── Responsive: off-canvas drawers on narrow viewports ─────────── */
-/* The fixed sidebar (240px) + comment rail (320px) crush the content pane
-   below ~860px (e.g. Desk in a half-width window next to an editor). Below
-   920px the workspace goes full-width and the panels become drawers toggled
-   from the topbar. */
+/* ── Responsive ─────────────────────────────────────────────────── */
+/* Two tiers. ≤920px (half-width windows, tablets): the fixed sidebar +
+   comment rail would crush the content pane, so the workspace goes
+   full-width and the panels become drawers toggled from the topbar.
+   ≤640px (phones): mobile is a first-class citizen — the comment rail
+   becomes a bottom sheet at thumb reach, secondary topbar actions collapse
+   behind a ⋯ menu, and touch targets get real sizes. */
 .topbar__mobile-only {
   display: none;
 }
@@ -1060,19 +1114,24 @@
     position: fixed;
     top: 0;
     bottom: 0;
-    width: min(85vw, 320px);
+    width: min(86vw, 340px);
     max-height: none;
     z-index: var(--z-modal);
-    transition: transform var(--duration-base) var(--ease-standard);
-    box-shadow: var(--shadow-2);
+    transition: transform var(--duration-slow) var(--ease-emphasized);
+    box-shadow: var(--shadow-3);
   }
   .sidebar {
     left: 0;
     transform: translateX(-100%);
+    border-right: 0;
+    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+    padding-left: calc(var(--space-5) + env(safe-area-inset-left, 0px));
   }
   .comment-rail {
     right: 0;
     transform: translateX(100%);
+    border-left: 0;
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
   }
   .app[data-panel="nav"] .sidebar {
     transform: none;
@@ -1085,7 +1144,145 @@
     position: fixed;
     inset: 0;
     border: 0;
-    background: rgba(0, 0, 0, 0.45);
+    border-radius: 0;
+    background: var(--color-overlay);
     z-index: var(--z-overlay);
+  }
+}
+
+@media (max-width: 640px) {
+  /* Topbar: secondary actions live behind ⋯ so the title keeps its room.
+     Everything tappable is ≥40px. */
+  .topbar {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .topbar__desktop-only {
+    display: none;
+  }
+  .topbar__more {
+    display: inline-flex;
+  }
+  .topbar__icon,
+  .topbar__back {
+    width: 40px;
+    height: 40px;
+  }
+  .topbar__title {
+    font-size: var(--text-base);
+  }
+
+  /* Comments become a bottom sheet — composer lands at thumb reach and the
+     artifact stays visible behind the scrim. Same data-panel mechanics. */
+  .comment-rail {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: min(78vh, 640px);
+    height: min(78dvh, 640px);
+    transform: translateY(100%);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-top: 1px solid var(--color-border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .app[data-panel="comments"] .comment-rail {
+    transform: none;
+  }
+  /* Grab-handle affordance signalling "sheet", drawn on the header. */
+  .comment-rail::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-border-strong);
+  }
+  .comment-rail__header {
+    padding-top: var(--space-7);
+  }
+
+  /* Sidebar drawer gets the full safe height and a wider reach on phones. */
+  .sidebar {
+    width: min(88vw, 320px);
+  }
+
+  /* Command palette: keyboard owns the bottom half of a phone screen, so the
+     palette hugs the top and caps its own height. */
+  .palette-backdrop {
+    padding-top: max(var(--space-5), env(safe-area-inset-top, 0px));
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .palette {
+    width: 100%;
+  }
+  .palette__input {
+    padding: var(--space-6) var(--space-6);
+    font-size: 16px; /* <16px would trigger iOS auto-zoom on focus */
+  }
+  .palette__list {
+    max-height: 52dvh;
+  }
+
+  /* History chips scroll horizontally instead of stacking rows. */
+  .history-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .history-bar__track {
+    flex-wrap: nowrap;
+  }
+  .history-bar__pinned {
+    white-space: nowrap;
+  }
+
+  /* Presentations: keep the canvas readable, drop the desktop air. */
+  .presentation {
+    padding: var(--space-6) var(--space-4);
+  }
+  .presentation__slide {
+    padding: var(--space-7);
+    aspect-ratio: auto;
+    min-height: 52vw;
+  }
+  .presentation__slide[data-layout="two-column"] {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  /* Timeline: the 120px date gutter is a third of a phone — stack instead. */
+  .timeline__event {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  /* Comment composer: 16px stops iOS focus-zoom; the ⌘-hint means nothing
+     without a keyboard (visibility keeps the row layout). */
+  .comment-rail__textarea {
+    font-size: 16px;
+  }
+  .comment-rail__hint {
+    visibility: hidden;
+  }
+  /* No keyboard, no ⌘K hint. */
+  .empty-state__row--kbd {
+    display: none;
+  }
+}
+
+/* ── Touch input (any viewport) ─────────────────────────────────── */
+/* Hover-revealed affordances don't exist on touch screens. Keep them
+   visible — compact and quiet, but reachable. */
+@media (hover: none) {
+  .commentable__tools {
+    opacity: 1;
+  }
+  .sidebar__delete {
+    opacity: 1;
   }
 }

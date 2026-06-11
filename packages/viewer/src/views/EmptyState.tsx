@@ -14,9 +14,7 @@ export function EmptyState() {
         {hasArtifacts ? (
           <>
             <h2 className="empty-state__title serif-accent">Nothing open.</h2>
-            <p className="empty-state__sub">
-              Pick an artifact from the desk on the left to view it.
-            </p>
+            <p className="empty-state__sub">Pick an artifact from the desk to view it.</p>
           </>
         ) : (
           <>
@@ -27,7 +25,7 @@ export function EmptyState() {
             </p>
           </>
         )}
-        <div className="empty-state__row">
+        <div className="empty-state__row empty-state__row--kbd">
           <Kbd>⌘K</Kbd>
           <span>to search anything</span>
         </div>

@@ -52,21 +52,30 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
+/* Tinted surface + a quiet matching border: the tone reads from the fill and
+   the icon, not from a loud full-strength outline. */
 .callout[data-tone="info"] {
   background: var(--color-info-soft);
-  border-color: var(--color-info);
+  border-color: color-mix(in srgb, var(--color-info) 28%, transparent);
+  --callout-tone: var(--color-info);
 }
 .callout[data-tone="warn"] {
   background: var(--color-warn-soft);
-  border-color: var(--color-warn);
+  border-color: color-mix(in srgb, var(--color-warn) 32%, transparent);
+  --callout-tone: var(--color-warn);
 }
 .callout[data-tone="danger"] {
   background: var(--color-danger-soft);
-  border-color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 28%, transparent);
+  --callout-tone: var(--color-danger);
 }
 .callout[data-tone="success"] {
   background: var(--color-success-soft);
-  border-color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+  --callout-tone: var(--color-success);
+}
+.callout > [aria-hidden] {
+  color: var(--callout-tone, var(--color-text-muted));
 }
 .callout__title {
   font-weight: var(--weight-semibold);
@@ -78,7 +87,8 @@
   padding-left: var(--space-7);
   border-left: 3px solid var(--color-accent);
   font-family: var(--font-serif);
-  font-size: var(--text-lg);
+  /* Instrument Serif is a display face that sets small — give it real size. */
+  font-size: var(--text-xl);
   line-height: var(--leading-relaxed);
   font-style: italic;
 }
@@ -115,6 +125,17 @@
 }
 .code-view__body pre {
   margin: 0;
+}
+/* The block always sits on Desk's own surface token, not Shiki's theme bg. */
+.code-view__body .shiki {
+  background-color: transparent !important;
+}
+/* Shiki emits dual-theme inline styles (--shiki-dark vars); this activates
+   them when Desk is in dark mode. Print never hits this: the beforeprint
+   handler forces data-theme="light" before the print palette applies. */
+[data-theme="dark"] .code-view__body .shiki,
+[data-theme="dark"] .code-view__body .shiki span {
+  color: var(--shiki-dark) !important;
 }
 .code-view[data-wrap="true"] .code-view__body pre {
   white-space: pre-wrap;

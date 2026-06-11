@@ -37,6 +37,8 @@ export function App() {
         e.preventDefault();
         setPaletteOpen((v) => !v);
       }
+      // Escape dismisses an open drawer/sheet (the palette handles its own).
+      if (e.key === 'Escape') setPanel(null);
     }
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);

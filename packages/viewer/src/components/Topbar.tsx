@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { absoluteUrl, artifactPath } from '../lib/router';
 import { useStore } from '../state/store';
 import { Kbd } from './Kbd';
@@ -21,10 +21,30 @@ export function Topbar({
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
   const [copied, setCopied] = useState(false);
+  // Phone-width overflow menu (⋯) holding the secondary actions. Hidden on
+  // wide viewports via CSS; the inline buttons hide on phones the same way.
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Theme-forcing for print lives in App's beforeprint/afterprint handler, so
   // it applies whether you click Export or hit ⌘P.
   const exportPdf = () => window.print();
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMenuOpen(false);
+    }
+    window.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
 
   async function copyLink() {
     if (!open) return;
@@ -38,6 +58,11 @@ export function Topbar({
       window.prompt('Copy this link:', url);
     }
   }
+
+  const runFromMenu = (action: () => void) => () => {
+    setMenuOpen(false);
+    action();
+  };
 
   return (
     <div className="topbar">
@@ -72,25 +97,68 @@ export function Topbar({
       <div className="topbar__right">
         {open ? (
           <>
-            <button className="topbar__link" onClick={exportPdf} title="Export to PDF (print)">
+            <button
+              className="topbar__link topbar__desktop-only"
+              onClick={exportPdf}
+              title="Export to PDF (print)"
+            >
               Export
             </button>
-            <button className="topbar__link" onClick={copyLink} title="Copy a link to this view">
+            <button
+              className="topbar__link topbar__desktop-only"
+              onClick={copyLink}
+              title="Copy a link to this view"
+            >
               {copied ? 'Copied' : 'Copy link'}
             </button>
           </>
         ) : null}
-        <button className="topbar__search" onClick={onOpenPalette}>
+        <button className="topbar__search topbar__desktop-only" onClick={onOpenPalette}>
           Search · <Kbd>⌘K</Kbd>
         </button>
         <button
-          className="topbar__icon"
+          className="topbar__icon topbar__desktop-only"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           aria-label="Toggle theme"
           title="Toggle theme"
         >
           {theme === 'dark' ? '☀' : '☾'}
         </button>
+        <div className="topbar__more" ref={menuRef}>
+          <button
+            className="topbar__icon"
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="More actions"
+            aria-expanded={menuOpen}
+            title="More"
+          >
+            ⋯
+          </button>
+          {menuOpen ? (
+            <div className="topbar__menu" role="menu">
+              <button className="topbar__menu-item" role="menuitem" onClick={runFromMenu(onOpenPalette)}>
+                Search
+              </button>
+              {open ? (
+                <>
+                  <button className="topbar__menu-item" role="menuitem" onClick={runFromMenu(exportPdf)}>
+                    Export to PDF
+                  </button>
+                  <button className="topbar__menu-item" role="menuitem" onClick={runFromMenu(copyLink)}>
+                    {copied ? 'Copied' : 'Copy link'}
+                  </button>
+                </>
+              ) : null}
+              <button
+                className="topbar__menu-item"
+                role="menuitem"
+                onClick={runFromMenu(() => setTheme(theme === 'dark' ? 'light' : 'dark'))}
+              >
+                {theme === 'dark' ? 'Light theme' : 'Dark theme'}
+              </button>
+            </div>
+          ) : null}
+        </div>
         {open ? (
           <button
             className="topbar__icon topbar__mobile-only"

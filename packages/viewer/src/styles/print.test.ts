@@ -34,8 +34,23 @@ describe('print stylesheet forces the light palette', () => {
   });
 
   it('maps the dark surface + text tokens to the light values', () => {
-    expect(block).toContain('--color-bg: #fbfaf8');
-    expect(block).toContain('--color-text: #1a1815');
+    expect(block).toContain('--color-bg: #fafafa');
+    expect(block).toContain('--color-text: #171717');
     expect(block).toContain('--color-bg-elevated: #ffffff');
+  });
+
+  it('print block stays in sync with the light palette in tokens.css', () => {
+    // The print block is a manual mirror of the light tokens (specificity
+    // requirement). Catch drift: every --color-* it declares must match the
+    // light block of tokens.css value-for-value.
+    const tokens = readFileSync(fileURLToPath(new URL('./tokens.css', import.meta.url)), 'utf8');
+    const lightStart = tokens.indexOf('[data-theme="light"]');
+    const lightEnd = tokens.indexOf('[data-theme="dark"]');
+    const lightBlock = tokens.slice(lightStart, lightEnd);
+    const declared = block.match(/--color-[a-z-]+:\s*[^;]+;/g) ?? [];
+    expect(declared.length).toBeGreaterThan(20);
+    for (const decl of declared) {
+      expect(lightBlock).toContain(decl);
+    }
   });
 });
