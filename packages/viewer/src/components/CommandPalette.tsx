@@ -134,6 +134,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               e.preventDefault();
               choose(highlight);
             } else if (e.key === 'Escape') {
+              // Consume the event so App's window-level Escape (which closes
+              // the mobile drawer/sheet) doesn't also fire on the same press.
+              e.preventDefault();
               onClose();
             }
           }}

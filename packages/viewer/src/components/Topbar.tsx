@@ -36,13 +36,18 @@ export function Topbar({
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     }
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key === 'Escape') {
+        // Capture phase + preventDefault: the menu is the topmost surface, so
+        // this press must not also close a drawer (App checks defaultPrevented).
+        e.preventDefault();
+        setMenuOpen(false);
+      }
     }
     window.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onKeyDown, { capture: true });
     return () => {
       window.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', onKeyDown, { capture: true });
     };
   }, [menuOpen]);
 
@@ -62,6 +67,13 @@ export function Topbar({
   const runFromMenu = (action: () => void) => () => {
     setMenuOpen(false);
     action();
+  };
+
+  // Copy needs visible feedback where the user is looking: keep the menu open
+  // so the row flips to "Copied", then dismiss once the state resets.
+  const copyFromMenu = async () => {
+    await copyLink();
+    setTimeout(() => setMenuOpen(false), 900);
   };
 
   return (
@@ -125,6 +137,9 @@ export function Topbar({
           {theme === 'dark' ? '☀' : '☾'}
         </button>
         <div className="topbar__more" ref={menuRef}>
+          {/* Plain buttons in a popover, not role="menu" — full ARIA menu
+              semantics (roving focus, arrow keys) aren't implemented, and
+              announcing a half-menu is worse than honest buttons. */}
           <button
             className="topbar__icon"
             onClick={() => setMenuOpen((v) => !v)}
@@ -135,23 +150,22 @@ export function Topbar({
             ⋯
           </button>
           {menuOpen ? (
-            <div className="topbar__menu" role="menu">
-              <button className="topbar__menu-item" role="menuitem" onClick={runFromMenu(onOpenPalette)}>
+            <div className="topbar__menu">
+              <button className="topbar__menu-item" onClick={runFromMenu(onOpenPalette)}>
                 Search
               </button>
               {open ? (
                 <>
-                  <button className="topbar__menu-item" role="menuitem" onClick={runFromMenu(exportPdf)}>
+                  <button className="topbar__menu-item" onClick={runFromMenu(exportPdf)}>
                     Export to PDF
                   </button>
-                  <button className="topbar__menu-item" role="menuitem" onClick={runFromMenu(copyLink)}>
+                  <button className="topbar__menu-item" onClick={copyFromMenu}>
                     {copied ? 'Copied' : 'Copy link'}
                   </button>
                 </>
               ) : null}
               <button
                 className="topbar__menu-item"
-                role="menuitem"
                 onClick={runFromMenu(() => setTheme(theme === 'dark' ? 'light' : 'dark'))}
               >
                 {theme === 'dark' ? 'Light theme' : 'Dark theme'}

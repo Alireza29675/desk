@@ -304,7 +304,9 @@
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-2);
-  z-index: var(--z-overlay);
+  /* Above the drawer scrim — a tap on ☰/💬 closes this menu anyway (outside
+     pointerdown), but the scrim must never paint over a still-open menu. */
+  z-index: var(--z-modal);
 }
 .topbar__menu-item {
   display: flex;
@@ -318,10 +320,6 @@
 }
 .topbar__menu-item:hover {
   background: var(--color-bg-sunken);
-}
-.topbar__menu-hint {
-  font-size: var(--text-2xs);
-  color: var(--color-text-subtle);
 }
 
 /* ── Workspace body ─────────────────────────────────────────────── */
@@ -343,10 +341,12 @@
   flex-direction: column;
   gap: clamp(var(--space-8), 4vh, var(--space-9));
 }
+/* No font-weight here: the title always carries .serif-accent, whose 400 pin
+   must win regardless of stylesheet bundle order (Instrument Serif has no
+   bold — a weight here would invite synthetic bold if imports get reordered). */
 .document__title {
   font-size: clamp(var(--text-3xl), 5.4vw + 8px, var(--text-4xl));
   line-height: var(--leading-tight);
-  font-weight: var(--weight-semibold);
   text-wrap: balance;
 }
 .document__meta {
@@ -400,8 +400,8 @@
   justify-content: space-between;
 }
 .presentation__title {
+  /* Weight comes from .serif-accent (Instrument Serif is 400-only). */
   font-size: var(--text-2xl);
-  font-weight: var(--weight-semibold);
 }
 .presentation__nav {
   display: flex;
@@ -955,6 +955,11 @@
 .palette__input::placeholder {
   color: var(--color-text-subtle);
 }
+/* The palette itself is the focus signal; the global :focus-visible ring
+   clips against the panel's overflow and reads as a stray error bar. */
+.palette__input:focus-visible {
+  box-shadow: none;
+}
 .palette__list {
   list-style: none;
   max-height: 348px;
@@ -1184,6 +1189,7 @@
     width: 100%;
     height: min(78vh, 640px);
     height: min(78dvh, 640px);
+    max-height: calc(100vh - var(--keyboard-inset, 0px) - var(--space-5));
     max-height: calc(100dvh - var(--keyboard-inset, 0px) - var(--space-5));
     transform: translateY(100%);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;

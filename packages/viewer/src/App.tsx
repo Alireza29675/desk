@@ -37,8 +37,9 @@ export function App() {
         e.preventDefault();
         setPaletteOpen((v) => !v);
       }
-      // Escape dismisses an open drawer/sheet (the palette handles its own).
-      if (e.key === 'Escape') setPanel(null);
+      // Escape dismisses an open drawer/sheet — unless a closer surface
+      // (palette, topbar menu) already consumed this press.
+      if (e.key === 'Escape' && !e.defaultPrevented) setPanel(null);
     }
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -51,9 +52,16 @@ export function App() {
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+    let last = '';
     const update = () => {
-      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      document.documentElement.style.setProperty('--keyboard-inset', `${inset}px`);
+      // Pinch-zoom also shrinks the visual viewport with no keyboard in
+      // sight — only treat the shortfall as a keyboard at 1:1 scale.
+      const inset =
+        vv.scale > 1 ? 0 : Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      const value = `${Math.round(inset)}px`;
+      if (value === last) return; // vv 'scroll' fires continuously on iOS
+      last = value;
+      document.documentElement.style.setProperty('--keyboard-inset', value);
     };
     update();
     vv.addEventListener('resize', update);

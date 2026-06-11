@@ -7,6 +7,9 @@ import { App } from './App';
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
 import '@fontsource/instrument-serif';
+// The base package ships 400-normal only; quotes set font-style italic and
+// would get a synthetic oblique without the real italic face.
+import '@fontsource/instrument-serif/400-italic.css';
 import './styles/globals.css';
 
 /**
