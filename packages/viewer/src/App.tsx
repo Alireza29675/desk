@@ -44,6 +44,26 @@ export function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Lift the comments bottom sheet above the soft keyboard. iOS doesn't
+  // resize the layout viewport when the keyboard shows (dvh doesn't track it
+  // either), so a bottom-pinned composer would hide behind it; visualViewport
+  // is the only honest signal. Desktop / no keyboard → inset 0, a no-op.
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const update = () => {
+      const inset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      document.documentElement.style.setProperty('--keyboard-inset', `${inset}px`);
+    };
+    update();
+    vv.addEventListener('resize', update);
+    vv.addEventListener('scroll', update);
+    return () => {
+      vv.removeEventListener('resize', update);
+      vv.removeEventListener('scroll', update);
+    };
+  }, []);
+
   // Force light theme for any print path (the Export button *and* the browser's
   // own ⌘P) so PDFs read cleanly on paper, then restore afterward.
   useEffect(() => {

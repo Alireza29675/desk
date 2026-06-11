@@ -1178,10 +1178,13 @@
     top: auto;
     left: 0;
     right: 0;
-    bottom: 0;
+    /* --keyboard-inset (set from visualViewport in App.tsx) lifts the sheet
+       above the soft keyboard so the composer stays reachable while typing. */
+    bottom: var(--keyboard-inset, 0px);
     width: 100%;
     height: min(78vh, 640px);
     height: min(78dvh, 640px);
+    max-height: calc(100dvh - var(--keyboard-inset, 0px) - var(--space-5));
     transform: translateY(100%);
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     border-top: 1px solid var(--color-border);
@@ -1275,12 +1278,33 @@
   }
 }
 
-/* ── Touch input (any viewport) ─────────────────────────────────── */
+/* ── Touch input ────────────────────────────────────────────────── */
 /* Hover-revealed affordances don't exist on touch screens. Keep them
-   visible — compact and quiet, but reachable. */
-@media (hover: none) {
+   visible — compact and quiet, but reachable. Keyed on hover:none AND
+   pointer:coarse AND phone width, because emulators/hybrids disagree on
+   which media features they report. */
+@media (hover: none), (pointer: coarse), (max-width: 640px) {
   .commentable__tools {
     opacity: 1;
+  }
+  /* Quieter than the hover pills — always-on coral on every block would
+     shout; a bordered neutral chip reads as "available" without noise. */
+  .commentable__tool {
+    background: var(--color-bg-elevated);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-1);
+  }
+  .commentable__tool:hover,
+  .commentable__tool:active {
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    border-color: var(--color-accent);
+  }
+  .commentable__tool[data-active="true"] {
+    background: var(--color-text);
+    color: var(--color-bg);
+    border-color: var(--color-text);
   }
   .sidebar__delete {
     opacity: 1;
