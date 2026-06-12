@@ -9,7 +9,9 @@ POST http://127.0.0.1:7878/mcp
 Content-Type: application/json
 ```
 
-The transport is JSON-RPC 2.0 over HTTP (streamable transport). Each request is a single object; each response is a single object.
+Start the server first: `bun run --filter '@desk/cli' dev` (see the README quickstart). `7878` and `127.0.0.1` are defaults, overridable via `DESK_PORT` / `DESK_HOST`. For client wiring, `desk mcp claude-desktop` and `desk mcp cursor` print a ready-made registration snippet to paste into that client's config; `desk mcp generic` prints the endpoint plus an example `tools/list` curl call.
+
+The transport is JSON-RPC 2.0 over a single HTTP POST endpoint. Each request is a single object; each response is a single object.
 
 ## Methods
 
@@ -34,15 +36,19 @@ Create a new artifact. Returns the artifact (with id, version 1, and creation ti
 
 ### `update_artifact`
 
-Mutate working state. The agent passes a patch with any subset of `{ title, components }`.
+Mutate working state. The agent passes a patch with any subset of `{ title, components }`. Working-state edits auto-commit after 2 seconds of idle (configurable via `DESK_AUTOCOMMIT_MS`, `0` disables it; each `update_artifact` resets the timer). See [architecture.md](architecture.md) for the commit model.
 
 ### `commit`
 
 Promote the current working state to a history event. Cancels the pending auto-commit timer. The optional `reason` is surfaced in the history scrubber and in retrospective reads.
 
+### `delete_artifact`
+
+Permanently delete an artifact and everything attached to it — history, comments, relations. Takes `{ id }`, returns `{ ok: true, id }`. This cannot be undone, and it removes the artifact from every connected viewer live (subscribers receive an `s.deleted` event).
+
 ### `get_artifact`
 
-Fetch an artifact, with optional `version` for time-travel. Returns the artifact plus its relation graph and active comments.
+Fetch an artifact, with optional `version` for time-travel. Returns the artifact plus its relation graph and all comments (resolved threads carry `resolved: true`; the viewer dims them).
 
 ### `list_artifacts` / `search_artifacts`
 
@@ -54,7 +60,20 @@ Returns artifacts whose content overlaps the target. v1 is keyword-based; the ba
 
 ### `comment`
 
-Post a comment. The `anchor` field is one of:
+Post a comment. A complete call:
+
+```json
+{
+  "artifact_id": "a-1",
+  "anchor": { "kind": "general" },
+  "body": { "kind": "text", "text": "Looks good" },
+  "author": { "kind": "agent", "agentId": "claude", "sessionId": "s-123" }
+}
+```
+
+Pass `thread_parent_id` to reply within an existing thread. `body` is `{ "kind": "text", "text": "..." }` — text is the only payload kind in v1.
+
+The `anchor` field is one of:
 
 ```json
 { "kind": "element",        "componentId": "c-abc", "elementPath": "rows.3" }
@@ -65,6 +84,8 @@ Post a comment. The `anchor` field is one of:
 ```
 
 There is no pixel-coord anchor shape. By design.
+
+**Attachments.** Comments read back via `get_artifact` (or pushed via `s.commented`) may carry an `attachments` array of image metadata — `{ id, kind: "image", mediaType: "image/png", width, height }`. The bytes live at `GET http://127.0.0.1:7878/api/attachments/:id`; fetch them there when a human attaches a screenshot. The MCP `comment` tool posts text-only bodies in this build — attachments arrive via HTTP (`POST /api/a/:id/comments`).
 
 ### `add_relation` / `remove_relation` / `get_related`
 
@@ -80,7 +101,7 @@ In this build, the realtime channel rides a separate WebSocket; `subscribe` exis
 
 ## A worked example
 
-A minimal agent loop, in pseudocode:
+A minimal agent loop, in pseudocode. One wire-level note: `tools/call` results arrive MCP-style as JSON text in `content[0].text` — parse that string to get the object the pseudocode treats as the return value.
 
 ```ts
 const artifact = await mcp.call('create_artifact', {

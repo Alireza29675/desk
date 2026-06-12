@@ -7,7 +7,7 @@ import { DeskError, validationFailed } from './errors';
  * rejected AT THE WRITE BOUNDARY (create/patch) with the transpiler's own
  * message, so the model gets an immediate, specific fix-it signal instead of
  * a silently broken artifact. The viewer's sandbox harness then fetches
- * COMPILED JS from `GET /api/a/:id/components/:cid/compiled` — classic
+ * COMPILED JS from `GET /api/a/:id/components/:componentId/compiled` — classic
  * `React.createElement` output, so the only global the code needs is React.
  *
  * Bounds (so a pathological payload can't wedge the server): the size cap is

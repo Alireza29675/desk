@@ -138,11 +138,12 @@ export class FrameSupervisor {
 
 /**
  * The frame document. Sandbox (`allow-scripts`, set on the iframe element —
- * never `allow-same-origin`) gives it an opaque origin: no parent DOM, no
- * store, and desk API calls die on CORS. The CSP closes the rest: scripts
- * only from our origin (the harness bundle) plus eval (how the harness
- * instantiates the compiled component), inline styles for the component,
- * data: images — and NO network (`default-src 'none'`, no connect-src).
+ * never `allow-same-origin`) gives it an opaque origin: no parent DOM and no
+ * store access. The network door is closed by the CSP, not CORS (the desk API
+ * itself allows `origin: *`): `default-src 'none'` with no connect-src blocks
+ * every fetch/XHR/WebSocket. Scripts only from our origin (the harness
+ * bundle) plus eval (how the harness instantiates the compiled component),
+ * inline styles for the component, data: images.
  */
 export function buildFrameSrcdoc(origin: string, theme: 'light' | 'dark'): string {
   const csp = [

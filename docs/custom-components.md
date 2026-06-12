@@ -39,7 +39,7 @@ any future component type needing write-time checks beyond its Zod shape.
 
 ## Compilation (what actually runs)
 
-`GET /api/a/:id/components/:cid/compiled` returns the code transpiled to
+`GET /api/a/:id/components/:componentId/compiled` returns the code transpiled to
 classic-runtime JS (`React.createElement` calls, no `jsx-runtime` import),
 cached by content hash, with a hard timeout on the async path. Source stays
 canonical on the artifact; compiled output is derived, never stored.
@@ -50,21 +50,29 @@ The viewer renders the component inside
 `<iframe sandbox="allow-scripts" srcdoc=…>` — **never `allow-same-origin`** —
 which gives the frame an *opaque origin*. The browser enforces:
 
-- no access to the parent DOM, the viewer store, or cookies/storage;
-- desk API requests fail CORS (no credentialed same-origin requests exist);
-- the srcdoc CSP (`default-src 'none'`; scripts only from the desk origin
-  plus `'unsafe-eval'`; inline styles; `data:` images) blocks **all network**.
+- no access to the parent DOM or the viewer store;
+- the opaque origin strips all ambient authority — requests carry no cookies
+  and the frame gets no storage. Note this alone does *not* wall off the desk
+  API: the server's `cors({ origin: '*' })` permits uncredentialed reads from
+  any origin, so the network block below is what closes that door;
+- the srcdoc CSP (`default-src 'none'` with no `connect-src`; scripts only
+  from the desk origin plus `'unsafe-eval'`; inline styles; `data:` images)
+  blocks **all network** — desk API included.
 
-Inside the frame runs only the **harness** (`viewer/src/harness/main.tsx`,
-bundled self-contained as `/custom-harness.js` by the viewer's
-`build:harness` script) and the generated component. The harness instantiates
+Inside the frame runs only the **harness**
+(`packages/viewer/src/harness/main.tsx`, bundled self-contained as
+`/custom-harness.js` by the viewer's `build:harness` script) and the
+generated component. `build:harness` runs automatically before the viewer's
+`dev` and `build` scripts, but the bundle is a static file in `public/`, so
+edits to `src/harness/main.tsx` are **not** hot-reloaded — re-run
+`bun run build:harness` (or restart `bun run dev`) to pick them up. The harness instantiates
 the compiled code with `new Function('React', code + ';return Component')`
 under its own error boundary — a render crash displays inside the frame and
 never touches the artifact view.
 
 ## The message protocol
 
-Defined in `viewer/src/lib/custom-frame.ts` (`HarnessMessage` /
+Defined in `packages/viewer/src/lib/custom-frame.ts` (`HarnessMessage` /
 `ParentMessage`). The frame is untrusted, so the parent validates every
 inbound message by **source identity** (`event.source` must be the frame's
 own `contentWindow`) and **shape** (the strict union); anything else is
@@ -93,11 +101,12 @@ infinite loop can freeze the tab in some browsers. The supervisor
 Worst case anywhere is a tab reload with zero data loss: code and artifact
 live server-side, and nothing the frame can do mutates the store.
 
-## Verified end to end
+## Testing
 
-Against a real running server: natural-TSX timer accepted at create; a
-syntax-error component bounced 400 with the transpiler message; the compiled
-endpoint served classic-runtime JS; and that JS, instantiated exactly the way
-the harness does it, rendered with `theme` flowing into the output. The
-remaining visual confirmation (the frame booting inside a real browser) rides
-the joint feel-pass, like item 12's capture.
+- `packages/server/src/core/custom-react.test.ts` — write-time validation
+  (accept/reject on create *and* patch, the defines-`Component` contract)
+  and the compiled endpoint (classic-runtime output, cache path, error
+  statuses).
+- `packages/viewer/src/lib/custom-frame.test.ts` — the message-protocol
+  guard (source identity, then shape), the srcdoc CSP, and the
+  `FrameSupervisor` (boot deadline and stall detection).

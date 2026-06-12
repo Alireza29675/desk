@@ -9,7 +9,9 @@ spans types → viewer → server → channel.
 `CommentAnchor` (`packages/types/src/comment.ts`) is a five-kind discriminated
 union: `element`, `region`, `text-selection`, `point`, `general`. The design
 pillar: anchors are **semantic or relative, never raw pixels**. A region is
-fractions (0..1) of its component's box; a point is a relative offset; a text
+fractions (0..1) of its component's box (the type also allows a plugin-defined
+*named* sub-region — nothing produces one yet, and the capture crop treats it
+as the whole component); a point is a relative offset; a text
 selection is character offsets into the component's resolved text. That's what
 lets an anchor survive zoom, reflow, theme changes, and different screens.
 
@@ -19,6 +21,21 @@ pipelines (below) call it, so a point anchor is framed identically no matter
 which pipeline produced the image: a fixed 220×160 context window around the
 point; a region maps to its fractional rect; element/text-selection fall back
 to the whole component box. Everything is padded by 10px and clamped.
+
+## Anchors rendered back on the artifact
+
+The reverse projection — unresolved comments surfacing on the artifact for
+the operator. A component carrying unresolved anchored comments shows a small
+persistent dot per thread (`unresolved-dot` buttons,
+`packages/viewer/src/components/Commentable.tsx`; `general` anchors have no
+spatial placement and stay rail-only). Unresolved text selections also get a
+persistent tint (`desk-anchor-unresolved`, a CSS Custom Highlight painted by
+`packages/viewer/src/state/use-anchor-highlights.ts`). Hovering or focusing a
+dot opens a popover with the comment text and reveals the anchor's shape;
+clicking it calls `focusAnchor` (pulses the anchor) and `revealInRail(id)` —
+the store sets `railTarget` (self-clearing after 1.6s) and the comment rail
+scrolls the thread into view and flashes it (`data-rail-flash`). Resolving a
+comment removes its dot and tint.
 
 ## Attachments (images riding on a comment)
 
@@ -30,15 +47,21 @@ body type. Bytes never travel with the comment: they're stored in the
 
 Posting: `POST /api/a/:id/comments` accepts
 `attachments: [{ kind: 'image', dataUrl: 'data:image/png;base64,…' }]`.
-The server (`core/png.ts`) decodes and validates **before any row is
-written** — PNG signature, IHDR dimensions, ≤ 2 MB each, ≤ 4 per comment. A
-bad image bounces the whole post with a clear message; a comment is never
-stored without its image.
+The server decodes and validates **before any row is written** — PNG
+signature, IHDR dimensions, ≤ 2 MB each (`packages/server/src/core/png.ts`);
+the service caps a comment at 4 attachments (`MAX_ATTACHMENTS_PER_COMMENT`,
+`packages/server/src/core/service.ts`). A bad image bounces the whole post
+with a clear message; a comment is never stored without its image.
+
+Two consumers fetch from that endpoint: the comment rail renders attachment
+thumbnails with a click-to-zoom lightbox (`api.attachmentUrl`,
+`packages/viewer/src/components/CommentRail.tsx`), and the channel's
+`attachmentToFile` (below) materializes the bytes for the agent.
 
 ## Capture (what the operator saw)
 
 When a human posts a comment on a `point` or `region` anchor, the viewer
-(`viewer/src/lib/capture-anchor.ts`) rasterizes the anchored component's live
+(`packages/viewer/src/lib/capture-anchor.ts`) rasterizes the anchored component's live
 DOM with `html-to-image`, crops via the shared `cropForAnchor`, and attaches
 the PNG. This captures the operator's **actual view** — their theme, viewport,
 and live component state.
@@ -66,7 +89,9 @@ Claude Code session. For the image:
    with no attachment (older viewer, capture failure, custom-component
    iframes), a headless-Chrome re-render of the artifact, cropped with the
    same shared geometry. Note its limits: it renders in forced light scheme
-   at a fixed 1440×900 viewport, and requires Chrome at `DESK_CHROME`.
+   at a fixed 1440×900 viewport, and needs a Chrome binary — it defaults to
+   the macOS Google Chrome path and can be pointed elsewhere with the
+   `DESK_CHROME` env var (set it on Linux/Windows).
 
 Either way the agent receives a local file path it can open — verified
 end-to-end: real server → real WebSocket `s.commented` (metadata included) →
