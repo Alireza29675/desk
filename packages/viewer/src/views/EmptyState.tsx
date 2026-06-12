@@ -1,3 +1,4 @@
+import { DeskPiece } from '../components/DeskPiece';
 import { Kbd } from '../components/Kbd';
 import { useStore } from '../state/store';
 
@@ -10,7 +11,7 @@ export function EmptyState() {
   return (
     <div className="empty-state">
       <div className="empty-state__inner">
-        <div className="empty-state__mark" aria-hidden />
+        <DeskPiece />
         {hasArtifacts ? (
           <>
             <h2 className="empty-state__title heading-accent">Nothing open.</h2>

@@ -49,4 +49,12 @@ describe('EmptyState', () => {
     // The misleading empty-desk copy must NOT appear when the desk has content.
     expect(container.textContent).not.toContain('Nothing on the desk yet');
   });
+
+  it('falls back to the flat gradient mark when WebGL2 is unavailable', () => {
+    // happy-dom has no WebGL, so this exercises the real no-GL path: the
+    // hero piece mounts, fails to get a context, and yields the brand mark.
+    act(() => root.render(<EmptyState />));
+    expect(container.querySelector('.empty-state__mark')).not.toBeNull();
+    expect(container.querySelector('canvas')).toBeNull();
+  });
 });
