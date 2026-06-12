@@ -39,11 +39,12 @@ function OgCard() {
         <p className="og__url">alireza29675.github.io/desk</p>
       </div>
       <div className="og__right">
-        {/* eng2's capture pass replaces this greybox with a real product
-            screenshot (a rendered artifact + an anchored comment). */}
-        <div className="og__capture">
-          <span className="og__capture-label">real product capture</span>
-        </div>
+        {/* og-shot.png is pre-cropped from the held frame (source x 650–1440,
+            y 56–728: the diagram's service nodes, the anchor dot, and the
+            COMPLETE comment+reply thread) — a cover-crop of the raw 1440×900
+            frame can't hold the whole thread at this column width. Captured
+            once in light (the og card has no theme toggle). */}
+        <img className="og__shot" src={`${import.meta.env.BASE_URL}og/og-shot.png`} alt="" />
       </div>
     </div>
   );

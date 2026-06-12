@@ -1,8 +1,8 @@
-import { Capture } from '../components/Capture';
+import { Shot } from '../components/Shot';
 
-// Section 4 — proof of life. One real workspace mid-session; the one quiet
-// motion is the version scrubber sliding an artifact back through its
-// append-only history.
+// Section 4 — proof of life. The capture shows the scrubber doing the work
+// (v1 of 4, read-only, the diagram back in its buggy state); the lede keeps
+// only what the image can't show — where the history lives.
 export function ProofOfLife() {
   return (
     <section className="section container">
@@ -10,15 +10,14 @@ export function ProofOfLife() {
         <span className="eyebrow">A real session</span>
         <h2 className="section__title">Watch it form. Scrub it back.</h2>
         <p className="lede">
-          Artifacts stream in live over a WebSocket. Every commit appends a snapshot, so you can
-          slide the history scrubber to any past version — desk keeps the whole timeline in one
-          SQLite file on your machine.
+          Every commit appends a snapshot. The whole timeline — every artifact, every version, every
+          comment — is one SQLite file on your machine.
         </p>
       </div>
-      <Capture
-        kind="workspace"
-        wide
-        label="A real desk workspace mid-session: several artifacts in the sidebar, the comment rail, and the version scrubber open on one artifact's history."
+      <Shot
+        name="proof-of-life"
+        className="shot--wide"
+        alt="The desk workspace with the history scrubber open: versions v1 through v4, viewing v1 read-only — the auth-flow diagram rendered back in its earlier, buggy state."
       />
     </section>
   );

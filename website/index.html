@@ -23,6 +23,22 @@
         document.documentElement.dataset.theme = theme;
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a0a0b' : '#fafafa');
+        // Preload the visible hero capture (theme is known here, viewport via
+        // media) so the LCP fetch starts at parse time — this is a CSR page,
+        // and img-discovery otherwise waits for the bundle. Hidden variants
+        // load eager-but-auto from the <img> tags; only these get priority.
+        [
+          ['(min-width: 721px)', 'hero-desktop-'],
+          ['(max-width: 720px)', 'hero-mobile-'],
+        ].forEach(function (p) {
+          var l = document.createElement('link');
+          l.rel = 'preload';
+          l.as = 'image';
+          l.href = '%BASE_URL%captures/' + p[1] + theme + '.png';
+          l.media = p[0];
+          l.setAttribute('fetchpriority', 'high');
+          document.head.appendChild(l);
+        });
       } catch (_) {
         document.documentElement.dataset.theme = 'light';
       }
@@ -35,8 +51,8 @@
     />
     <link rel="canonical" href="https://alireza29675.github.io/desk/" />
 
-    <!-- Open Graph / social. og:image is produced from a real desk capture
-         after R2+R3 land on main (1280×640, < 1MB). -->
+    <!-- Open Graph / social. og:image is a real desk capture rendered through
+         /og.html, committed at public/og/og.png (1280×640, < 1MB). -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Desk" />
     <meta property="og:url" content="https://alireza29675.github.io/desk/" />

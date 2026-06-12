@@ -1,10 +1,13 @@
-// The hero. The space-axis held frame is the source of truth; the desktop
-// reveal motion (left dims, right fills) is planned as progressive enhancement
-// at the capture/feel-pass stage — mobile and prefers-reduced-motion stay on
-// the held frame either way. The held frame must carry both halves of the idea:
-// the workspace filling with artifacts AND one open comment with the agent's
-// reply (the round-trip). Greyboxed here; eng2's capture pass replaces it with
-// two real frames — a desktop full-workspace shot and a mobile-legible crop.
+import { Shot } from '../components/Shot';
+
+// The hero. A real held frame from the fixture session (artifact r73n5dn8yb1k9t
+// @ v4): the workspace carrying both halves of the idea — rendered artifacts AND
+// the open anchored comment with the agent's reply. The conversation rides on
+// top as a compact dimmed card: at the captured width the original side-by-side
+// panes scaled the screenshot to ~0.46 (comment text ~6px), so the workspace
+// takes the full frame and the quiet chat overlays it instead. The reveal
+// (chat first, workspace fills, chat dims) is a one-shot CSS animation;
+// prefers-reduced-motion and mobile get the settled frame directly.
 export function Hero() {
   return (
     <header className="hero container">
@@ -33,12 +36,8 @@ export function Hero() {
             <span className="window__title">desk · 127.0.0.1:7878</span>
           </div>
 
-          <div
-            className="hero-stage"
-            role="img"
-            aria-label="A desk session: the conversation has gone quiet on the left while the workspace fills with rendered artifacts — a system diagram with an open comment pinned to one node and the agent's reply beneath it, and a chart beside it."
-          >
-            <div className="hero-pane hero-pane--convo" aria-hidden="true">
+          <div className="hero-stage">
+            <div className="hero-chat" aria-hidden="true">
               <div className="bubble">
                 <div className="bubble__who">you</div>
                 Map the auth flow and chart last week&rsquo;s sign-ins.
@@ -49,36 +48,19 @@ export function Hero() {
               </div>
               <div className="cursor-idle">&gt; </div>
             </div>
-            <div className="hero-pane hero-pane--workspace" aria-hidden="true">
-              <div className="capture-wrap">
-                <div className="capture">
-                  <span className="capture__kind">diagram</span>
-                  <span className="capture__label">Auth flow (D2)</span>
-                </div>
-                <div className="hero-thread">
-                  <span className="hero-thread__anchor">◆ node: token refresh</span>
-                  <span className="hero-thread__msg">this one refreshes twice — wrong</span>
-                  <span className="hero-thread__reply">agent — fixed, see v4</span>
-                </div>
-              </div>
-              <div className="capture">
-                <span className="capture__kind">chart</span>
-                <span className="capture__label">Sign-ins, last 7 days</span>
-              </div>
-            </div>
+            <Shot
+              name="hero-desktop"
+              eager
+              alt="A desk session: the workspace shows a rendered auth-flow diagram and a sign-ins chart, with an open comment anchored to the Token Refresh node — “this one refreshes twice — wrong” — and the agent's reply beneath it: “fixed, see v4”."
+            />
           </div>
 
-          <div
-            className="hero-mobile"
-            role="img"
-            aria-label="A desk artifact on a phone: the auth-flow diagram with an open comment anchored to one node and the agent's reply beneath it."
-          >
-            <div className="capture capture--wide">
-              <span className="capture__kind">mobile crop</span>
-              <span className="capture__label">
-                One artifact + the anchored comment and agent reply, readable at 390px.
-              </span>
-            </div>
+          <div className="hero-mobile">
+            <Shot
+              name="hero-mobile"
+              eager
+              alt="The same desk artifact on a phone: the auth-flow diagram and sign-ins chart with the comment affordances in a bottom bar, readable at 390px."
+            />
           </div>
         </div>
       </div>

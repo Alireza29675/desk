@@ -1,7 +1,10 @@
-import { Capture } from '../components/Capture';
+import { Shot } from '../components/Shot';
 
 // Section 2 — the round-trip. Desk's unique capability and the section that
 // earns the install: you point at the rendered surface and your agent hears it.
+// The capture is the held frame cropped to the artifact + comment rail (the
+// sidebar and chat framing belong to the hero); a dedicated inline-popover
+// shot replaces it at eng2's drop-2.
 export function RoundTrip() {
   return (
     <section className="section container">
@@ -24,10 +27,10 @@ export function RoundTrip() {
           element · region · text-selection · point · general — never coordinates
         </p>
       </div>
-      <Capture
-        kind="round-trip"
-        wide
-        label="A rendered artifact with an open comment anchored to one element, and the agent's reply arriving in the same thread."
+      <Shot
+        name="hero-desktop"
+        className="shot--crop-rail"
+        alt="A rendered artifact with an open comment anchored to one element — “this one refreshes twice — wrong” — and the agent's reply in the same thread: “fixed, see v4”."
       />
     </section>
   );

@@ -3,8 +3,8 @@
  * accent, neutrals are the zinc ramp, type is Geist. Linear/Raycast restraint:
  * whitespace, hairline borders, weight-and-scale hierarchy, no decoration.
  *
- * Capture frames are greyboxed for now (dashed placeholders that describe the
- * intended real capture). eng2 swaps them for real post-R3 session captures.
+ * Every capture is a real frame from one fixture session (post-R3 main; see
+ * the capture protocol in the task folder) — light + dark variants per shot.
  */
 
 /* ── Shell ───────────────────────────────────────────────────────── */
@@ -128,12 +128,16 @@
   --site-cta-bg: #d43824;
   --site-cta-bg-hover: #c93420;
   --site-cta-text: #ffffff;
+  /* Hero chat "quiet" text on the elevated card: 4.84:1 on #ffffff. */
+  --site-chat-quiet: #717179;
 }
 [data-theme="dark"] {
   --site-accent-text: var(--color-accent-strong);
   --site-cta-bg: var(--color-accent);
   --site-cta-bg-hover: var(--color-accent-strong);
   --site-cta-text: #0a0a0b;
+  /* 4.96:1 on the dark elevated card (#141416). */
+  --site-chat-quiet: #84848d;
 }
 
 .eyebrow {
@@ -251,105 +255,139 @@
   font-size: var(--text-2xs);
   color: var(--color-text-subtle);
 }
+/* The held frame: the real workspace capture fills the window, the quiet
+   conversation rides on top as a compact dimmed card. (Side-by-side panes
+   scaled the 1440px capture to ~0.46 — comment text unreadable — so the
+   space axis is layered instead of split.) */
 .hero-stage {
-  display: grid;
-  grid-template-columns: 0.85fr 1.15fr;
-  min-height: 380px;
+  position: relative;
   text-align: left;
 }
-.hero-pane {
-  padding: var(--space-7);
-}
-.hero-pane--convo {
-  border-right: 1px solid var(--color-divider);
-  background: var(--color-bg-sunken);
-  opacity: 0.5;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-.hero-pane--workspace {
-  background: var(--color-bg);
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-auto-rows: 1fr;
-  gap: var(--space-5);
-  position: relative;
-}
-
-/* ── Greybox capture placeholder ─────────────────────────────────── */
-.capture {
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-sunken);
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-6);
-  text-align: center;
-  color: var(--color-text-subtle);
-}
-.capture__kind {
-  font-family: var(--font-mono);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  color: var(--site-accent-text);
-}
-.capture__label {
-  font-size: var(--text-xs);
-  line-height: var(--leading-snug);
-  max-width: 32ch;
-}
-.capture--wide {
-  min-height: 300px;
-}
-
-/* The open comment thread in the held frame — anchored to the artifact it
-   references, carrying both halves of the round-trip (comment + agent reply). */
-.capture-wrap {
-  position: relative;
-  display: grid;
-}
-.hero-thread {
+.hero-chat {
   position: absolute;
   top: var(--space-6);
-  right: calc(-1 * var(--space-4));
+  left: var(--space-5);
+  z-index: 1;
+  /* 212px right edge. The capture's own title starts at 22.2% of the image,
+     so the card clears it only when the stage renders ≥ ~954px — below
+     1040px the card is dropped (media query at the bottom) and the capture,
+     which carries the comment + reply itself, stands alone. */
+  width: 200px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-4);
   padding: var(--space-4) var(--space-5);
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-2);
-  font-size: var(--text-2xs);
-  line-height: var(--leading-snug);
-  text-align: left;
-  max-width: 24ch;
 }
-.hero-thread__anchor {
-  font-family: var(--font-mono);
-  color: var(--site-accent-text);
-  font-weight: var(--weight-semibold);
+/* "Quiet" is a dimmer-but-AA color (≥4.5:1 on the elevated card in both
+   themes — see --site-chat-quiet). Not opacity: card-level opacity lets the
+   screenshot bleed through the surface, and text-level opacity composites
+   muted below 4.5:1 (and survives forced-colors, dimming forced ink). */
+.hero-chat .bubble {
+  color: var(--site-chat-quiet);
 }
-.hero-thread__msg {
-  color: var(--color-text);
+.hero-chat .bubble__who {
+  color: var(--site-chat-quiet);
 }
-.hero-thread__reply {
-  color: var(--color-text-muted);
-  border-top: 1px solid var(--color-divider);
-  padding-top: var(--space-2);
+
+/* ── Real captures (one img per theme; data-theme picks the visible one) ── */
+.shot {
+  display: block;
+}
+.shot__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.shot__img--dark {
+  display: none;
+}
+[data-theme="dark"] .shot__img--light {
+  display: none;
+}
+[data-theme="dark"] .shot__img--dark {
+  display: block;
+}
+
+/* §4 standalone frame */
+.shot--wide {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-3);
+}
+
+/* §2: the held frame cropped to the artifact + comment rail (the sidebar and
+   chat framing belong to the hero). Percentages target the 1440×900 source. */
+.shot--crop-rail {
+  aspect-ratio: 2.2 / 1;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+}
+/* Window onto source x 310–1435, y 56–576: the artifact title, the full
+   diagram, and the complete comment+reply thread. Percent margins resolve
+   against the container WIDTH; at width 128%, one container = 1125 source px,
+   so -27.6% = x 310 and -4.98% = y 56 (the first comment card's border sits
+   at y 66 — don't cut above 65). */
+.shot--crop-rail .shot__img {
+  width: 128%;
+  max-width: none;
+  margin: -4.98% 0 0 -27.6%;
+}
+
+/* The space-axis reveal (desktop, motion-ok): the chat speaks first, the
+   workspace fills, the chat goes quiet. One shot, settles to the static
+   state; reduced-motion and mobile get the settled frame directly. The shot
+   starts at partial opacity, never 0 — an invisible first frame would push
+   LCP out by the whole animation (Chromium ignores opacity:0 paints), which
+   would defeat the preload in index.html. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-stage .shot {
+    animation: hero-shot-fill 1.2s var(--ease-standard) both;
+  }
+  .hero-chat .bubble,
+  .hero-chat .bubble__who {
+    animation: hero-chat-quiet 2s var(--ease-standard) both;
+  }
+}
+@keyframes hero-shot-fill {
+  0% {
+    opacity: 0.45;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hero-chat-quiet {
+  0%,
+  55% {
+    color: var(--color-text-muted);
+  }
+  100% {
+    color: var(--site-chat-quiet);
+  }
 }
 
 /* The rider-1 mobile frame: a dedicated held-frame slot for the mobile-crop
-   capture. Hidden on desktop; replaces the two-pane stage below 720px. */
+   capture. Hidden on desktop; replaces the layered stage below 720px. */
 .hero-mobile {
   display: none;
   padding: var(--space-6);
+}
+.hero-mobile .shot {
+  max-width: 390px;
+  margin: 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
 }
 
 /* ── Convo bubbles (greybox) ─────────────────────────────────────── */
@@ -391,6 +429,38 @@
    blows the track wider than the container instead of scrolling internally. */
 .pair > * {
   min-width: 0;
+}
+.pair__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.pair__side .codeblock {
+  flex: 1;
+}
+.pair__side .shot {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-sunken);
+  display: flex;
+  align-items: center;
+  padding: var(--space-4);
+}
+/* The §3 element captures are 712px-wide 1x PNGs — never scale past 1:1
+   (the single-column 730–880px band would otherwise upscale ~1.2x). */
+.pair__side .shot__img {
+  max-width: 712px;
+  margin-inline: auto;
+}
+.pair__tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
 }
 .codeblock {
   font-family: var(--font-mono);
@@ -476,6 +546,15 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
+/* Below ~1004px viewport the 212px chat card would cover the capture's own
+   artifact title (title starts at 22.2% of the scaling image while the card
+   is fixed-px) — drop the card; the capture carries comment + reply itself. */
+@media (max-width: 1040px) {
+  .hero-chat {
+    display: none;
+  }
+}
+
 @media (max-width: 880px) {
   .pair {
     grid-template-columns: 1fr;
@@ -490,13 +569,25 @@
   .container {
     padding: 0 var(--space-6);
   }
-  /* Mobile hero (rider 1): swap the two-pane stage for the dedicated
+  /* Mobile hero (rider 1): swap the layered stage for the dedicated
      mobile-crop frame — its own capture, its own aria-label, no squeeze. */
   .hero-stage {
     display: none;
   }
   .hero-mobile {
     display: block;
+  }
+  /* §2 on phones: the wide crop renders comment text at ~4px — swap to a
+     rail-only window (source x 1112–1435, y 56–415) where the thread reads
+     at ~1:1. Width 445.8% makes one container = 323 source px. */
+  .shot--crop-rail {
+    aspect-ratio: 9 / 10;
+    max-width: 360px;
+    margin-inline: auto;
+  }
+  .shot--crop-rail .shot__img {
+    width: 445.8%;
+    margin: -17.3% 0 0 -344.3%;
   }
   .section {
     padding: var(--space-11) 0;

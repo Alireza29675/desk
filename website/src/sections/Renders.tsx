@@ -1,9 +1,38 @@
-import { Capture } from '../components/Capture';
+import { Shot } from '../components/Shot';
 
-// Section 3 — the artifact is the description. Input → output pairs: the call the
-// agent ran (left) and the artifact it rendered (right). Per the gate's rider 3,
-// BOTH sides are byte-real from the same session log — until that capture pass,
-// both sides are greybox slots (no schematic pretending to be a real call).
+// Section 3 — the artifact is the description. Input → output pairs from the
+// fixture session: two component slices of ONE create_artifact call (left)
+// and what each rendered (right). The JSON is value-identical to the call's
+// two component payloads (create-artifact-call.json, kept with the capture
+// protocol in the task folder) — the enriched-document envelope (type,
+// author, title, reason) is omitted and arrays are inlined for display;
+// every key and value shown is the real payload. The rendered diagram is the
+// call's v1 (two refresh edges — the bug the hero's comment points at), so
+// the pair corresponds exactly.
+const DIAGRAM_CALL = `{
+  "id": "auth-flow",
+  "type": "diagram",
+  "data": {
+    "engine": "d2",
+    "source": "direction: right\\nuser: User { shape: person }\\napp: App\\nauth: Auth Service\\nstore: Token Store { shape: cylinder }\\ntoken_refresh: Token Refresh\\n\\nuser -> app: sign in\\napp -> auth: credentials\\nauth -> store: issue token\\napp -> token_refresh: on expiry\\ntoken_refresh -> store: refresh\\ntoken_refresh -> auth: refresh\\nstore -> app: new token",
+    "namedNodes": ["token_refresh"],
+    "caption": "Auth flow"
+  }
+}`;
+
+const CHART_CALL = `{
+  "id": "signins",
+  "type": "chart",
+  "data": {
+    "kind": "bar",
+    "title": "Sign-ins, last 7 days",
+    "xLabel": "Day",
+    "yLabel": "Count",
+    "series": [{ "name": "Sign-ins", "values": [["Mon", 184], ["Tue", 152],
+      ["Wed", 211], ["Thu", 169], ["Fri", 143], ["Sat", 88], ["Sun", 97]] }]
+  }
+}`;
+
 export function Renders() {
   return (
     <section className="section container">
@@ -18,25 +47,47 @@ export function Renders() {
 
       <div className="pairs">
         <div className="pair">
-          <Capture
-            kind="mcp call"
-            label="The real create_artifact call from the session log — the exact input that produced the diagram on the right."
-          />
-          <Capture
-            kind="diagram"
-            label="The rendered D2 system diagram that call produced — boxes and edges, Graphviz fallback if D2 is absent."
-          />
+          <div className="pair__side">
+            <span className="pair__tag">input — create_artifact (diagram component)</span>
+            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
+            <pre
+              className="codeblock"
+              role="region"
+              tabIndex={0}
+              aria-label="The create_artifact call's diagram component: a D2 source with one named, anchorable node."
+            >
+              {DIAGRAM_CALL}
+            </pre>
+          </div>
+          <div className="pair__side">
+            <span className="pair__tag">output — rendered in desk</span>
+            <Shot
+              name="render-diagram"
+              alt="The rendered D2 auth-flow diagram that call produced — User, App, Auth Service, Token Refresh and Token Store nodes, with two refresh edges leaving Token Refresh."
+            />
+          </div>
         </div>
 
         <div className="pair">
-          <Capture
-            kind="mcp call"
-            label="The real create_artifact call from the same session — the exact input that produced the chart on the right."
-          />
-          <Capture
-            kind="chart"
-            label="The rendered bar chart that call produced, in desk's own theme."
-          />
+          <div className="pair__side">
+            <span className="pair__tag">input — same call (chart component)</span>
+            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
+            <pre
+              className="codeblock"
+              role="region"
+              tabIndex={0}
+              aria-label="The same call's chart component: a bar series of sign-ins per day."
+            >
+              {CHART_CALL}
+            </pre>
+          </div>
+          <div className="pair__side">
+            <span className="pair__tag">output — rendered in desk</span>
+            <Shot
+              name="render-chart"
+              alt="The rendered bar chart that call produced — sign-ins for seven days in desk's coral."
+            />
+          </div>
         </div>
       </div>
 
