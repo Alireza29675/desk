@@ -5,9 +5,12 @@ import type {
   ArtifactContent,
   ArtifactId,
   ArtifactPatch,
+  AttachmentId,
   Author,
   Comment,
   CommentAnchor,
+  CommentAttachment,
+  CommentAttachmentInput,
   CommentId,
   CommentPayload,
   Component,
@@ -17,14 +20,22 @@ import type {
   RelationType,
   SubscriptionId,
 } from '@desk/types';
-import { newArtifactId, newCommentId, newHistoryEventId, newRelationId } from '../ids';
+import {
+  newArtifactId,
+  newAttachmentId,
+  newCommentId,
+  newHistoryEventId,
+  newRelationId,
+} from '../ids';
 import { ArtifactRepository } from '../storage/artifacts';
+import { AttachmentRepository } from '../storage/attachments';
 import { CommentRepository } from '../storage/comments';
 import { HistoryRepository } from '../storage/history';
 import { RelationRepository } from '../storage/relations';
 import { ALL_ARTIFACTS, type RealtimeHub, type SubscriberSink } from '../ws/hub';
 import { CommitDebouncer } from './commit-debouncer';
 import { illegalState, notFound, unknownPlugin, validationFailed } from './errors';
+import { decodePngDataUrl } from './png';
 
 export interface DeskServiceOptions {
   db: Database;
@@ -32,6 +43,9 @@ export interface DeskServiceOptions {
   hub: RealtimeHub;
   autoCommitMs: number;
 }
+
+/** A comment carries at most this many images. */
+export const MAX_ATTACHMENTS_PER_COMMENT = 4;
 
 /**
  * The domain core. Holds the plugin registry, the repositories, and the
@@ -47,6 +61,7 @@ export class DeskService {
   readonly artifacts: ArtifactRepository;
   readonly history: HistoryRepository;
   readonly comments: CommentRepository;
+  readonly attachments: AttachmentRepository;
   readonly relations: RelationRepository;
   readonly hub: RealtimeHub;
   readonly registry: PluginRegistry;
@@ -56,6 +71,7 @@ export class DeskService {
     this.artifacts = new ArtifactRepository(opts.db);
     this.history = new HistoryRepository(opts.db);
     this.comments = new CommentRepository(opts.db);
+    this.attachments = new AttachmentRepository(opts.db);
     this.relations = new RelationRepository(opts.db);
     this.hub = opts.hub;
     this.registry = opts.registry;
@@ -285,12 +301,28 @@ export class DeskService {
     payload: CommentPayload;
     author: Author;
     threadParentId?: CommentId;
+    attachments?: CommentAttachmentInput[];
   }): Comment {
     const artifact = this.artifacts.get(input.artifactId);
     if (!artifact) throw notFound(`Artifact "${input.artifactId}" not found.`);
     this.validateAnchor(artifact, input.anchor);
+    if (input.attachments && input.attachments.length > MAX_ATTACHMENTS_PER_COMMENT) {
+      throw validationFailed(
+        `A comment carries at most ${MAX_ATTACHMENTS_PER_COMMENT} attachments.`,
+      );
+    }
+    // Decode-and-validate EVERY attachment before any row is written, so a
+    // bad image can never leave a comment stored without it.
+    const decoded = (input.attachments ?? []).map((a) => decodePngDataUrl(a.dataUrl));
 
     const now = new Date().toISOString();
+    const attachmentMeta: CommentAttachment[] = decoded.map((d) => ({
+      id: newAttachmentId(),
+      kind: 'image',
+      mediaType: 'image/png',
+      width: d.width,
+      height: d.height,
+    }));
     const comment: Comment = {
       id: newCommentId(),
       artifactId: input.artifactId,
@@ -298,9 +330,23 @@ export class DeskService {
       author: input.author,
       payload: input.payload,
       ...(input.threadParentId ? { threadParentId: input.threadParentId } : {}),
+      ...(attachmentMeta.length > 0 ? { attachments: attachmentMeta } : {}),
       createdAt: now,
     };
     this.comments.insert(comment);
+    decoded.forEach((d, i) => {
+      const meta = attachmentMeta[i];
+      if (!meta) return;
+      this.attachments.insert({
+        id: meta.id,
+        commentId: comment.id,
+        mediaType: meta.mediaType,
+        width: d.width,
+        height: d.height,
+        bytes: d.bytes,
+        createdAt: now,
+      });
+    });
 
     const next = {
       ...artifact,
@@ -325,7 +371,17 @@ export class DeskService {
 
   listComments(artifactId: ArtifactId): Comment[] {
     if (!this.artifacts.get(artifactId)) throw notFound(`Artifact "${artifactId}" not found.`);
-    return this.comments.listByArtifact(artifactId);
+    // Hydrate envelope metadata; bytes stay behind GET /api/attachments/:id.
+    return this.comments.listByArtifact(artifactId).map((c) => {
+      const attachments = this.attachments.listMetaByComment(c.id);
+      return attachments.length > 0 ? { ...c, attachments } : c;
+    });
+  }
+
+  getAttachment(id: AttachmentId): { mediaType: string; bytes: Uint8Array } {
+    const attachment = this.attachments.get(id);
+    if (!attachment) throw notFound(`Attachment "${id}" not found.`);
+    return attachment;
   }
 
   resolveComment(commentId: CommentId, resolved: boolean): void {

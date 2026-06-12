@@ -71,6 +71,24 @@ const MIGRATIONS: ((db: Database) => void)[] = [
       );
     `);
   },
+  (db) => {
+    // Comment attachments (FB-R2 item 12): bytes live here, metadata rides on
+    // the comment envelope. CASCADE keeps cleanup automatic when a comment's
+    // artifact is deleted.
+    db.exec(`
+      CREATE TABLE attachments (
+        id          TEXT PRIMARY KEY,
+        comment_id  TEXT NOT NULL,
+        media_type  TEXT NOT NULL,
+        width       INTEGER NOT NULL,
+        height      INTEGER NOT NULL,
+        bytes       BLOB NOT NULL,
+        created_at  TEXT NOT NULL,
+        FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE
+      );
+      CREATE INDEX attachments_by_comment ON attachments(comment_id);
+    `);
+  },
 ];
 
 export function openDatabase(path: string): Database {

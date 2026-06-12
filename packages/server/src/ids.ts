@@ -1,5 +1,6 @@
 import type {
   ArtifactId,
+  AttachmentId,
   CommentId,
   ComponentId,
   HistoryEventId,
@@ -18,6 +19,7 @@ const make = (len: number) => customAlphabet(ALPHABET, len);
 
 const artifactGen = make(14);
 const commentGen = make(14);
+const attachmentGen = make(14);
 const relationGen = make(14);
 const historyGen = make(16);
 const subscriptionGen = make(12);
@@ -25,6 +27,7 @@ const componentGen = make(10);
 
 export const newArtifactId = () => artifactGen() as ArtifactId;
 export const newCommentId = () => commentGen() as CommentId;
+export const newAttachmentId = () => attachmentGen() as AttachmentId;
 export const newRelationId = () => relationGen() as RelationId;
 export const newHistoryEventId = () => historyGen() as HistoryEventId;
 export const newSubscriptionId = () => subscriptionGen() as SubscriptionId;

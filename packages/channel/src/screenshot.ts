@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { cropForAnchor } from '@desk/anchor-geometry';
 import puppeteer, { type Browser } from 'puppeteer-core';
 
 /**
@@ -81,7 +82,9 @@ export async function captureAnchor(
       return { x: r.x, y: r.y, width: r.width, height: r.height };
     });
 
-    const clip = clipForAnchor(anchor, box, VIEWPORT);
+    // Shared projection math (@desk/anchor-geometry): the same framing the
+    // viewer's capture path uses, so fallback shots match primary shots.
+    const clip = cropForAnchor(anchor, box, VIEWPORT);
     const path = join(OUT_DIR, `${commentId}.png`);
     await page.screenshot({ path, clip });
     return path;
@@ -91,40 +94,6 @@ export async function captureAnchor(
   } finally {
     await page?.close().catch(() => {});
   }
-}
-
-/** Crop rectangle (CSS px) for the anchor, padded and clamped to the viewport. */
-function clipForAnchor(
-  anchor: Anchor,
-  box: { x: number; y: number; width: number; height: number },
-  viewport: { width: number; height: number },
-) {
-  let rect: { x: number; y: number; width: number; height: number };
-  if (anchor.kind === 'region' && anchor.region?.kind === 'fractional') {
-    const r = anchor.region;
-    rect = {
-      x: box.x + (r.x ?? 0) * box.width,
-      y: box.y + (r.y ?? 0) * box.height,
-      width: (r.width ?? 1) * box.width,
-      height: (r.height ?? 1) * box.height,
-    };
-  } else if (anchor.kind === 'point' && anchor.offset) {
-    const cx = box.x + anchor.offset.x * box.width;
-    const cy = box.y + anchor.offset.y * box.height;
-    rect = { x: cx - 110, y: cy - 80, width: 220, height: 160 };
-  } else {
-    rect = box; // element / text-selection → the whole component
-  }
-  // Pad a little for context, then clamp to the viewport.
-  const pad = 10;
-  const x = Math.max(0, rect.x - pad);
-  const y = Math.max(0, rect.y - pad);
-  return {
-    x,
-    y,
-    width: Math.max(1, Math.min(viewport.width - x, rect.width + pad * 2)),
-    height: Math.max(1, Math.min(viewport.height - y, rect.height + pad * 2)),
-  };
 }
 
 /** For presentations, the deep-link hash that lands on the component's slide. */

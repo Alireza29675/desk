@@ -10,9 +10,11 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "start": "bun run src/index.ts"
   },
   "dependencies": {
+    "@desk/anchor-geometry": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.0.4",
     "puppeteer-core": "^25.0.4"
   },

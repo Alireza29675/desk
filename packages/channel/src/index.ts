@@ -2,6 +2,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { attachmentToFile } from './attachments';
 import { captureAnchor } from './screenshot';
 
 /**
@@ -155,6 +156,7 @@ function connect(): void {
       artifactId: string;
       author: { kind: string; humanId?: string; agentId?: string };
       payload: { kind: string; text?: string };
+      attachments?: { id: string; kind: string }[];
       anchor: {
         kind: string;
         componentId?: string;
@@ -172,9 +174,14 @@ function connect(): void {
     const body =
       comment.payload.kind === 'text' ? (comment.payload.text ?? '') : `[${comment.payload.kind}]`;
 
-    // Render what the operator anchored to, so the agent can see it (not just
-    // read the anchor id). Best-effort: null for general anchors / on failure.
-    const shot = await captureAnchor(DESK_URL, comment.artifactId, comment.id, comment.anchor);
+    // Show the agent what the operator anchored to. Primary: the image the
+    // VIEWER captured at comment time (exactly what the operator saw — their
+    // theme, viewport, live state), riding on the comment as an attachment.
+    // Fallback: the Puppeteer re-render — for comments without attachments
+    // and anchors over iframe content the viewer can't rasterize.
+    const shot =
+      (await attachmentToFile(DESK_URL, comment.id, comment.attachments)) ??
+      (await captureAnchor(DESK_URL, comment.artifactId, comment.id, comment.anchor));
 
     log(
       `forwarding comment ${comment.id} on ${comment.artifactId} from ${who}${shot ? ' (+screenshot)' : ''}`,

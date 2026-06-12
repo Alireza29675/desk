@@ -1,9 +1,17 @@
 import { PluginRegistryError } from '@desk/plugin-sdk';
-import type { ArtifactId, CommentAnchor, CommentId, CommentPayload } from '@desk/types';
+import type {
+  ArtifactId,
+  AttachmentId,
+  CommentAnchor,
+  CommentAttachmentInput,
+  CommentId,
+  CommentPayload,
+} from '@desk/types';
 import {
   ArtifactPatchSchema,
   AuthorSchema,
   CommentAnchorSchema,
+  CommentAttachmentInputSchema,
   CommentPayloadSchema,
 } from '@desk/types';
 import { type Context, Hono } from 'hono';
@@ -179,6 +187,7 @@ export function buildHttpApp(service: DeskService): Hono {
     payload: CommentPayloadSchema,
     author: AuthorSchema,
     threadParentId: z.string().optional(),
+    attachments: z.array(CommentAttachmentInputSchema).optional(),
   });
 
   api.post('/a/:id/comments', async (c) => {
@@ -191,9 +200,19 @@ export function buildHttpApp(service: DeskService): Hono {
         payload: body.payload as CommentPayload,
         author: body.author,
         ...(body.threadParentId ? { threadParentId: body.threadParentId as CommentId } : {}),
+        ...(body.attachments ? { attachments: body.attachments as CommentAttachmentInput[] } : {}),
       }),
       201,
     );
+  });
+
+  // Attachment bytes (metadata rides on the comment envelope).
+  api.get('/attachments/:id', (c) => {
+    const { mediaType, bytes } = service.getAttachment(c.req.param('id') as AttachmentId);
+    return c.body(bytes.buffer as ArrayBuffer, 200, {
+      'Content-Type': mediaType,
+      'Cache-Control': 'immutable, max-age=31536000',
+    });
   });
 
   api.get('/a/:id/comments', (c) => {

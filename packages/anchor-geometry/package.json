@@ -1,0 +1,23 @@
+{
+  "name": "@desk/anchor-geometry",
+  "version": "0.1.0",
+  "description": "Pure projection math for spatial comment anchors: what area of a component a point/region anchor covers. One source of truth shared by the viewer's capture crop and the channel's screenshot crop.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

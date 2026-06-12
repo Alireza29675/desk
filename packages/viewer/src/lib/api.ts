@@ -2,9 +2,11 @@ import type {
   Artifact,
   ArtifactId,
   ArtifactPatch,
+  AttachmentId,
   Author,
   Comment,
   CommentAnchor,
+  CommentAttachmentInput,
   CommentId,
   CommentPayload,
   HistoryEvent,
@@ -82,8 +84,11 @@ export const api = {
       payload: CommentPayload;
       author: Author;
       threadParentId?: CommentId;
+      attachments?: CommentAttachmentInput[];
     },
   ) => request<Comment>(`/a/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),
+  /** Bytes URL for an attachment (renderable directly in an <img src>). */
+  attachmentUrl: (id: AttachmentId) => `${base}/attachments/${id}`,
   resolveComment: (id: CommentId, resolved: boolean) =>
     request<{ ok: true }>(`/comments/${id}/resolve`, {
       method: 'POST',
