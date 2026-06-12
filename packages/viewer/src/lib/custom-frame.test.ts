@@ -131,6 +131,16 @@ describe('buildFrameSrcdoc — the containment document', () => {
     expect(bare).toContain('color-scheme:light');
     expect(bare).toContain('background:transparent');
   });
+
+  it('refuses a surface that could break out of the inline style', () => {
+    const evil = buildFrameSrcdoc(
+      'http://127.0.0.1:7878',
+      'dark',
+      '#000;}</style><script>x</script>',
+    );
+    expect(evil).not.toContain('<script>x');
+    expect(evil).toContain('background:transparent');
+  });
 });
 
 describe('helpers', () => {

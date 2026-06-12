@@ -162,7 +162,11 @@ export function buildFrameSrcdoc(origin: string, theme: 'light' | 'dark', surfac
     "style-src 'unsafe-inline'",
     'img-src data:',
   ].join('; ');
-  const bg = surface || 'transparent';
+  // Defensive: `surface` is a resolved design token (a #hex today), but a value
+  // flowing into the srcdoc's inline <style> must never carry `<`/`"`/`;`/`}` —
+  // that could break out of the style context. Allow only color-ish characters;
+  // anything else falls back to transparent (color-scheme still themes the canvas).
+  const bg = /^[#a-zA-Z0-9(),.%\s]+$/.test(surface) ? surface : 'transparent';
   return [
     '<!doctype html>',
     `<html data-theme="${theme}" style="color-scheme:${theme}">`,
