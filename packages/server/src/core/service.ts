@@ -317,8 +317,9 @@ export class DeskService {
         `A comment carries at most ${MAX_ATTACHMENTS_PER_COMMENT} attachments.`,
       );
     }
-    // Each image must name a real selection so delivery can pair them. A
-    // single-anchor post may omit anchorIndex; it defaults to 0.
+    // Each image must name a real, distinct selection so delivery can pair them
+    // one-to-one. A single-anchor post may omit anchorIndex; it defaults to 0.
+    const seenIndexes = new Set<number>();
     for (const a of input.attachments ?? []) {
       const idx = a.anchorIndex ?? 0;
       if (idx < 0 || idx >= input.anchors.length) {
@@ -326,6 +327,12 @@ export class DeskService {
           `Attachment anchorIndex ${idx} is out of range for ${input.anchors.length} anchor(s).`,
         );
       }
+      if (seenIndexes.has(idx)) {
+        throw validationFailed(
+          `Two attachments target the same selection (anchorIndex ${idx}); each selection carries at most one image.`,
+        );
+      }
+      seenIndexes.add(idx);
     }
     // Decode-and-validate EVERY attachment before any row is written, so a
     // bad image can never leave a comment stored without it.

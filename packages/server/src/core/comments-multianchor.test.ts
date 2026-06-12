@@ -95,6 +95,30 @@ describe('multi-anchor — payload', () => {
     expect(svc.listComments(id)).toHaveLength(0);
   });
 
+  test('two attachments on the same anchorIndex are rejected (one image per selection)', () => {
+    const id = artifactWith('c1', 'c2');
+    expect(() =>
+      svc.postComment({
+        artifactId: id,
+        anchors: [
+          {
+            kind: 'region',
+            componentId: 'c1' as never,
+            region: { kind: 'fractional', x: 0, y: 0, width: 1, height: 1 },
+          },
+          { kind: 'point', componentId: 'c2' as never, offset: { x: 0.5, y: 0.5 } },
+        ],
+        payload,
+        author: agent,
+        attachments: [
+          { kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 },
+          { kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 },
+        ],
+      }),
+    ).toThrow(/same selection/);
+    expect(svc.listComments(id)).toHaveLength(0);
+  });
+
   test('the s.commented event carries the full anchors array (the channel reads this)', () => {
     const events: { kind: string; comment?: { anchors?: unknown[] } }[] = [];
     const hub = new RealtimeHub();
@@ -188,18 +212,21 @@ describe('multi-anchor — migration (additive, lossless, idempotent on real ~/.
     componentId: 'c1' as never,
     offset: { x: 0.25, y: 0.75 },
   };
-  const BACKFILL = 'UPDATE comments SET anchors = json_array(json(anchor)) WHERE anchors IS NULL';
+  // Kept in sync with the migration SQL in db.ts (including the json_valid guard).
+  const BACKFILL =
+    'UPDATE comments SET anchors = json_array(json(anchor)) WHERE anchors IS NULL AND json_valid(anchor)';
 
-  function insertLegacyRow(artifactId: ArtifactId, commentId: string): void {
+  function insertLegacyRow(artifactId: ArtifactId, commentId: string, anchorCell?: string): void {
     // A pre-FB-R3 row: `anchor` set, `anchors` NULL (as if written before the
-    // backfill ran).
+    // backfill ran). `anchorCell` overrides the stored anchor text to simulate
+    // a corrupt/hand-edited row.
     db.query(
       `INSERT INTO comments (id, artifact_id, anchor, anchors, author, payload, thread_parent_id, resolved, created_at)
        VALUES (?, ?, ?, NULL, ?, ?, NULL, 0, ?)`,
     ).run(
       commentId,
       artifactId,
-      JSON.stringify(legacyAnchor),
+      anchorCell ?? JSON.stringify(legacyAnchor),
       JSON.stringify(agent),
       JSON.stringify(payload),
       new Date().toISOString(),
@@ -227,6 +254,24 @@ describe('multi-anchor — migration (additive, lossless, idempotent on real ~/.
       .query<{ anchors: string }, [string]>('SELECT anchors FROM comments WHERE id = ?')
       .get('legacy-2');
     expect(after2!.anchors).toBe(after1!.anchors);
+  });
+
+  test('a malformed legacy anchor cell does not abort the backfill (DB never bricks)', () => {
+    // The migration runs in a transaction; an unguarded `json(anchor)` would
+    // throw on a corrupt cell and roll the WHOLE migration back, leaving the DB
+    // unopenable forever. The json_valid guard degrades it to one bad row.
+    const id = artifactWith('c1');
+    insertLegacyRow(id, 'good', JSON.stringify(legacyAnchor));
+    insertLegacyRow(id, 'corrupt', 'not valid json at all');
+    expect(() => db.query(BACKFILL).run()).not.toThrow();
+    const good = db
+      .query<{ anchors: string | null }, [string]>('SELECT anchors FROM comments WHERE id = ?')
+      .get('good');
+    const corrupt = db
+      .query<{ anchors: string | null }, [string]>('SELECT anchors FROM comments WHERE id = ?')
+      .get('corrupt');
+    expect(JSON.parse(good!.anchors as string)).toEqual([legacyAnchor]); // valid row backfilled
+    expect(corrupt!.anchors).toBeNull(); // corrupt row left untouched, not fatal
   });
 
   test('a new multi-anchor comment dual-writes both columns; anchor = anchors[0]', () => {

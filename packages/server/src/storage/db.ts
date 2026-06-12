@@ -103,7 +103,14 @@ const MIGRATIONS: ((db: Database) => void)[] = [
     if (!hasColumn(db, 'comments', 'anchors')) {
       db.exec('ALTER TABLE comments ADD COLUMN anchors TEXT');
     }
-    db.exec('UPDATE comments SET anchors = json_array(json(anchor)) WHERE anchors IS NULL');
+    // `json(anchor)` THROWS on a malformed cell, and this runs inside the
+    // migration transaction — one corrupt/hand-edited row would roll the whole
+    // migration back and brick the DB on every startup. Guard with
+    // `json_valid` so a bad row stays unbackfilled (its read already falls back
+    // to the `anchor` shadow) instead of taking the database down with it.
+    db.exec(
+      'UPDATE comments SET anchors = json_array(json(anchor)) WHERE anchors IS NULL AND json_valid(anchor)',
+    );
     if (!hasColumn(db, 'attachments', 'anchor_index')) {
       db.exec('ALTER TABLE attachments ADD COLUMN anchor_index INTEGER NOT NULL DEFAULT 0');
     }
