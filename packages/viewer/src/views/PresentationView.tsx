@@ -1,6 +1,7 @@
 import type { Artifact, Component } from '@desk/types';
 import { locatorValue } from '@desk/types';
 import { useEffect, useMemo } from 'react';
+import { ArtifactMeta } from '../components/ArtifactMeta';
 import { Commentable } from '../components/Commentable';
 import { RenderedComponent } from '../renderers/renderer-registry';
 import { useStore } from '../state/store';
@@ -63,12 +64,15 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
     <div className="presentation">
       <div className="presentation__deck">
         <header className="presentation__head">
-          <span className="presentation__title serif-accent">
-            {slide?.title ?? artifact.content.title}
-          </span>
-          <span className="presentation__pager">
-            {index + 1} / {slides.length}
-          </span>
+          <div className="presentation__head-row">
+            <span className="presentation__title serif-accent">
+              {slide?.title ?? artifact.content.title}
+            </span>
+            <span className="presentation__pager">
+              {index + 1} / {slides.length}
+            </span>
+          </div>
+          <ArtifactMeta artifact={artifact} className="presentation__meta" />
         </header>
         <div className="presentation__slide" data-layout={slide?.layout ?? 'content'}>
           {slide?.body.map((c) => (

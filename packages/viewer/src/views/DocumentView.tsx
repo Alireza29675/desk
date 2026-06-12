@@ -1,6 +1,7 @@
 import type { Artifact } from '@desk/types';
 import { locatorValue } from '@desk/types';
 import { useEffect } from 'react';
+import { ArtifactMeta } from '../components/ArtifactMeta';
 import { Commentable } from '../components/Commentable';
 import { RenderedComponent } from '../renderers/renderer-registry';
 import { useStore } from '../state/store';
@@ -29,10 +30,7 @@ export function DocumentView({ artifact }: { artifact: Artifact }) {
     <article className="document">
       <header className="document__header">
         <h1 className="document__title serif-accent">{artifact.content.title}</h1>
-        <div className="document__meta">
-          {artifact.type} · {artifact.contributors.length} contributor
-          {artifact.contributors.length === 1 ? '' : 's'} · v{artifact.version}
-        </div>
+        <ArtifactMeta artifact={artifact} className="document__meta" />
       </header>
       <div className="document__components">
         {artifact.content.components.map((component) => (
