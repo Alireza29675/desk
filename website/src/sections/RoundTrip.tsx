@@ -11,10 +11,18 @@ export function RoundTrip() {
         <p className="lede">
           Press <kbd>C</kbd>, then click a point, drag a region, or select text. Your comment
           anchors to the thing itself — a bullet, a node, a cell — never to pixels, so it survives
-          every re-render. A moment later it&rsquo;s in your agent&rsquo;s session.
+          every re-render.
         </p>
-        <p className="quiet">Figma-style comments, wired into your agent&rsquo;s session.</p>
-        <p className="mono-line">element · region · text · point · general — never coordinates</p>
+        <p className="quiet">
+          Figma-style comments, wired into your agent&rsquo;s session — live with the{' '}
+          <a href="https://github.com/Alireza29675/desk/tree/main/packages/channel">
+            comment channel
+          </a>
+          , readable over MCP from any client.
+        </p>
+        <p className="mono-line">
+          element · region · text-selection · point · general — never coordinates
+        </p>
       </div>
       <Capture
         kind="round-trip"

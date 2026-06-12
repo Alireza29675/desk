@@ -14,7 +14,10 @@ export function Footer() {
         <div className="install">
           <div className="install__card">
             <span className="install__title">Start desk</span>
-            <pre className="codeblock">
+            {/* tabIndex: the pre scrolls horizontally on narrow screens — it must
+                be keyboard-reachable (WCAG 2.1.1). */}
+            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
+            <pre className="codeblock" tabIndex={0} aria-label="Commands to start desk">
               {'git clone https://github.com/Alireza29675/desk\n' +
                 'cd desk\n' +
                 'bun install\n' +
@@ -26,7 +29,8 @@ export function Footer() {
 
           <div className="install__card">
             <span className="install__title">Connect your agent</span>
-            <pre className="codeblock">
+            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
+            <pre className="codeblock" tabIndex={0} aria-label="Command to connect your agent">
               {'bun packages/cli/src/index.ts \\\n  mcp claude-desktop\n\n# also: cursor · generic'}
             </pre>
             <span className="note">

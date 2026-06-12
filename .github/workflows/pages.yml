@@ -15,6 +15,13 @@ on:
     paths:
       - 'website/**'
       - '.github/workflows/pages.yml'
+  # PRs run the build job only (deploy is gated below) — so the site's first CI
+  # build isn't the publish-moment deploy itself.
+  pull_request:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 permissions:
@@ -37,12 +44,17 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - uses: actions/configure-pages@v6
-      - uses: actions/upload-pages-artifact@v5
+      # Pages steps skip on PRs: they need Pages enabled, and PR runs are a pure
+      # build check.
+      - if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v6
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v5
         with:
           path: website/dist
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     environment:

@@ -9,7 +9,7 @@ import { RoundTrip } from './sections/RoundTrip';
 export function App() {
   return (
     <div className="site" id="top">
-      <nav className="nav">
+      <nav className="nav" aria-label="Primary">
         <div className="nav__inner container">
           <Logo />
           <div className="nav__links">

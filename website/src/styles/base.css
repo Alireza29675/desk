@@ -54,21 +54,17 @@ code {
 }
 
 :focus-visible {
-  outline: none;
+  /* Transparent outline (not none): repainted with a system color in
+     forced-colors / Windows High Contrast, where box-shadow is dropped. */
+  outline: 2px solid transparent;
+  outline-offset: 2px;
   box-shadow: var(--shadow-accent-focus);
   border-radius: var(--radius-sm);
 }
 
-/* Title typography stays in Geist — hierarchy comes from weight, scale and
-   tighter tracking, never a second typeface (the product's own rule). */
-.heading-accent {
-  font-family: var(--font-sans);
-  font-weight: var(--weight-semibold);
-  letter-spacing: var(--tracking-tight);
-}
-
-/* Respect the OS "reduce motion" setting (WCAG 2.3.3) — the hero's reveal and
-   every transition collapse to a held frame for users who opt out. */
+/* Respect the OS "reduce motion" setting (WCAG 2.3.3) — every transition (and
+   the hero reveal, once it lands at the capture pass) collapses for users who
+   opt out. */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

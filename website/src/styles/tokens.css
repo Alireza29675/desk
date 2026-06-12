@@ -1,9 +1,10 @@
 /*
- * Desk design tokens — ported verbatim from the product viewer
- * (packages/viewer/src/styles/tokens.css @ cdb34fb, the post-R3 head).
- * Keep this in sync with the product; the website's whole point is to look
- * exactly like desk. Light is the default; dark is one selector flip away on
- * <html data-theme="dark">. Coral (#FF5A4D family) is the only accent.
+ * Desk design tokens — VALUES ported verbatim from the product viewer
+ * (packages/viewer/src/styles/tokens.css @ cdb34fb; layout-size tokens omitted
+ * — the site has no app chrome — and comments condensed, so compare token
+ * values, not raw bytes). Keep in sync with the product; the website's whole
+ * point is to look exactly like desk. Light is the default; dark is one
+ * selector flip away on <html data-theme="dark">. Coral is the only accent.
  */
 
 :root,

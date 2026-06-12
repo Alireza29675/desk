@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -6,27 +6,35 @@ function readTheme(): Theme {
   return document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
 }
 
-// Mirrors the product viewer's theme contract: flips <html data-theme>, persists
-// to the same `desk-theme` key, and adds `theme-switching` for the ~300ms colour
-// cross-fade (reduced-motion still wins).
-export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>('light');
+function applyThemeColorMeta(theme: Theme) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', theme === 'dark' ? '#0a0a0b' : '#fafafa');
+}
 
-  useEffect(() => {
-    setTheme(readTheme());
-  }, []);
+// Mirrors the product viewer's theme contract: flips <html data-theme>, persists
+// to the same `desk-theme` key (same convention, not shared storage — origins
+// differ), and adds `theme-switching` for the ~300ms colour cross-fade
+// (reduced-motion still wins). Lazy init reads the pre-paint script's result so
+// the first paint already shows the right icon.
+export function ThemeToggle() {
+  const [theme, setTheme] = useState<Theme>(() => readTheme());
+  const fadeTimer = useRef<number | undefined>(undefined);
 
   const toggle = () => {
     const next: Theme = theme === 'dark' ? 'light' : 'dark';
     const root = document.documentElement;
+    // A rapid double-toggle must not let the first fade's timer strip the class
+    // mid-second-fade (same guard as the product's store.setTheme).
+    window.clearTimeout(fadeTimer.current);
     root.classList.add('theme-switching');
     root.dataset.theme = next;
+    applyThemeColorMeta(next);
     try {
       localStorage.setItem('desk-theme', next);
     } catch {
       // private mode / storage disabled — the in-memory flip is enough
     }
-    window.setTimeout(() => root.classList.remove('theme-switching'), 300);
+    fadeTimer.current = window.setTimeout(() => root.classList.remove('theme-switching'), 300);
     setTheme(next);
   };
 
