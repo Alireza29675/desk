@@ -3,6 +3,7 @@ import { calloutComponent } from './callout';
 import { chartComponent } from './chart';
 import { checkboxComponent } from './checkbox';
 import { codeViewComponent } from './code-view';
+import { customReactComponent } from './custom-react';
 import { diagramComponent } from './diagram';
 import { folderStructureComponent } from './folder-structure';
 import { iframeComponent } from './iframe';
@@ -19,6 +20,7 @@ export {
   chartComponent,
   checkboxComponent,
   codeViewComponent,
+  customReactComponent,
   diagramComponent,
   folderStructureComponent,
   iframeComponent,
@@ -47,6 +49,7 @@ export const builtinComponentTypes: ComponentTypePlugin<any>[] = [
   checkboxComponent,
   mindmapComponent,
   timelineComponent,
+  customReactComponent,
 ];
 
 export const BUILTIN_COMPONENT_TYPE_NAMES = builtinComponentTypes.map((c) => c.type);

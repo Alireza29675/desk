@@ -149,6 +149,17 @@ export function buildHttpApp(service: DeskService): Hono {
     return c.json(service.checklistBaseline(id, c.req.param('componentId')));
   });
 
+  // Compiled JS for a custom-react component (the sandbox harness runs this).
+  api.get('/a/:id/components/:componentId/compiled', async (c) => {
+    const id = c.req.param('id') as ArtifactId;
+    const js = await service.compiledComponent(id, c.req.param('componentId'));
+    return c.text(js, 200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      // Code changes with artifact edits; the parent fetches per mount.
+      'Cache-Control': 'no-store',
+    });
+  });
+
   api.get('/a/:id/similar', (c) => {
     const id = c.req.param('id') as ArtifactId;
     const limit = intQuery(c, 'limit');

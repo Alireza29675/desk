@@ -34,6 +34,7 @@ import { HistoryRepository } from '../storage/history';
 import { RelationRepository } from '../storage/relations';
 import { ALL_ARTIFACTS, type RealtimeHub, type SubscriberSink } from '../ws/hub';
 import { CommitDebouncer } from './commit-debouncer';
+import { compileCustomReact, validateCustomReactCode } from './custom-react';
 import { illegalState, notFound, unknownPlugin, validationFailed } from './errors';
 import { decodePngDataUrl } from './png';
 
@@ -97,6 +98,7 @@ export class DeskService {
       components: input.initialContent?.components ?? empty.components,
     };
     this.registry.validateContent(input.type, content);
+    validateServerSide(content);
 
     const provenance = authorToProvenance(input.author);
     const now = new Date().toISOString();
@@ -137,6 +139,7 @@ export class DeskService {
       components: input.patch.components ?? current.content.components,
     };
     this.registry.validateContent(current.type, nextContent);
+    validateServerSide(nextContent);
 
     const now = new Date().toISOString();
     const next: Artifact = {
@@ -384,6 +387,24 @@ export class DeskService {
     return attachment;
   }
 
+  /**
+   * Compiled JS for a `custom-react` component — what the viewer's sandbox
+   * harness executes. Source stays canonical in the artifact; compilation is
+   * cached by content hash.
+   */
+  async compiledComponent(artifactId: ArtifactId, componentId: string): Promise<string> {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact) throw notFound(`Artifact "${artifactId}" not found.`);
+    const component = artifact.content.components.find((c: Component) => c.id === componentId);
+    if (!component) {
+      throw notFound(`Component "${componentId}" is not present on artifact "${artifactId}".`);
+    }
+    if (component.type !== 'custom-react') {
+      throw validationFailed(`Component "${componentId}" is not a custom-react component.`);
+    }
+    return compileCustomReact((component.data as { code: string }).code);
+  }
+
   resolveComment(commentId: CommentId, resolved: boolean): void {
     const comment = this.comments.get(commentId);
     if (!comment) throw notFound(`Comment "${commentId}" not found.`);
@@ -464,6 +485,17 @@ export class DeskService {
         `Comment anchor references component "${anchor.componentId}", which is not present on artifact "${artifact.id}".`,
       );
     }
+  }
+}
+
+/**
+ * Server-only validation passes that plugin schemas (which must stay
+ * browser-safe — the viewer imports them too) cannot express. Add a case
+ * here when a component type needs write-time checks beyond its Zod shape.
+ */
+function validateServerSide(content: ArtifactContent): void {
+  for (const component of content.components) {
+    if (component.type === 'custom-react') validateCustomReactCode(component.data);
   }
 }
 
