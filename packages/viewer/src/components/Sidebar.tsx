@@ -23,7 +23,7 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar__brand">
         <span className="sidebar__mark" aria-hidden />
-        <span className="serif-accent" style={{ fontSize: 'var(--text-md)' }}>
+        <span className="heading-accent" style={{ fontSize: 'var(--text-md)' }}>
           Desk
         </span>
         <span

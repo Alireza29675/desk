@@ -88,7 +88,7 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
       <div className="presentation__deck">
         <header className="presentation__head">
           <div className="presentation__head-row">
-            <span className="presentation__title serif-accent">
+            <span className="presentation__title heading-accent">
               {slide?.title ?? artifact.content.title}
             </span>
             <span className="presentation__head-tools">
@@ -144,7 +144,7 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
         {slides.map((s, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: the print deck is a static, never-reordered projection of slides
           <section className="print-slide" key={`print-${i}`} data-layout={s.layout ?? 'content'}>
-            {s.title ? <h2 className="print-slide__title serif-accent">{s.title}</h2> : null}
+            {s.title ? <h2 className="print-slide__title heading-accent">{s.title}</h2> : null}
             <div className="print-slide__body">
               {s.body.map((c) => (
                 <RenderedComponent key={c.id} component={c} artifactId={artifact.id} />

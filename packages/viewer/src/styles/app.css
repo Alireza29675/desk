@@ -372,9 +372,8 @@
   flex-direction: column;
   gap: clamp(var(--space-8), 4vh, var(--space-9));
 }
-/* No font-weight here: the title always carries .serif-accent, whose 400 pin
-   must win regardless of stylesheet bundle order (Instrument Serif has no
-   bold — a weight here would invite synthetic bold if imports get reordered). */
+/* No font-weight here: the title always carries .heading-accent, which owns
+   the weight (semibold) and tracking for every app heading in one place. */
 .document__title {
   font-size: clamp(var(--text-3xl), 5.4vw + 8px, var(--text-4xl));
   line-height: var(--leading-tight);
@@ -440,7 +439,7 @@
   justify-content: space-between;
 }
 .presentation__title {
-  /* Weight comes from .serif-accent (Instrument Serif is 400-only). */
+  /* Weight and tracking come from .heading-accent. */
   font-size: var(--text-2xl);
 }
 .presentation__nav {

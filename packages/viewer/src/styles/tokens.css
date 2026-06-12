@@ -98,8 +98,10 @@
 
 :root {
   /* ── Type ────────────────────────────────────────────────────── */
-  /* Geist carries the UI (Vercel DNA); Instrument Serif is the display
-     accent for titles; Geist Mono covers code, badges, and timestamps. */
+  /* Geist carries the UI and its headings (.heading-accent — weight and
+     scale do the hierarchy, no second typeface); Instrument Serif remains
+     for CONTENT typography only (quotes, captions, math in rendered
+     documents); Geist Mono covers code, badges, and timestamps. */
   --font-sans: "Geist Variable", "Geist", "Inter", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
   --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;

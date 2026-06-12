@@ -29,7 +29,7 @@ export function DocumentView({ artifact }: { artifact: Artifact }) {
   return (
     <article className="document">
       <header className="document__header">
-        <h1 className="document__title serif-accent">{artifact.content.title}</h1>
+        <h1 className="document__title heading-accent">{artifact.content.title}</h1>
         <ArtifactMeta artifact={artifact} className="document__meta" />
       </header>
       <div className="document__components">

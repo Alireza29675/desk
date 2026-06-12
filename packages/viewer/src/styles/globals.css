@@ -106,12 +106,13 @@ html.theme-switching ::after {
   background: var(--color-text-subtle);
 }
 
-/* Title typography uses a serif accent to differentiate from body text — the
- * editorial detail that makes the page feel composed rather than generic.
- * Instrument Serif is display-only: it ships regular 400 (+ italic), so the
- * weight is pinned here no matter what the surrounding scale says. */
-.serif-accent {
-  font-family: var(--font-serif);
-  font-weight: var(--weight-regular);
-  letter-spacing: 0;
+/* Title typography stays in Geist — hierarchy comes from weight, scale and
+ * tighter tracking instead of a second typeface (operator call: no serif
+ * headings). The serif token still exists for CONTENT typography (quotes,
+ * captions, math in rendered documents), which is a different voice than
+ * the app's own headings. */
+.heading-accent {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
 }
