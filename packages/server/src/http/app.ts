@@ -135,6 +135,12 @@ export function buildHttpApp(service: DeskService): Hono {
     });
   });
 
+  // The authored (reset-target) checked-state of a checklist component.
+  api.get('/a/:id/baseline/:componentId', (c) => {
+    const id = c.req.param('id') as ArtifactId;
+    return c.json(service.checklistBaseline(id, c.req.param('componentId')));
+  });
+
   api.get('/a/:id/similar', (c) => {
     const id = c.req.param('id') as ArtifactId;
     const limit = intQuery(c, 'limit');

@@ -87,6 +87,22 @@ export class HistoryRepository {
       .map(rowToEvent);
   }
 
+  /**
+   * Every committed snapshot in version order. Dedicated query (rather than
+   * `list`) because the mixed-event limit there counts comments too — a
+   * chatty artifact could silently truncate the snapshot walk.
+   */
+  snapshots(artifactId: ArtifactId): HistoryEvent[] {
+    return this.db
+      .query<HistoryRow, [string]>(
+        `SELECT * FROM history_events
+         WHERE artifact_id = ? AND kind IN ('created','edited')
+         ORDER BY version ASC, created_at ASC`,
+      )
+      .all(artifactId)
+      .map(rowToEvent);
+  }
+
   /** Find the most recent committed snapshot at or before `version`. */
   snapshotAt(artifactId: ArtifactId, version: number): HistoryEvent | undefined {
     const row = this.db

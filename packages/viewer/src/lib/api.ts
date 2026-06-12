@@ -63,6 +63,9 @@ export const api = {
     request<{ artifact: Artifact }>(`/a/${id}/v/${version}`),
   history: (id: ArtifactId) => request<{ events: HistoryEvent[] }>(`/a/${id}/history`),
   similar: (id: ArtifactId) => request<{ items: Artifact[] }>(`/a/${id}/similar`),
+  /** The authored (reset-target) checked-state of a checklist component. */
+  checklistBaseline: (id: ArtifactId, componentId: string) =>
+    request<{ items: Record<string, boolean> }>(`/a/${id}/baseline/${componentId}`),
   createArtifact: (input: { type: string; author: Author; reason?: string }) =>
     request<Artifact>('/artifacts', { method: 'POST', body: JSON.stringify(input) }),
   patchArtifact: (id: ArtifactId, patch: ArtifactPatch, author: Author) =>
