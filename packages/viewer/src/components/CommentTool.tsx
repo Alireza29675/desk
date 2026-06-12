@@ -162,19 +162,23 @@ export function CommentTool() {
   return (
     <>
       {/* Desktop entry point; the mobile entry is the bottom bar's centre
-          button. Both call armComment. Sits above the capture layer so it can
-          always cancel. */}
-      <button
-        type="button"
-        className="comment-tool__fab"
-        data-armed={commentArmed ? 'true' : undefined}
-        onClick={() => (commentArmed ? disarmComment() : armComment())}
-        aria-pressed={commentArmed}
-        aria-label={commentArmed ? 'Cancel commenting' : 'Comment (C)'}
-        title={commentArmed ? 'Cancel (Esc)' : 'Comment · C'}
-      >
-        💬
-      </button>
+          button. Both call armComment. Hidden once a draft exists: the rail
+          composer becomes the active surface then (its own "+ Add selection"
+          re-arms, Esc cancels), and the fixed corner button would otherwise
+          sit on top of the composer's Post button. */}
+      {draftCount === 0 ? (
+        <button
+          type="button"
+          className="comment-tool__fab"
+          data-armed={commentArmed ? 'true' : undefined}
+          onClick={() => (commentArmed ? disarmComment() : armComment())}
+          aria-pressed={commentArmed}
+          aria-label={commentArmed ? 'Cancel commenting' : 'Comment (C)'}
+          title={commentArmed ? 'Cancel (Esc)' : 'Comment · C'}
+        >
+          💬
+        </button>
+      ) : null}
 
       {commentArmed ? (
         <>

@@ -133,6 +133,19 @@ describe('CommentTool — arming', () => {
     expect(useStore.getState().draftAnchors).toEqual([]);
     expect(useStore.getState().draftBody).toBe('');
   });
+
+  it('hides the corner button while a draft is composing (it would cover Post)', () => {
+    render();
+    expect(fab()).not.toBeNull();
+    act(() =>
+      useStore.setState({
+        draftAnchors: [{ kind: 'point', componentId: 'c1', offset: { x: 0.5, y: 0.5 } } as never],
+      }),
+    );
+    // Draft present → the rail composer owns the interaction; the fixed FAB
+    // steps aside so it can't overlap the composer's Post button.
+    expect(fab()).toBeNull();
+  });
 });
 
 describe('CommentTool — capture gestures', () => {
