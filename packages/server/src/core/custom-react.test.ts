@@ -102,13 +102,9 @@ describe('custom-react — the compiled endpoint (what the sandbox runs)', () =>
         ],
       },
     });
-    const missing = await app.fetch(
-      new Request(`http://t/api/a/${a.id}/components/nope/compiled`),
-    );
+    const missing = await app.fetch(new Request(`http://t/api/a/${a.id}/components/nope/compiled`));
     expect(missing.status).toBe(404);
-    const wrongType = await app.fetch(
-      new Request(`http://t/api/a/${a.id}/components/co/compiled`),
-    );
+    const wrongType = await app.fetch(new Request(`http://t/api/a/${a.id}/components/co/compiled`));
     expect(wrongType.status).toBe(400);
   });
 
