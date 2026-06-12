@@ -80,7 +80,10 @@ export const api = {
   comment: (
     id: ArtifactId,
     body: {
-      anchor: CommentAnchor;
+      // `anchors` is canonical (one comment → many selections); singular
+      // `anchor` is still accepted and normalized server-side.
+      anchors?: CommentAnchor[];
+      anchor?: CommentAnchor;
       payload: CommentPayload;
       author: Author;
       threadParentId?: CommentId;
