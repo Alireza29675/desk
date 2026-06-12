@@ -1,4 +1,4 @@
-import type { ArtifactId, Author, Comment, CommentAnchor } from '@desk/types';
+import type { ArtifactId, Author, Comment, CommentAnchor, CommentAttachment } from '@desk/types';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { captureAnchorImage } from '../lib/capture-anchor';
@@ -12,6 +12,8 @@ export function CommentRail() {
   const commentDraft = useStore((s) => s.commentDraft);
   const clearCommentTarget = useStore((s) => s.clearCommentTarget);
   const [draft, setDraft] = useState('');
+  // The one open attachment lightbox (at most one at a time, across all cards).
+  const [lightbox, setLightbox] = useState<CommentAttachment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // When the user targets a component, focus the composer so they can type.
@@ -83,6 +85,7 @@ export function CommentRail() {
               repliesByParent={repliesByParent}
               artifactId={artifactId}
               author={author}
+              onOpenAttachment={setLightbox}
             />
           ))
         )}
@@ -134,7 +137,50 @@ export function CommentRail() {
           </button>
         </div>
       </div>
+      {lightbox ? (
+        <AttachmentLightbox attachment={lightbox} onClose={() => setLightbox(null)} />
+      ) : null}
     </aside>
+  );
+}
+
+/**
+ * Full-size view of a comment attachment. Click anywhere or Escape closes.
+ * Stays inside the rail's tree so the print hide rule on .comment-rail also
+ * keeps it off paper.
+ */
+function AttachmentLightbox({
+  attachment,
+  onClose,
+}: {
+  attachment: CommentAttachment;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        // Capture phase + preventDefault: the lightbox is the topmost surface,
+        // so this press must not also close a drawer (App checks
+        // defaultPrevented) — same pattern as the topbar overflow menu.
+        e.preventDefault();
+        onClose();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
+  }, [onClose]);
+
+  return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Escape (window, capture) is the keyboard close path
+    <div className="comment-lightbox" onClick={onClose}>
+      <img
+        className="comment-lightbox__image"
+        src={api.attachmentUrl(attachment.id)}
+        width={attachment.width}
+        height={attachment.height}
+        alt="comment attachment"
+      />
+    </div>
   );
 }
 
@@ -147,16 +193,23 @@ function CommentThread({
   repliesByParent,
   artifactId,
   author,
+  onOpenAttachment,
 }: {
   comment: Comment;
   repliesByParent: Map<string, Comment[]>;
   artifactId: ArtifactId;
   author: Author;
+  onOpenAttachment: (attachment: CommentAttachment) => void;
 }) {
   const replies = repliesByParent.get(comment.id) ?? [];
   return (
     <div className="comment-thread">
-      <CommentCard comment={comment} artifactId={artifactId} author={author} />
+      <CommentCard
+        comment={comment}
+        artifactId={artifactId}
+        author={author}
+        onOpenAttachment={onOpenAttachment}
+      />
       {replies.length > 0 ? (
         <div className="comment-thread__replies">
           {replies.map((r) => (
@@ -166,6 +219,7 @@ function CommentThread({
               repliesByParent={repliesByParent}
               artifactId={artifactId}
               author={author}
+              onOpenAttachment={onOpenAttachment}
             />
           ))}
         </div>
@@ -178,10 +232,12 @@ function CommentCard({
   comment,
   artifactId,
   author,
+  onOpenAttachment,
 }: {
   comment: Comment;
   artifactId: ArtifactId;
   author: Author;
+  onOpenAttachment: (attachment: CommentAttachment) => void;
 }) {
   const [replying, setReplying] = useState(false);
   const [text, setText] = useState('');
@@ -235,6 +291,30 @@ function CommentCard({
       ) : null}
       {comment.payload.kind === 'text' ? (
         <div className="comment__body">{comment.payload.text}</div>
+      ) : null}
+      {comment.attachments && comment.attachments.length > 0 ? (
+        <div className="comment__attachments">
+          {comment.attachments.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              className="comment__attachment"
+              onClick={() => onOpenAttachment(a)}
+              aria-label="View attachment full size"
+            >
+              {/* The width/height attributes carry the intrinsic size so CSS
+                  can derive the aspect ratio before the bytes arrive. */}
+              <img
+                className="comment__attachment-thumb"
+                src={api.attachmentUrl(a.id)}
+                width={a.width}
+                height={a.height}
+                loading="lazy"
+                alt="comment attachment"
+              />
+            </button>
+          ))}
+        </div>
       ) : null}
 
       <div className="comment__actions">
