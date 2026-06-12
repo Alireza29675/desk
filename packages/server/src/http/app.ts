@@ -19,6 +19,7 @@ import { cors } from 'hono/cors';
 import { z } from 'zod';
 import { SERVER_VERSION } from '../config';
 import { DeskError } from '../core/errors';
+import { MAX_ANCHORS } from '../core/service';
 import type { DeskService } from '../core/service';
 import { mountViewer } from './static';
 
@@ -194,7 +195,10 @@ export function buildHttpApp(service: DeskService): Hono {
   // ─── comments ───────────────────────────────────────────────────────
 
   const CommentBody = z.object({
-    anchor: CommentAnchorSchema,
+    // `anchors` is canonical (one comment → many selections). Singular `anchor`
+    // is still accepted for back-compat and normalized to a 1-element array.
+    anchors: z.array(CommentAnchorSchema).min(1).max(MAX_ANCHORS).optional(),
+    anchor: CommentAnchorSchema.optional(),
     payload: CommentPayloadSchema,
     author: AuthorSchema,
     threadParentId: z.string().optional(),
@@ -204,10 +208,13 @@ export function buildHttpApp(service: DeskService): Hono {
   api.post('/a/:id/comments', async (c) => {
     const artifactId = c.req.param('id') as ArtifactId;
     const body = CommentBody.parse(await c.req.json());
+    // Empty (neither field) flows through to the service, which rejects it with
+    // the same "at least one selection" rule used everywhere.
+    const anchors = (body.anchors ?? (body.anchor ? [body.anchor] : [])) as CommentAnchor[];
     return c.json(
       service.postComment({
         artifactId,
-        anchor: body.anchor as CommentAnchor,
+        anchors,
         payload: body.payload as CommentPayload,
         author: body.author,
         ...(body.threadParentId ? { threadParentId: body.threadParentId as CommentId } : {}),

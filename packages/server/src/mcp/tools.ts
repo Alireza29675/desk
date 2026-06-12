@@ -252,7 +252,9 @@ export function buildMcpTools(service: DeskService): DeskMcpTool[] {
           .parse(input);
         return service.postComment({
           artifactId: parsed.artifact_id as ArtifactId,
-          anchor: parsed.anchor as CommentAnchor,
+          // Agents post a single anchor today; normalize to the multi-anchor
+          // array the service now takes.
+          anchors: [parsed.anchor as CommentAnchor],
           payload: parsed.body as CommentPayload,
           author: parsed.author,
           ...(parsed.thread_parent_id

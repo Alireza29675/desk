@@ -89,7 +89,35 @@ const MIGRATIONS: ((db: Database) => void)[] = [
       CREATE INDEX attachments_by_comment ON attachments(comment_id);
     `);
   },
+  (db) => {
+    // FB-R3 multi-anchor: a comment anchors to an ARRAY of selections. This is
+    // strictly ADDITIVE and reversible — real comments live in the operator's
+    // ~/.desk, so nothing is dropped or rewritten lossily:
+    //   • add `comments.anchors`, backfilling each legacy single anchor into a
+    //     1-element JSON array. The old `anchor` column stays (dual-written as
+    //     a populated shadow this cycle) so a downgrade still reads, and the
+    //     repo's lazy `anchors ?? [anchor]` read is a second safety net.
+    //   • add `attachments.anchor_index` (which selection an image captured),
+    //     defaulting every existing row to 0.
+    // Column-guarded + `WHERE anchors IS NULL` so a manual re-run is a no-op.
+    if (!hasColumn(db, 'comments', 'anchors')) {
+      db.exec('ALTER TABLE comments ADD COLUMN anchors TEXT');
+    }
+    db.exec('UPDATE comments SET anchors = json_array(json(anchor)) WHERE anchors IS NULL');
+    if (!hasColumn(db, 'attachments', 'anchor_index')) {
+      db.exec('ALTER TABLE attachments ADD COLUMN anchor_index INTEGER NOT NULL DEFAULT 0');
+    }
+  },
 ];
+
+/** True if `table` already has a column named `column` (idempotency guard for
+ *  additive migrations). `table` is always a code-literal here, never input. */
+function hasColumn(db: Database, table: string, column: string): boolean {
+  return db
+    .query<{ name: string }, []>(`PRAGMA table_info(${table})`)
+    .all()
+    .some((c) => c.name === column);
+}
 
 export function openDatabase(path: string): Database {
   mkdirSync(dirname(path), { recursive: true });

@@ -1,10 +1,19 @@
 import type { Database } from 'bun:sqlite';
-import type { ArtifactId, Comment, CommentId } from '@desk/types';
+import {
+  type ArtifactId,
+  type Comment,
+  type CommentAnchor,
+  type CommentId,
+  commentAnchors,
+} from '@desk/types';
 
 interface CommentRow {
   id: string;
   artifact_id: string;
   anchor: string;
+  /** FB-R3: the JSON array of anchors. Null only for a legacy row the backfill
+   *  hasn't touched — handled by the read fallback below. */
+  anchors: string | null;
   author: string;
   payload: string;
   thread_parent_id: string | null;
@@ -13,10 +22,15 @@ interface CommentRow {
 }
 
 function rowToComment(row: CommentRow): Comment {
+  // Canonical multi-anchor read with a belt-and-suspenders fallback: a legacy
+  // row whose `anchors` the migration backfill somehow missed still reads as a
+  // 1-element array off the shadow `anchor` column.
+  const anchors: CommentAnchor[] = row.anchors ? JSON.parse(row.anchors) : [JSON.parse(row.anchor)];
   return {
     id: row.id as CommentId,
     artifactId: row.artifact_id as ArtifactId,
-    anchor: JSON.parse(row.anchor),
+    anchors,
+    anchor: anchors[0]!, // transitional primary, always == anchors[0]
     author: JSON.parse(row.author),
     payload: JSON.parse(row.payload),
     ...(row.thread_parent_id ? { threadParentId: row.thread_parent_id as CommentId } : {}),
@@ -29,16 +43,21 @@ export class CommentRepository {
   constructor(private readonly db: Database) {}
 
   insert(comment: Comment): void {
+    // Dual-write this cycle: `anchors` is canonical; `anchor` is the populated
+    // shadow (= anchors[0]) that keeps the NOT NULL column satisfied and lets a
+    // downgrade still read. Derived via the helper so they can never disagree.
+    const anchors = commentAnchors(comment);
     this.db
       .query(
         `INSERT INTO comments
-         (id, artifact_id, anchor, author, payload, thread_parent_id, resolved, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         (id, artifact_id, anchor, anchors, author, payload, thread_parent_id, resolved, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         comment.id,
         comment.artifactId,
-        JSON.stringify(comment.anchor),
+        JSON.stringify(anchors[0]),
+        JSON.stringify(anchors),
         JSON.stringify(comment.author),
         JSON.stringify(comment.payload),
         comment.threadParentId ?? null,

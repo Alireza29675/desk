@@ -39,10 +39,10 @@ describe('comment attachments — protocol + storage (FB-R2 item 12)', () => {
     const id = makeArtifact();
     const comment = svc.postComment({
       artifactId: id,
-      anchor,
+      anchors: [anchor],
       payload,
       author: human,
-      attachments: [{ kind: 'image', dataUrl: PNG_1X1 }],
+      attachments: [{ kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 }],
     });
     expect(comment.attachments).toHaveLength(1);
     const meta = comment.attachments?.[0];
@@ -56,10 +56,10 @@ describe('comment attachments — protocol + storage (FB-R2 item 12)', () => {
     const id = makeArtifact();
     const posted = svc.postComment({
       artifactId: id,
-      anchor,
+      anchors: [anchor],
       payload,
       author: human,
-      attachments: [{ kind: 'image', dataUrl: PNG_1X1 }],
+      attachments: [{ kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 }],
     });
     const listed = svc.listComments(id);
     expect(listed[0]?.attachments?.[0]?.id).toBe(posted.attachments?.[0]?.id as never);
@@ -76,10 +76,10 @@ describe('comment attachments — protocol + storage (FB-R2 item 12)', () => {
     events.length = 0;
     svc.postComment({
       artifactId: id,
-      anchor,
+      anchors: [anchor],
       payload,
       author: human,
-      attachments: [{ kind: 'image', dataUrl: PNG_1X1 }],
+      attachments: [{ kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 }],
     });
     const commented = events.find((e) => e.kind === 's.commented') as {
       comment: { attachments?: unknown[] };
@@ -89,45 +89,54 @@ describe('comment attachments — protocol + storage (FB-R2 item 12)', () => {
 
   test('rejects: too many, oversized, junk base64, and non-PNG bytes — comment is never stored', () => {
     const id = makeArtifact();
-    const img = { kind: 'image', dataUrl: PNG_1X1 } as const;
+    const img = { kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 } as const;
     expect(() =>
       svc.postComment({
         artifactId: id,
-        anchor,
+        anchors: [anchor],
         payload,
         author: human,
-        attachments: [img, img, img, img, img],
+        attachments: [img, img, img, img, img, img, img, img, img],
       }),
-    ).toThrow(/at most 4/);
+    ).toThrow(/at most 8/);
     expect(() =>
       svc.postComment({
         artifactId: id,
-        anchor,
+        anchors: [anchor],
         payload,
         author: human,
         // Size bound trips on length before any decode work.
-        attachments: [{ kind: 'image', dataUrl: `data:image/png;base64,${'A'.repeat(2_900_000)}` }],
+        attachments: [
+          {
+            kind: 'image',
+            dataUrl: `data:image/png;base64,${'A'.repeat(2_900_000)}`,
+            anchorIndex: 0,
+          },
+        ],
       }),
     ).toThrow(/limit/);
     expect(() =>
       svc.postComment({
         artifactId: id,
-        anchor,
+        anchors: [anchor],
         payload,
         author: human,
-        attachments: [{ kind: 'image', dataUrl: 'data:image/png;base64,!!!not-base64!!!' }],
+        attachments: [
+          { kind: 'image', dataUrl: 'data:image/png;base64,!!!not-base64!!!', anchorIndex: 0 },
+        ],
       }),
     ).toThrow(/base64/);
     expect(() =>
       svc.postComment({
         artifactId: id,
-        anchor,
+        anchors: [anchor],
         payload,
         author: human,
         attachments: [
           {
             kind: 'image',
             dataUrl: `data:image/png;base64,${btoa('definitely not a png, just long enough text')}`,
+            anchorIndex: 0,
           },
         ],
       }),
@@ -140,10 +149,10 @@ describe('comment attachments — protocol + storage (FB-R2 item 12)', () => {
     const id = makeArtifact();
     const posted = svc.postComment({
       artifactId: id,
-      anchor,
+      anchors: [anchor],
       payload,
       author: human,
-      attachments: [{ kind: 'image', dataUrl: PNG_1X1 }],
+      attachments: [{ kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 }],
     });
     svc.deleteArtifact(id);
     expect(() => svc.getAttachment(posted.attachments?.[0]?.id as never)).toThrow(/not found/);
@@ -159,10 +168,10 @@ describe('comment attachments — HTTP surface', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          anchor,
+          anchors: [anchor],
           payload,
           author: human,
-          attachments: [{ kind: 'image', dataUrl: PNG_1X1 }],
+          attachments: [{ kind: 'image', dataUrl: PNG_1X1, anchorIndex: 0 }],
         }),
       }),
     );
@@ -193,10 +202,10 @@ describe('comment attachments — HTTP surface', () => {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          anchor,
+          anchors: [anchor],
           payload,
           author: human,
-          attachments: [{ kind: 'image', dataUrl: 'data:image/jpeg;base64,abcd' }],
+          attachments: [{ kind: 'image', dataUrl: 'data:image/jpeg;base64,abcd', anchorIndex: 0 }],
         }),
       }),
     );

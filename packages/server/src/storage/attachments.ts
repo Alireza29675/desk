@@ -7,6 +7,7 @@ interface AttachmentMetaRow {
   media_type: string;
   width: number;
   height: number;
+  anchor_index: number;
   created_at: string;
 }
 
@@ -17,6 +18,7 @@ function rowToMeta(row: AttachmentMetaRow): CommentAttachment {
     mediaType: row.media_type as CommentAttachment['mediaType'],
     width: row.width,
     height: row.height,
+    anchorIndex: row.anchor_index,
   };
 }
 
@@ -29,13 +31,14 @@ export class AttachmentRepository {
     mediaType: string;
     width: number;
     height: number;
+    anchorIndex: number;
     bytes: Uint8Array;
     createdAt: string;
   }): void {
     this.db
       .query(
-        `INSERT INTO attachments (id, comment_id, media_type, width, height, bytes, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO attachments (id, comment_id, media_type, width, height, anchor_index, bytes, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         input.id,
@@ -43,6 +46,7 @@ export class AttachmentRepository {
         input.mediaType,
         input.width,
         input.height,
+        input.anchorIndex,
         input.bytes,
         input.createdAt,
       );
@@ -58,11 +62,12 @@ export class AttachmentRepository {
     return row ? { mediaType: row.media_type, bytes: row.bytes } : undefined;
   }
 
-  /** Envelope metadata (no bytes) for one comment, insertion order. */
+  /** Envelope metadata (no bytes) for one comment, ordered by which selection
+   *  each image captured (anchor index), then insertion order. */
   listMetaByComment(commentId: CommentId): CommentAttachment[] {
     return this.db
       .query<AttachmentMetaRow, [string]>(
-        'SELECT id, comment_id, media_type, width, height, created_at FROM attachments WHERE comment_id = ? ORDER BY created_at ASC, id ASC',
+        'SELECT id, comment_id, media_type, width, height, anchor_index, created_at FROM attachments WHERE comment_id = ? ORDER BY anchor_index ASC, created_at ASC, id ASC',
       )
       .all(commentId)
       .map(rowToMeta);

@@ -123,6 +123,12 @@ export interface CommentAttachment {
   /** Intrinsic pixel size of the stored image. */
   width: number;
   height: number;
+  /**
+   * Which selection this image captured: an index into the comment's
+   * `anchors`. A multi-select comment captures one image per spatial anchor,
+   * so delivery can pair "the region you marked in component X" with its shot.
+   */
+  anchorIndex: number;
 }
 
 export const CommentAttachmentSchema: z.ZodType<CommentAttachment> = z.object({
@@ -131,6 +137,7 @@ export const CommentAttachmentSchema: z.ZodType<CommentAttachment> = z.object({
   mediaType: z.literal('image/png'),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
+  anchorIndex: z.number().int().nonnegative(),
 });
 
 /**
@@ -140,16 +147,37 @@ export const CommentAttachmentSchema: z.ZodType<CommentAttachment> = z.object({
 export interface CommentAttachmentInput {
   kind: 'image';
   dataUrl: string;
+  /**
+   * Index into the comment's `anchors` that this image captured. Optional
+   * during the transition (a single-anchor post omits it); defaults to 0.
+   */
+  anchorIndex?: number;
 }
 
 export const CommentAttachmentInputSchema: z.ZodType<CommentAttachmentInput> = z.object({
   kind: z.literal('image'),
   dataUrl: z.string().regex(/^data:image\/png;base64,/, 'must be a PNG data-URL'),
+  anchorIndex: z.number().int().nonnegative().optional(),
 });
 
 export interface Comment {
   id: CommentId;
   artifactId: ArtifactId;
+  /**
+   * Every selection this comment anchors to (mixed kinds: a region in one
+   * component, a sentence in another, …). The canonical multi-anchor list,
+   * always ≥1 element — a document-level comment is `[{ kind: 'general' }]`.
+   *
+   * Optional ONLY for the transition cycle, so existing single-anchor
+   * `Comment` literals still typecheck while readers migrate. The server
+   * always populates it; read it safely via `commentAnchors(c)`.
+   */
+  anchors?: CommentAnchor[];
+  /**
+   * @deprecated Transitional primary anchor (= `anchors[0]`), always present.
+   * Kept as a shadow while readers migrate to `anchors`; removed once every
+   * consumer reads `anchors`.
+   */
   anchor: CommentAnchor;
   author: Author;
   payload: CommentPayload;
@@ -158,13 +186,24 @@ export interface Comment {
   threadParentId?: CommentId;
   /** Soft-resolved flag — kept in history; the viewer dims resolved threads. */
   resolved?: boolean;
-  /** Images riding along with the comment (e.g. a captured anchor region). */
+  /** Images riding along with the comment (e.g. captured anchor regions). */
   attachments?: CommentAttachment[];
+}
+
+/**
+ * The canonical anchor list for a comment, transition-safe: every server-stored
+ * comment carries `anchors`, and a comment that predates the field falls back
+ * to its single `anchor`. Use this everywhere instead of reading either field
+ * directly, so readers never diverge during the migration.
+ */
+export function commentAnchors(comment: Comment): CommentAnchor[] {
+  return comment.anchors ?? [comment.anchor];
 }
 
 export const CommentSchema: z.ZodType<Comment> = z.object({
   id: z.string().min(1) as unknown as z.ZodType<CommentId>,
   artifactId: z.string().min(1) as unknown as z.ZodType<ArtifactId>,
+  anchors: z.array(CommentAnchorSchema).min(1).optional(),
   anchor: CommentAnchorSchema,
   author: AuthorSchema,
   payload: CommentPayloadSchema,

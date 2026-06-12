@@ -45,8 +45,11 @@ export interface DeskServiceOptions {
   autoCommitMs: number;
 }
 
-/** A comment carries at most this many images. */
-export const MAX_ATTACHMENTS_PER_COMMENT = 4;
+/** A comment anchors to at most this many selections (UI enforces the same). */
+export const MAX_ANCHORS = 8;
+
+/** A comment carries at most this many images (one per spatial anchor). */
+export const MAX_ATTACHMENTS_PER_COMMENT = MAX_ANCHORS;
 
 /**
  * The domain core. Holds the plugin registry, the repositories, and the
@@ -300,7 +303,7 @@ export class DeskService {
 
   postComment(input: {
     artifactId: ArtifactId;
-    anchor: CommentAnchor;
+    anchors: CommentAnchor[];
     payload: CommentPayload;
     author: Author;
     threadParentId?: CommentId;
@@ -308,15 +311,28 @@ export class DeskService {
   }): Comment {
     const artifact = this.artifacts.get(input.artifactId);
     if (!artifact) throw notFound(`Artifact "${input.artifactId}" not found.`);
-    this.validateAnchor(artifact, input.anchor);
+    this.validateAnchors(artifact, input.anchors);
     if (input.attachments && input.attachments.length > MAX_ATTACHMENTS_PER_COMMENT) {
       throw validationFailed(
         `A comment carries at most ${MAX_ATTACHMENTS_PER_COMMENT} attachments.`,
       );
     }
+    // Each image must name a real selection so delivery can pair them. A
+    // single-anchor post may omit anchorIndex; it defaults to 0.
+    for (const a of input.attachments ?? []) {
+      const idx = a.anchorIndex ?? 0;
+      if (idx < 0 || idx >= input.anchors.length) {
+        throw validationFailed(
+          `Attachment anchorIndex ${idx} is out of range for ${input.anchors.length} anchor(s).`,
+        );
+      }
+    }
     // Decode-and-validate EVERY attachment before any row is written, so a
     // bad image can never leave a comment stored without it.
-    const decoded = (input.attachments ?? []).map((a) => decodePngDataUrl(a.dataUrl));
+    const decoded = (input.attachments ?? []).map((a) => ({
+      ...decodePngDataUrl(a.dataUrl),
+      anchorIndex: a.anchorIndex ?? 0,
+    }));
 
     const now = new Date().toISOString();
     const attachmentMeta: CommentAttachment[] = decoded.map((d) => ({
@@ -325,11 +341,13 @@ export class DeskService {
       mediaType: 'image/png',
       width: d.width,
       height: d.height,
+      anchorIndex: d.anchorIndex,
     }));
     const comment: Comment = {
       id: newCommentId(),
       artifactId: input.artifactId,
-      anchor: input.anchor,
+      anchors: input.anchors,
+      anchor: input.anchors[0]!, // transitional primary (validated non-empty)
       author: input.author,
       payload: input.payload,
       ...(input.threadParentId ? { threadParentId: input.threadParentId } : {}),
@@ -346,6 +364,7 @@ export class DeskService {
         mediaType: meta.mediaType,
         width: d.width,
         height: d.height,
+        anchorIndex: d.anchorIndex,
         bytes: d.bytes,
         createdAt: now,
       });
@@ -477,13 +496,32 @@ export class DeskService {
 
   // ─── internal ────────────────────────────────────────────────────────
 
-  private validateAnchor(artifact: Artifact, anchor: CommentAnchor): void {
-    if (anchor.kind === 'general') return;
-    const target = artifact.content.components.find((c: Component) => c.id === anchor.componentId);
-    if (!target) {
+  private validateAnchors(artifact: Artifact, anchors: CommentAnchor[]): void {
+    if (anchors.length === 0) {
+      throw validationFailed('A comment must anchor to at least one selection.');
+    }
+    if (anchors.length > MAX_ANCHORS) {
+      throw validationFailed(`A comment anchors to at most ${MAX_ANCHORS} selections.`);
+    }
+    // `general` is a document-level, untethered anchor — it is exclusive: a
+    // comment is EITHER document-level or one-or-more tethered selections,
+    // never a mix.
+    const hasGeneral = anchors.some((a) => a.kind === 'general');
+    if (hasGeneral && anchors.length > 1) {
       throw validationFailed(
-        `Comment anchor references component "${anchor.componentId}", which is not present on artifact "${artifact.id}".`,
+        'A document-level (general) comment cannot be combined with other selections.',
       );
+    }
+    for (const anchor of anchors) {
+      if (anchor.kind === 'general') continue;
+      const target = artifact.content.components.find(
+        (c: Component) => c.id === anchor.componentId,
+      );
+      if (!target) {
+        throw validationFailed(
+          `Comment anchor references component "${anchor.componentId}", which is not present on artifact "${artifact.id}".`,
+        );
+      }
     }
   }
 }
