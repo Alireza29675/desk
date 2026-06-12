@@ -139,6 +139,11 @@
   justify-content: space-between;
   gap: var(--space-4);
   height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  /* Never shrink: .workspace__body's flex-basis is its content height, so a
+     long artifact overflows the column at the preferred-size stage and the
+     default flex-shrink would squeeze this bar to min-content. Only the body
+     may flex; the chrome rows keep their designed height. */
+  flex-shrink: 0;
   padding: env(safe-area-inset-top, 0px) var(--space-7) 0;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
@@ -195,6 +200,8 @@
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-sunken);
   flex-wrap: wrap;
+  /* Same flex item as .topbar: pinned so a long artifact can't squeeze it. */
+  flex-shrink: 0;
 }
 .history-bar__label {
   font-size: var(--text-2xs);
