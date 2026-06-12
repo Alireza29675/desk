@@ -12,6 +12,13 @@ interface Data {
 
 const SUPERVISOR_TICK_MS = 500;
 
+/** The themed background the sandbox body paints, resolved from the design
+ *  token (the frame can't read tokens.css through its CSP). Sunken so an
+ *  embedded component card reads against a slightly-darker well. */
+function resolveSurface(): string {
+  return getComputedStyle(document.documentElement).getPropertyValue('--color-bg-sunken').trim();
+}
+
 /**
  * AI-generated React, executed in a sandboxed iframe (`allow-scripts` ONLY —
  * never `allow-same-origin`): opaque origin, no parent DOM/store access, no
@@ -30,8 +37,11 @@ export function CustomReactRenderer({ component, artifactId }: RendererProps<Dat
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const readyRef = useRef(false);
 
-  // The srcdoc is fixed per epoch; theme flows over postMessage afterwards.
-  const [srcdoc] = useState(() => buildFrameSrcdoc(window.location.origin, theme));
+  // The srcdoc is fixed per epoch; theme + surface flow over postMessage after.
+  // Seed both so the first paint is themed (no white flash before mount).
+  const [srcdoc] = useState(() =>
+    buildFrameSrcdoc(window.location.origin, theme, resolveSurface()),
+  );
 
   async function postMount(target: Window) {
     try {
@@ -51,6 +61,7 @@ export function CustomReactRenderer({ component, artifactId }: RendererProps<Dat
           code,
           props: data.props ?? {},
           theme: useStore.getState().theme,
+          surface: resolveSurface(),
         },
         '*',
       );
@@ -88,9 +99,13 @@ export function CustomReactRenderer({ component, artifactId }: RendererProps<Dat
     };
   }, [epoch]);
 
-  // Theme changes flow into the live frame as a prop update.
+  // Theme changes flow into the live frame as a prop update, with the freshly
+  // resolved surface so the body background tracks the new theme.
   useEffect(() => {
-    iframeRef.current?.contentWindow?.postMessage({ kind: 'theme', theme }, '*');
+    iframeRef.current?.contentWindow?.postMessage(
+      { kind: 'theme', theme, surface: resolveSurface() },
+      '*',
+    );
   }, [theme]);
 
   // Artifact edits change the code/props: re-mount the component in place

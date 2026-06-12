@@ -106,7 +106,7 @@ describe('FrameSupervisor — the untrusted frame is watched, not trusted', () =
 });
 
 describe('buildFrameSrcdoc — the containment document', () => {
-  const doc = buildFrameSrcdoc('http://127.0.0.1:7878', 'dark');
+  const doc = buildFrameSrcdoc('http://127.0.0.1:7878', 'dark', '#060607');
 
   it('locks the CSP: no network, scripts only from our origin plus eval', () => {
     expect(doc).toContain("default-src 'none'");
@@ -117,6 +117,19 @@ describe('buildFrameSrcdoc — the containment document', () => {
   it('loads the harness from the origin and seeds the theme', () => {
     expect(doc).toContain('src="http://127.0.0.1:7878/custom-harness.js"');
     expect(doc).toContain('data-theme="dark"');
+  });
+
+  it('seeds color-scheme and the themed surface at byte 0 (no white flash)', () => {
+    // The white-slab fix: color-scheme themes the UA canvas; the surface paints
+    // the body the app's themed background. Both present in the initial srcdoc.
+    expect(doc).toContain('color-scheme:dark');
+    expect(doc).toContain('background:#060607');
+  });
+
+  it('falls back to a transparent body when no surface resolves (color-scheme still themes)', () => {
+    const bare = buildFrameSrcdoc('http://127.0.0.1:7878', 'light', '');
+    expect(bare).toContain('color-scheme:light');
+    expect(bare).toContain('background:transparent');
   });
 });
 

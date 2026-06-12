@@ -16,15 +16,18 @@ export type HarnessMessage =
   | { kind: 'heartbeat' }
   | { kind: 'resize'; height: number };
 
-/** Parent → frame. */
+/** Parent → frame. `surface` is the resolved theme background color (a token
+ *  the frame can't read itself — CSP blocks tokens.css), applied to the body so
+ *  an uncovered component never shows the UA white canvas. */
 export type ParentMessage =
   | {
       kind: 'mount';
       code: string;
       props: Record<string, unknown>;
       theme: 'light' | 'dark';
+      surface: string;
     }
-  | { kind: 'theme'; theme: 'light' | 'dark' };
+  | { kind: 'theme'; theme: 'light' | 'dark'; surface: string };
 
 export function isHarnessMessage(data: unknown): data is HarnessMessage {
   if (typeof data !== 'object' || data === null) return false;
@@ -144,20 +147,28 @@ export class FrameSupervisor {
  * every fetch/XHR/WebSocket. Scripts only from our origin (the harness
  * bundle) plus eval (how the harness instantiates the compiled component),
  * inline styles for the component, data: images.
+ *
+ * `color-scheme` is set from the theme so the frame's UA canvas (and any native
+ * widgets the component renders) follows light/dark — without it, a transparent
+ * body shows the browser's white default even on a dark page. `surface` paints
+ * the body the app's themed background so an uncovered component blends in. Both
+ * are seeded at byte 0 so the very first paint is themed (no white flash); the
+ * theme bridge keeps them live on theme changes.
  */
-export function buildFrameSrcdoc(origin: string, theme: 'light' | 'dark'): string {
+export function buildFrameSrcdoc(origin: string, theme: 'light' | 'dark', surface: string): string {
   const csp = [
     "default-src 'none'",
     `script-src ${origin} 'unsafe-eval'`,
     "style-src 'unsafe-inline'",
     'img-src data:',
   ].join('; ');
+  const bg = surface || 'transparent';
   return [
     '<!doctype html>',
-    `<html data-theme="${theme}">`,
+    `<html data-theme="${theme}" style="color-scheme:${theme}">`,
     '<head>',
     `<meta http-equiv="Content-Security-Policy" content="${csp}">`,
-    '<style>html,body{margin:0;background:transparent;font-family:system-ui,sans-serif}</style>',
+    `<style>html,body{margin:0;background:${bg};font-family:system-ui,sans-serif}</style>`,
     '</head>',
     '<body><div id="root"></div>',
     `<script src="${origin}/custom-harness.js"></script>`,

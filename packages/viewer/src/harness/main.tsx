@@ -23,8 +23,9 @@ type Mount = {
   code: string;
   props: Record<string, unknown>;
   theme: 'light' | 'dark';
+  surface?: string;
 };
-type ThemeMsg = { kind: 'theme'; theme: 'light' | 'dark' };
+type ThemeMsg = { kind: 'theme'; theme: 'light' | 'dark'; surface?: string };
 
 function isMount(d: unknown): d is Mount {
   const m = d as Mount;
@@ -71,6 +72,10 @@ class HarnessBoundary extends React.Component<
 function App() {
   const [mount, setMount] = React.useState<Mount | null>(null);
   const [theme, setTheme] = React.useState<'light' | 'dark'>('light');
+  // The themed background color the parent resolves from a token (the frame
+  // can't read tokens.css — CSP). Applied to the body so an uncovered component
+  // never shows the UA white canvas.
+  const [surface, setSurface] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const onMessage = (ev: MessageEvent) => {
@@ -78,9 +83,11 @@ function App() {
       if (ev.source !== window.parent) return;
       if (isMount(ev.data)) {
         setTheme(ev.data.theme);
+        if (ev.data.surface) setSurface(ev.data.surface);
         setMount(ev.data);
       } else if (isThemeMsg(ev.data)) {
         setTheme(ev.data.theme);
+        if (ev.data.surface) setSurface(ev.data.surface);
       }
     };
     window.addEventListener('message', onMessage);
@@ -94,7 +101,11 @@ function App() {
 
   React.useEffect(() => {
     document.documentElement.dataset.theme = theme;
-  }, [theme]);
+    // color-scheme themes the UA canvas + native widgets; the surface paints the
+    // body the app's themed background. Together they kill the white slab.
+    document.documentElement.style.colorScheme = theme;
+    if (surface) document.body.style.background = surface;
+  }, [theme, surface]);
 
   React.useEffect(() => {
     const observer = new ResizeObserver(() => {
