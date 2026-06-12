@@ -16,6 +16,10 @@ import { type RealtimeClient, buildRealtimeClient } from '../realtime/client';
 /** Firehose subscription target: receive realtime events for every artifact. */
 const FIREHOSE = '*' as ArtifactId;
 
+/** Pending removal of the transient `theme-switching` class (see setTheme).
+ * Module-level, not store state: it's DOM bookkeeping, never rendered. */
+let themeSwitchTimer: ReturnType<typeof setTimeout> | undefined;
+
 /**
  * UI store. Owns:
  *   - the list of artifacts (sidebar)
@@ -294,6 +298,15 @@ export const useStore = create<State>((set, get) => {
     },
 
     setTheme(theme) {
+      // Transient class around the data-theme flip: globals.css transitions
+      // colors only while `theme-switching` is present (~300ms), so the swap
+      // cross-fades instead of snapping. Clear any pending removal first so a
+      // rapid double-toggle can't strand the class via a stale timeout.
+      clearTimeout(themeSwitchTimer);
+      document.documentElement.classList.add('theme-switching');
+      themeSwitchTimer = setTimeout(() => {
+        document.documentElement.classList.remove('theme-switching');
+      }, 300);
       document.documentElement.dataset.theme = theme;
       // Persist the choice so it survives reloads and deep-link opens.
       try {

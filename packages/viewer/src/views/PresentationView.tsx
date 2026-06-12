@@ -74,7 +74,10 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
           </div>
           <ArtifactMeta artifact={artifact} className="presentation__meta" />
         </header>
-        <div className="presentation__slide" data-layout={slide?.layout ?? 'content'}>
+        {/* Keyed per slide index so ←/→ remounts the canvas and retriggers
+            its content-enter animation; an unkeyed div would re-render the
+            new slide in place with no transition at all. */}
+        <div className="presentation__slide" key={index} data-layout={slide?.layout ?? 'content'}>
           {slide?.body.map((c) => (
             <Commentable key={c.id} componentId={c.id}>
               <RenderedComponent component={c} artifactId={artifact.id} />

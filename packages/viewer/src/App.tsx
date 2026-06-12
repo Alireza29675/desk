@@ -111,7 +111,16 @@ export function App() {
           onToggleComments={() => setPanel((p) => (p === 'comments' ? null : 'comments'))}
         />
         {open && historyOpen ? <HistoryBar /> : null}
-        <div className="workspace__body">
+        {/* Keyed per artifact (or empty/not-found state) so React remounts the
+            body on a switch — the remount retriggers the content-enter
+            animation and starts the new artifact scrolled to the top. Keyed
+            on .workspace__body itself, never an inner wrapper: this element
+            must stay THE scroll container (anchor overlay math reads rects of
+            content scrolled within it). */}
+        <div
+          className="workspace__body"
+          key={open ? open.artifact.id : loadError ? 'notfound' : 'empty'}
+        >
           {open ? (
             open.artifact.type === 'presentation' ? (
               <PresentationView artifact={open.artifact} />

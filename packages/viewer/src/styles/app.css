@@ -202,6 +202,17 @@
   flex-wrap: wrap;
   /* Same flex item as .topbar: pinned so a long artifact can't squeeze it. */
   flex-shrink: 0;
+  /* Content fades in; the layout push itself stays instant on purpose —
+     animating the row's height would make the toggle feel slower. */
+  animation: fade-in var(--duration-fast) var(--ease-standard);
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .history-bar__label {
   font-size: var(--text-2xs);
@@ -335,6 +346,19 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Mount-only enter (App.tsx keys this element per artifact). No exit
+     choreography on purpose: leaving must be instant — snappy first. */
+  animation: content-enter var(--duration-medium) var(--ease-standard);
+}
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ── Document ───────────────────────────────────────────────────── */
@@ -439,6 +463,9 @@
   flex-direction: column;
   gap: var(--space-7);
   box-shadow: var(--shadow-2);
+  /* Mount-only: PresentationView keys this on the slide index, so ←/→
+     retriggers the enter. The chrome around it (pager, nav) never moves. */
+  animation: content-enter var(--duration-medium) var(--ease-standard);
 }
 .presentation__slide[data-layout="full-bleed"] {
   padding: 0;
@@ -948,6 +975,9 @@
   justify-content: center;
   padding-top: 16vh;
   backdrop-filter: blur(4px);
+  /* Mount-only (the component unmounts on close, so there is no exit —
+     dismissal is instant on purpose). */
+  animation: fade-in var(--duration-fast) var(--ease-standard);
 }
 .palette {
   width: min(var(--command-palette-w), calc(100vw - var(--space-9)));
@@ -959,6 +989,18 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform-origin: top center;
+  animation: palette-enter var(--duration-fast) var(--ease-standard);
+}
+@keyframes palette-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .palette__input {
   padding: var(--space-7) var(--space-8);

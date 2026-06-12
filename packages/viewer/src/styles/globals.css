@@ -67,6 +67,21 @@ code {
     scroll-behavior: auto !important;
   }
 }
+/* Theme cross-fade — store.setTheme puts `theme-switching` on <html> for
+   ~300ms around the data-theme flip, and only then do colors transition.
+   Transient on purpose: a permanent global color transition would make hover
+   states feel sluggish and fight every micro-interaction's own timing. No
+   !important here, so the reduced-motion override above keeps winning. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching ::before,
+html.theme-switching ::after {
+  transition: background-color var(--duration-slow) var(--ease-standard), color
+    var(--duration-slow) var(--ease-standard), border-color var(--duration-slow)
+    var(--ease-standard), fill var(--duration-slow) var(--ease-standard), stroke
+    var(--duration-slow) var(--ease-standard);
+}
+
 /* Controls that carry their own box-shadow would otherwise suppress the focus
    ring (equal specificity, defined later). Re-assert it at higher specificity
    so every keyboard-focused control shows the same accent ring. */

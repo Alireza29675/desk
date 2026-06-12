@@ -1,6 +1,6 @@
 import type { Artifact, ArtifactId, Comment, RealtimeServerMessage } from '@desk/types';
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStore } from './store';
 
 function artifact(id: string, title = id, version = 1): Artifact {
@@ -179,6 +179,41 @@ describe('store.applyEvent — open artifact', () => {
     apply(committed(artifact('a', 'New', 2)));
     expect(useStore.getState().open?.artifact.content.title).toBe('New');
     expect(useStore.getState().open?.artifact.version).toBe(2);
+  });
+});
+
+describe('store.setTheme — transient theme-switching class', () => {
+  const root = () => document.documentElement;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    root().classList.remove('theme-switching');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('adds the class around the flip and removes it once the window closes', () => {
+    useStore.getState().setTheme('dark');
+    expect(root().dataset.theme).toBe('dark');
+    expect(root().classList.contains('theme-switching')).toBe(true);
+    vi.runAllTimers();
+    expect(root().classList.contains('theme-switching')).toBe(false);
+  });
+
+  it('does not strand the class on a rapid double toggle (stale timeout cleared)', () => {
+    useStore.getState().setTheme('dark');
+    vi.advanceTimersByTime(150);
+    useStore.getState().setTheme('light');
+    // The first flip's timeout would have fired here; it must not — the
+    // second flip owns the full window.
+    vi.advanceTimersByTime(299);
+    expect(root().classList.contains('theme-switching')).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(root().classList.contains('theme-switching')).toBe(false);
+    vi.runAllTimers();
+    expect(root().classList.contains('theme-switching')).toBe(false);
   });
 });
 

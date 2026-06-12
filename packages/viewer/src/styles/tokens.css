@@ -162,6 +162,9 @@
    * functional signals (state change, position, focus), never decorative. */
   --duration-instant: 60ms;
   --duration-fast: 120ms;
+  /* Content-enter animations: slower than micro-interactions, faster than
+     layout moves. */
+  --duration-medium: 160ms;
   --duration-base: 180ms;
   --duration-slow: 260ms;
 
