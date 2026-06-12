@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { type Author, AuthorSchema } from './author';
-import type { ArtifactId, CommentId, ComponentId } from './ids';
+import type { ArtifactId, AttachmentId, CommentId, ComponentId } from './ids';
 
 /**
  * Comment anchors — five shapes, all semantic. There is no `{x, y}` anchor:
@@ -110,6 +110,43 @@ export const CommentPayloadSchema: z.ZodType<CommentPayload> = z.discriminatedUn
   z.object({ kind: z.literal('text'), text: z.string().min(1) }),
 ]);
 
+/**
+ * Attachment metadata on the comment envelope. Sits BESIDE the payload, not
+ * inside it — a comment has a body AND attachments (a region screenshot rides
+ * along with the text). Bytes never live here: fetch them at
+ * `GET /api/attachments/:id`.
+ */
+export interface CommentAttachment {
+  id: AttachmentId;
+  kind: 'image';
+  mediaType: 'image/png';
+  /** Intrinsic pixel size of the stored image. */
+  width: number;
+  height: number;
+}
+
+export const CommentAttachmentSchema: z.ZodType<CommentAttachment> = z.object({
+  id: z.string().min(1) as unknown as z.ZodType<AttachmentId>,
+  kind: z.literal('image'),
+  mediaType: z.literal('image/png'),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+});
+
+/**
+ * The post-time shape: the viewer sends bytes as a PNG data-URL; the server
+ * decodes, validates, stores, and answers with `CommentAttachment` metadata.
+ */
+export interface CommentAttachmentInput {
+  kind: 'image';
+  dataUrl: string;
+}
+
+export const CommentAttachmentInputSchema: z.ZodType<CommentAttachmentInput> = z.object({
+  kind: z.literal('image'),
+  dataUrl: z.string().regex(/^data:image\/png;base64,/, 'must be a PNG data-URL'),
+});
+
 export interface Comment {
   id: CommentId;
   artifactId: ArtifactId;
@@ -121,6 +158,8 @@ export interface Comment {
   threadParentId?: CommentId;
   /** Soft-resolved flag — kept in history; the viewer dims resolved threads. */
   resolved?: boolean;
+  /** Images riding along with the comment (e.g. a captured anchor region). */
+  attachments?: CommentAttachment[];
 }
 
 export const CommentSchema: z.ZodType<Comment> = z.object({
@@ -132,4 +171,5 @@ export const CommentSchema: z.ZodType<Comment> = z.object({
   createdAt: z.string().datetime(),
   threadParentId: (z.string().min(1) as unknown as z.ZodType<CommentId>).optional(),
   resolved: z.boolean().optional(),
+  attachments: z.array(CommentAttachmentSchema).optional(),
 });

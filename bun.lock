@@ -13,6 +13,14 @@
         "vitest": "^2.1.8",
       },
     },
+    "packages/anchor-geometry": {
+      "name": "@desk/anchor-geometry",
+      "version": "0.1.0",
+      "devDependencies": {
+        "typescript": "^5.7.2",
+        "vitest": "^2.1.8",
+      },
+    },
     "packages/channel": {
       "name": "@desk/channel",
       "version": "0.1.0",
@@ -20,6 +28,7 @@
         "desk-channel": "./src/index.ts",
       },
       "dependencies": {
+        "@desk/anchor-geometry": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.0.4",
         "puppeteer-core": "^25.0.4",
       },
@@ -79,6 +88,7 @@
       "name": "@desk/viewer",
       "version": "0.1.0",
       "dependencies": {
+        "@desk/anchor-geometry": "workspace:*",
         "@desk/plugin-sdk": "workspace:*",
         "@desk/plugins-builtin": "workspace:*",
         "@desk/types": "workspace:*",
@@ -88,6 +98,7 @@
         "@terrastruct/d2": "^0.1.33",
         "@viz-js/viz": "^3.27.0",
         "clsx": "^2.1.1",
+        "html-to-image": "^1.11.11",
         "katex": "^0.16.21",
         "react": "^18.3.1",
         "react-dom": "^18.3.1",
@@ -160,6 +171,8 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@1.9.4", "", { "os": "win32", "cpu": "arm64" }, "sha512-tlbhLk+WXZmgwoIKwHIHEBZUwxml7bRJgk0X2sPyNR3S93cdRq6XulAZRQJ17FYGGzWne0fgrXBKpl7l4M87Hg=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@1.9.4", "", { "os": "win32", "cpu": "x64" }, "sha512-8Y5wMhVIPaWe6jw2H+KlEm4wP/f7EW3810ZLmDlrEEy5KvBsb9ECEfu/kMWD484ijfQ8+nIi0giMgu9g1UAuuA=="],
+
+    "@desk/anchor-geometry": ["@desk/anchor-geometry@workspace:packages/anchor-geometry"],
 
     "@desk/channel": ["@desk/channel@workspace:packages/channel"],
 
@@ -548,6 +561,8 @@
     "hast-util-whitespace": ["hast-util-whitespace@3.0.0", "", { "dependencies": { "@types/hast": "^3.0.0" } }, "sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw=="],
 
     "hono": ["hono@4.12.22", "", {}, "sha512-7fvVPbB92zNRsQke+uiRGwtTuef0tB2Dg4hWxYfFNvkQhIltWoyi0ONReM5LWA+jJWS3nfT5lTq+qbsIpX0IQw=="],
+
+    "html-to-image": ["html-to-image@1.11.13", "", {}, "sha512-cuOPoI7WApyhBElTTb9oqsawRvZ0rHhaHwghRLlTuffoD1B2aDemlCruLeZrUIIdvG7gs9xeELEPm6PhuASqrg=="],
 
     "html-void-elements": ["html-void-elements@3.0.0", "", {}, "sha512-bEqo66MRXsUGxWHV5IP0PUiAWwoEjba4VCzg0LjFJBpchPaTfyfCKTG6bc5F8ucKec3q5y6qOdGyYTSBEvhCrg=="],
 

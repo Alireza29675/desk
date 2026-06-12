@@ -1,6 +1,7 @@
 import type { ArtifactId, Author, Comment, CommentAnchor } from '@desk/types';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
+import { captureAnchorImage } from '../lib/capture-anchor';
 import { useStore } from '../state/store';
 import { RelationsSection } from './RelationsSection';
 
@@ -30,10 +31,16 @@ export function CommentRail() {
 
   async function post() {
     if (!draft.trim() || !open) return;
+    const anchor = commentTarget ?? ({ kind: 'general' } as CommentAnchor);
+    // Point/region anchors ride with a capture of what the operator sees
+    // (their theme, viewport, live state). Best-effort: a failed capture
+    // still posts the comment and the channel falls back to its own render.
+    const shot = await captureAnchorImage(anchor);
     await api.comment(artifactId, {
-      anchor: commentTarget ?? { kind: 'general' },
+      anchor,
       payload: { kind: 'text', text: draft.trim() },
       author,
+      ...(shot ? { attachments: [{ kind: 'image', dataUrl: shot.dataUrl }] } : {}),
     });
     setDraft('');
     clearCommentTarget();
