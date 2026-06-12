@@ -1,9 +1,17 @@
 import { PluginRegistryError } from '@desk/plugin-sdk';
-import type { ArtifactId, CommentAnchor, CommentId, CommentPayload } from '@desk/types';
+import type {
+  ArtifactId,
+  AttachmentId,
+  CommentAnchor,
+  CommentAttachmentInput,
+  CommentId,
+  CommentPayload,
+} from '@desk/types';
 import {
   ArtifactPatchSchema,
   AuthorSchema,
   CommentAnchorSchema,
+  CommentAttachmentInputSchema,
   CommentPayloadSchema,
 } from '@desk/types';
 import { type Context, Hono } from 'hono';
@@ -11,6 +19,7 @@ import { cors } from 'hono/cors';
 import { z } from 'zod';
 import { SERVER_VERSION } from '../config';
 import { DeskError } from '../core/errors';
+import { MAX_ANCHORS } from '../core/service';
 import type { DeskService } from '../core/service';
 import { mountViewer } from './static';
 
@@ -135,6 +144,23 @@ export function buildHttpApp(service: DeskService): Hono {
     });
   });
 
+  // The authored (reset-target) checked-state of a checklist component.
+  api.get('/a/:id/baseline/:componentId', (c) => {
+    const id = c.req.param('id') as ArtifactId;
+    return c.json(service.checklistBaseline(id, c.req.param('componentId')));
+  });
+
+  // Compiled JS for a custom-react component (the sandbox harness runs this).
+  api.get('/a/:id/components/:componentId/compiled', async (c) => {
+    const id = c.req.param('id') as ArtifactId;
+    const js = await service.compiledComponent(id, c.req.param('componentId'));
+    return c.text(js, 200, {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      // Code changes with artifact edits; the parent fetches per mount.
+      'Cache-Control': 'no-store',
+    });
+  });
+
   api.get('/a/:id/similar', (c) => {
     const id = c.req.param('id') as ArtifactId;
     const limit = intQuery(c, 'limit');
@@ -169,25 +195,42 @@ export function buildHttpApp(service: DeskService): Hono {
   // ─── comments ───────────────────────────────────────────────────────
 
   const CommentBody = z.object({
-    anchor: CommentAnchorSchema,
+    // `anchors` is canonical (one comment → many selections). Singular `anchor`
+    // is still accepted for back-compat and normalized to a 1-element array.
+    anchors: z.array(CommentAnchorSchema).min(1).max(MAX_ANCHORS).optional(),
+    anchor: CommentAnchorSchema.optional(),
     payload: CommentPayloadSchema,
     author: AuthorSchema,
     threadParentId: z.string().optional(),
+    attachments: z.array(CommentAttachmentInputSchema).optional(),
   });
 
   api.post('/a/:id/comments', async (c) => {
     const artifactId = c.req.param('id') as ArtifactId;
     const body = CommentBody.parse(await c.req.json());
+    // Empty (neither field) flows through to the service, which rejects it with
+    // the same "at least one selection" rule used everywhere.
+    const anchors = (body.anchors ?? (body.anchor ? [body.anchor] : [])) as CommentAnchor[];
     return c.json(
       service.postComment({
         artifactId,
-        anchor: body.anchor as CommentAnchor,
+        anchors,
         payload: body.payload as CommentPayload,
         author: body.author,
         ...(body.threadParentId ? { threadParentId: body.threadParentId as CommentId } : {}),
+        ...(body.attachments ? { attachments: body.attachments as CommentAttachmentInput[] } : {}),
       }),
       201,
     );
+  });
+
+  // Attachment bytes (metadata rides on the comment envelope).
+  api.get('/attachments/:id', (c) => {
+    const { mediaType, bytes } = service.getAttachment(c.req.param('id') as AttachmentId);
+    return c.body(bytes.buffer as ArrayBuffer, 200, {
+      'Content-Type': mediaType,
+      'Cache-Control': 'immutable, max-age=31536000',
+    });
   });
 
   api.get('/a/:id/comments', (c) => {

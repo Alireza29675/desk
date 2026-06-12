@@ -1,6 +1,6 @@
-import type { Artifact, ArtifactId, Comment, RealtimeServerMessage } from '@desk/types';
+import type { Artifact, ArtifactId, Comment, CommentId, RealtimeServerMessage } from '@desk/types';
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStore } from './store';
 
 function artifact(id: string, title = id, version = 1): Artifact {
@@ -179,5 +179,119 @@ describe('store.applyEvent — open artifact', () => {
     apply(committed(artifact('a', 'New', 2)));
     expect(useStore.getState().open?.artifact.content.title).toBe('New');
     expect(useStore.getState().open?.artifact.version).toBe(2);
+  });
+});
+
+describe('store.setTheme — transient theme-switching class', () => {
+  const root = () => document.documentElement;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    root().classList.remove('theme-switching');
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('adds the class around the flip and removes it once the window closes', () => {
+    useStore.getState().setTheme('dark');
+    expect(root().dataset.theme).toBe('dark');
+    expect(root().classList.contains('theme-switching')).toBe(true);
+    vi.runAllTimers();
+    expect(root().classList.contains('theme-switching')).toBe(false);
+  });
+
+  it('does not strand the class on a rapid double toggle (stale timeout cleared)', () => {
+    useStore.getState().setTheme('dark');
+    vi.advanceTimersByTime(150);
+    useStore.getState().setTheme('light');
+    // The first flip's timeout would have fired here; it must not — the
+    // second flip owns the full window.
+    vi.advanceTimersByTime(299);
+    expect(root().classList.contains('theme-switching')).toBe(true);
+    vi.advanceTimersByTime(1);
+    expect(root().classList.contains('theme-switching')).toBe(false);
+    vi.runAllTimers();
+    expect(root().classList.contains('theme-switching')).toBe(false);
+  });
+});
+
+describe('store.revealInRail — rail scroll/flash target (clears itself)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useStore.setState({ railTarget: null });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('sets the target and auto-clears after the reveal window', () => {
+    useStore.getState().revealInRail('c1' as CommentId);
+    expect(useStore.getState().railTarget).toBe('c1');
+    vi.advanceTimersByTime(1599);
+    expect(useStore.getState().railTarget).toBe('c1');
+    vi.advanceTimersByTime(1);
+    expect(useStore.getState().railTarget).toBeNull();
+  });
+
+  it('a second reveal restarts the window (stale timer cleared)', () => {
+    useStore.getState().revealInRail('c1' as CommentId);
+    vi.advanceTimersByTime(1000);
+    useStore.getState().revealInRail('c2' as CommentId);
+    // The first reveal's timeout would fire here; it must not — the second
+    // reveal owns the full window.
+    vi.advanceTimersByTime(1599);
+    expect(useStore.getState().railTarget).toBe('c2');
+    vi.advanceTimersByTime(1);
+    expect(useStore.getState().railTarget).toBeNull();
+  });
+});
+
+describe('store side-panel toggles — sidebar and rail collapse independently', () => {
+  beforeEach(() => {
+    localStorage.removeItem('desk-sidebar-hidden');
+    localStorage.removeItem('desk-rail-hidden');
+    localStorage.removeItem('desk-panels-hidden');
+    useStore.setState({ sidebarHidden: false, railHidden: false });
+  });
+
+  it('toggleSidebar flips sidebarHidden and persists, leaving the rail alone', () => {
+    expect(useStore.getState().sidebarHidden).toBe(false);
+    useStore.getState().toggleSidebar();
+    expect(useStore.getState().sidebarHidden).toBe(true);
+    expect(useStore.getState().railHidden).toBe(false);
+    expect(localStorage.getItem('desk-sidebar-hidden')).toBe('1');
+    useStore.getState().toggleSidebar();
+    expect(useStore.getState().sidebarHidden).toBe(false);
+    expect(localStorage.getItem('desk-sidebar-hidden')).toBe('0');
+  });
+
+  it('toggleRail flips railHidden and persists, leaving the sidebar alone', () => {
+    useStore.getState().toggleRail();
+    expect(useStore.getState().railHidden).toBe(true);
+    expect(useStore.getState().sidebarHidden).toBe(false);
+    expect(localStorage.getItem('desk-rail-hidden')).toBe('1');
+  });
+
+  it('reads persisted per-panel choices back on store creation', async () => {
+    localStorage.setItem('desk-sidebar-hidden', '1');
+    localStorage.setItem('desk-rail-hidden', '0');
+    // The read happens once at create() time, so build a fresh store module.
+    vi.resetModules();
+    const { useStore: fresh } = await import('./store');
+    expect(fresh.getState().sidebarHidden).toBe(true);
+    expect(fresh.getState().railHidden).toBe(false);
+    localStorage.removeItem('desk-sidebar-hidden');
+    localStorage.removeItem('desk-rail-hidden');
+  });
+
+  it('migrates the pre-split desk-panels-hidden key into both panels', async () => {
+    localStorage.setItem('desk-panels-hidden', '1');
+    vi.resetModules();
+    const { useStore: fresh } = await import('./store');
+    expect(fresh.getState().sidebarHidden).toBe(true);
+    expect(fresh.getState().railHidden).toBe(true);
+    localStorage.removeItem('desk-panels-hidden');
   });
 });

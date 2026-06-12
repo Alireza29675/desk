@@ -25,6 +25,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const openArtifact = useStore((s) => s.openArtifact);
   const setTheme = useStore((s) => s.setTheme);
   const theme = useStore((s) => s.theme);
+  const sidebarHidden = useStore((s) => s.sidebarHidden);
+  const railHidden = useStore((s) => s.railHidden);
+  const toggleSidebar = useStore((s) => s.toggleSidebar);
+  const toggleRail = useStore((s) => s.toggleRail);
   const artifacts = useStore((s) => s.artifacts);
 
   useEffect(() => {
@@ -65,8 +69,20 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         hint: 'theme',
         perform: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
       },
+      {
+        id: 'sidebar:toggle',
+        label: sidebarHidden ? 'Show sidebar' : 'Hide sidebar',
+        hint: 'layout panels',
+        perform: () => toggleSidebar(),
+      },
+      {
+        id: 'rail:toggle',
+        label: railHidden ? 'Show comments' : 'Hide comments',
+        hint: 'layout panels',
+        perform: () => toggleRail(),
+      },
     ],
-    [theme, setTheme],
+    [theme, setTheme, sidebarHidden, railHidden, toggleSidebar, toggleRail],
   );
 
   // Commands stay findable by name: filter them by the query (label/hint
@@ -134,6 +150,9 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
               e.preventDefault();
               choose(highlight);
             } else if (e.key === 'Escape') {
+              // Consume the event so App's window-level Escape (which closes
+              // the mobile drawer/sheet) doesn't also fire on the same press.
+              e.preventDefault();
               onClose();
             }
           }}

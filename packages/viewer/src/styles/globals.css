@@ -7,7 +7,14 @@ html {
   line-height: var(--leading-normal);
   color: var(--color-text);
   background: var(--color-bg);
-  font-feature-settings: "cv11", "ss01", "ss03", "calt";
+  font-feature-settings: "calt";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-selection);
+  color: var(--color-selection-text);
 }
 
 body {
@@ -60,6 +67,27 @@ code {
     scroll-behavior: auto !important;
   }
 }
+/* Theme cross-fade — store.setTheme puts `theme-switching` on <html> for
+   ~300ms around the data-theme flip, and only then do colors transition.
+   Transient on purpose: a permanent global color transition would make hover
+   states feel sluggish and fight every micro-interaction's own timing. No
+   !important here, so the reduced-motion override above keeps winning.
+   margin/transform are included alongside the colors so a layout transition
+   already in flight during a theme toggle (e.g. a panel mid-slide) keeps
+   easing — without them this shorthand would override their transition and
+   snap the motion instead of cutting it off. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching ::before,
+html.theme-switching ::after {
+  transition:
+    background-color var(--duration-slow) var(--ease-standard), color
+    var(--duration-slow) var(--ease-standard), border-color var(--duration-slow)
+    var(--ease-standard), fill var(--duration-slow) var(--ease-standard), stroke
+    var(--duration-slow) var(--ease-standard), margin var(--duration-slow)
+    var(--ease-standard), transform var(--duration-slow) var(--ease-standard);
+}
+
 /* Controls that carry their own box-shadow would otherwise suppress the focus
    ring (equal specificity, defined later). Re-assert it at higher specificity
    so every keyboard-focused control shows the same accent ring. */
@@ -84,9 +112,13 @@ code {
   background: var(--color-text-subtle);
 }
 
-/* Title typography uses a serif accent to differentiate from body text — the
- * Linear/Raycast detail that makes the page feel composed rather than generic. */
-.serif-accent {
-  font-family: var(--font-serif);
+/* Title typography stays in Geist — hierarchy comes from weight, scale and
+ * tighter tracking instead of a second typeface (operator call: no serif
+ * headings). The serif token still exists for CONTENT typography (quotes,
+ * captions, math in rendered documents), which is a different voice than
+ * the app's own headings. */
+.heading-accent {
+  font-family: var(--font-sans);
+  font-weight: var(--weight-semibold);
   letter-spacing: var(--tracking-tight);
 }

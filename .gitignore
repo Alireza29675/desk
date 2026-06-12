@@ -8,6 +8,7 @@ dist
 build
 *.tsbuildinfo
 .turbo
+packages/viewer/public/custom-harness.js
 
 # runtime data (Desk's local instance dir)
 .desk

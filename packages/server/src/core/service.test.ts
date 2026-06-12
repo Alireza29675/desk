@@ -163,7 +163,7 @@ describe('DeskService — comments & anchors', () => {
     events.length = 0;
     svc.postComment({
       artifactId: a.id,
-      anchor: { kind: 'general' },
+      anchors: [{ kind: 'general' }],
       payload: { kind: 'text', text: 'hi' },
       author: agent,
     });
@@ -175,7 +175,7 @@ describe('DeskService — comments & anchors', () => {
     const a = svc.createArtifact({ type: 'enriched-document', author: agent });
     const comment = svc.postComment({
       artifactId: a.id,
-      anchor: { kind: 'general' },
+      anchors: [{ kind: 'general' }],
       payload: { kind: 'text', text: 'hi' },
       author: agent,
     });
@@ -201,7 +201,7 @@ describe('DeskService — comments & anchors', () => {
     expect(() =>
       svc.postComment({
         artifactId: a.id,
-        anchor: { kind: 'element', componentId: 'c1' as never },
+        anchors: [{ kind: 'element', componentId: 'c1' as never }],
         payload: { kind: 'text', text: 'ok' },
         author: agent,
       }),
@@ -210,7 +210,7 @@ describe('DeskService — comments & anchors', () => {
     expect(() =>
       svc.postComment({
         artifactId: a.id,
-        anchor: { kind: 'element', componentId: 'nope' as never },
+        anchors: [{ kind: 'element', componentId: 'nope' as never }],
         payload: { kind: 'text', text: 'no' },
         author: agent,
       }),
@@ -245,7 +245,7 @@ describe('DeskService — delete', () => {
     const a = svc.createArtifact({ type: 'enriched-document', author: agent });
     svc.postComment({
       artifactId: a.id,
-      anchor: { kind: 'general' },
+      anchors: [{ kind: 'general' }],
       payload: { kind: 'text', text: 'hi' },
       author: agent,
     });

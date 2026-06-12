@@ -52,21 +52,30 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
 }
+/* Tinted surface + a quiet matching border: the tone reads from the fill and
+   the icon, not from a loud full-strength outline. */
 .callout[data-tone="info"] {
   background: var(--color-info-soft);
-  border-color: var(--color-info);
+  border-color: color-mix(in srgb, var(--color-info) 28%, transparent);
+  --callout-tone: var(--color-info);
 }
 .callout[data-tone="warn"] {
   background: var(--color-warn-soft);
-  border-color: var(--color-warn);
+  border-color: color-mix(in srgb, var(--color-warn) 32%, transparent);
+  --callout-tone: var(--color-warn);
 }
 .callout[data-tone="danger"] {
   background: var(--color-danger-soft);
-  border-color: var(--color-danger);
+  border-color: color-mix(in srgb, var(--color-danger) 28%, transparent);
+  --callout-tone: var(--color-danger);
 }
 .callout[data-tone="success"] {
   background: var(--color-success-soft);
-  border-color: var(--color-success);
+  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
+  --callout-tone: var(--color-success);
+}
+.callout > [aria-hidden] {
+  color: var(--callout-tone, var(--color-text-muted));
 }
 .callout__title {
   font-weight: var(--weight-semibold);
@@ -78,7 +87,8 @@
   padding-left: var(--space-7);
   border-left: 3px solid var(--color-accent);
   font-family: var(--font-serif);
-  font-size: var(--text-lg);
+  /* Instrument Serif is a display face that sets small — give it real size. */
+  font-size: var(--text-xl);
   line-height: var(--leading-relaxed);
   font-style: italic;
 }
@@ -115,6 +125,17 @@
 }
 .code-view__body pre {
   margin: 0;
+}
+/* The block always sits on Desk's own surface token, not Shiki's theme bg. */
+.code-view__body .shiki {
+  background-color: transparent !important;
+}
+/* Shiki emits dual-theme inline styles (--shiki-dark vars); this activates
+   them when Desk is in dark mode. Print never hits this: the beforeprint
+   handler forces data-theme="light" before the print palette applies. */
+[data-theme="dark"] .code-view__body .shiki,
+[data-theme="dark"] .code-view__body .shiki span {
+  color: var(--shiki-dark) !important;
 }
 .code-view[data-wrap="true"] .code-view__body pre {
   white-space: pre-wrap;
@@ -303,6 +324,155 @@
 .checklist__label[data-checked="true"] {
   text-decoration: line-through;
   color: var(--color-text-muted);
+}
+/* Interactive states — the box is a real <input type="checkbox"> (checkable
+   for real). `appearance: none` keeps the box's own look; the ✓ is drawn by
+   ::after so the native glyph never doubles it. */
+input.checklist__box {
+  appearance: none;
+  margin: 0;
+  margin-top: 2px;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+input.checklist__box:checked::after {
+  content: "✓";
+  font-size: 11px;
+  line-height: 1;
+}
+input.checklist__box:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  transform: scale(1.1);
+}
+input.checklist__box:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+input.checklist__box:disabled {
+  cursor: default;
+}
+.checklist__box[data-busy="true"] {
+  opacity: 0.6;
+}
+.checklist__error {
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+}
+.checklist__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.checklist__reset {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.checklist__reset:hover:not(:disabled) {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+.checklist__reset:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* ── Custom component (sandboxed iframe) ─────────────────────────── */
+/* The container floor against the iframe's white UA canvas: `color-scheme` so
+   the frame box adopts the page theme + a themed sunken backdrop. Pairs with
+   the in-frame themed body (custom-frame.ts) so there's never a white slab. */
+.custom-react {
+  position: relative;
+  color-scheme: light dark;
+}
+.custom-react__stage {
+  position: relative;
+}
+.custom-react__frame {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sunken);
+  color-scheme: light dark;
+}
+/* Persistent fullscreen affordance, top-right over the frame. The sandboxed
+   iframe can't fullscreen itself, so the parent does. Always present and
+   clickable; it recedes at rest so it doesn't fight a component's own top-right
+   content (e.g. a chart's headline value) and firms up on hover/focus. Touch
+   has no hover to reveal it, so it stays firm there. */
+.custom-react__fullscreen {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast)
+    var(--ease-standard);
+}
+.custom-react:hover .custom-react__fullscreen,
+.custom-react:focus-within .custom-react__fullscreen,
+.custom-react[data-fullscreen="true"] .custom-react__fullscreen {
+  opacity: 1;
+}
+@media (hover: none) {
+  .custom-react__fullscreen {
+    opacity: 1;
+  }
+}
+.custom-react__fullscreen:hover {
+  color: var(--color-accent);
+}
+/* Fullscreen: the figure fills the screen and the frame fills the figure
+   (the iframe height flips to 100% inline). */
+.custom-react[data-fullscreen="true"] {
+  background: var(--color-bg);
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.custom-react[data-fullscreen="true"] .custom-react__stage {
+  flex: 1;
+  min-height: 0;
+}
+.custom-react[data-fullscreen="true"] .custom-react__frame {
+  border: 0;
+  border-radius: 0;
+}
+.custom-react__dead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.custom-react__reload {
+  font-size: var(--text-xs);
+  color: var(--color-accent);
+  background: none;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill, 999px);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
 }
 
 /* ── Math ────────────────────────────────────────────────────────── */

@@ -2,9 +2,11 @@ import type {
   Artifact,
   ArtifactId,
   ArtifactPatch,
+  AttachmentId,
   Author,
   Comment,
   CommentAnchor,
+  CommentAttachmentInput,
   CommentId,
   CommentPayload,
   HistoryEvent,
@@ -63,6 +65,9 @@ export const api = {
     request<{ artifact: Artifact }>(`/a/${id}/v/${version}`),
   history: (id: ArtifactId) => request<{ events: HistoryEvent[] }>(`/a/${id}/history`),
   similar: (id: ArtifactId) => request<{ items: Artifact[] }>(`/a/${id}/similar`),
+  /** The authored (reset-target) checked-state of a checklist component. */
+  checklistBaseline: (id: ArtifactId, componentId: string) =>
+    request<{ items: Record<string, boolean> }>(`/a/${id}/baseline/${componentId}`),
   createArtifact: (input: { type: string; author: Author; reason?: string }) =>
     request<Artifact>('/artifacts', { method: 'POST', body: JSON.stringify(input) }),
   patchArtifact: (id: ArtifactId, patch: ArtifactPatch, author: Author) =>
@@ -75,12 +80,18 @@ export const api = {
   comment: (
     id: ArtifactId,
     body: {
-      anchor: CommentAnchor;
+      // `anchors` is canonical (one comment → many selections); singular
+      // `anchor` is still accepted and normalized server-side.
+      anchors?: CommentAnchor[];
+      anchor?: CommentAnchor;
       payload: CommentPayload;
       author: Author;
       threadParentId?: CommentId;
+      attachments?: CommentAttachmentInput[];
     },
   ) => request<Comment>(`/a/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),
+  /** Bytes URL for an attachment (renderable directly in an <img src>). */
+  attachmentUrl: (id: AttachmentId) => `${base}/attachments/${id}`,
   resolveComment: (id: CommentId, resolved: boolean) =>
     request<{ ok: true }>(`/comments/${id}/resolve`, {
       method: 'POST',

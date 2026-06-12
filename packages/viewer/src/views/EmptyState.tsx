@@ -1,3 +1,4 @@
+import { DeskPiece } from '../components/DeskPiece';
 import { Kbd } from '../components/Kbd';
 import { useStore } from '../state/store';
 
@@ -10,24 +11,22 @@ export function EmptyState() {
   return (
     <div className="empty-state">
       <div className="empty-state__inner">
-        <div className="empty-state__mark" aria-hidden />
+        <DeskPiece />
         {hasArtifacts ? (
           <>
-            <h2 className="empty-state__title serif-accent">Nothing open.</h2>
-            <p className="empty-state__sub">
-              Pick an artifact from the desk on the left to view it.
-            </p>
+            <h2 className="empty-state__title heading-accent">Nothing open.</h2>
+            <p className="empty-state__sub">Pick an artifact from the desk to view it.</p>
           </>
         ) : (
           <>
-            <h2 className="empty-state__title serif-accent">Nothing on the desk yet.</h2>
+            <h2 className="empty-state__title heading-accent">Nothing on the desk yet.</h2>
             <p className="empty-state__sub">
               Connect an agent to the MCP endpoint at <code>/mcp</code> and ask it to draft
               something.
             </p>
           </>
         )}
-        <div className="empty-state__row">
+        <div className="empty-state__row empty-state__row--kbd">
           <Kbd>⌘K</Kbd>
           <span>to search anything</span>
         </div>
@@ -47,7 +46,7 @@ export function NotFoundState({ id }: { id: string }) {
     <div className="empty-state">
       <div className="empty-state__inner">
         <div className="empty-state__mark" aria-hidden />
-        <h2 className="empty-state__title serif-accent">That artifact isn’t here.</h2>
+        <h2 className="empty-state__title heading-accent">That artifact isn’t here.</h2>
         <p className="empty-state__sub">
           Nothing is stored under <code>{id}</code>. It may have been removed, or the link is out of
           date.

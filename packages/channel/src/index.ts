@@ -2,6 +2,8 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { type ChannelAnchor, describeAnchor, describeAnchors } from './anchors';
+import { attachmentsToFiles } from './attachments';
 import { captureAnchor } from './screenshot';
 
 /**
@@ -121,16 +123,6 @@ async function artifactTitle(id: string): Promise<string> {
   return id;
 }
 
-function describeAnchor(anchor: {
-  kind: string;
-  componentId?: string;
-  elementPath?: string;
-}): string {
-  if (anchor.kind === 'general') return 'general';
-  const path = anchor.elementPath ? `.${anchor.elementPath}` : '';
-  return `${anchor.kind}:${anchor.componentId ?? '?'}${path}`;
-}
-
 function connect(): void {
   const ws = new WebSocket(WS_URL);
 
@@ -155,13 +147,11 @@ function connect(): void {
       artifactId: string;
       author: { kind: string; humanId?: string; agentId?: string };
       payload: { kind: string; text?: string };
-      anchor: {
-        kind: string;
-        componentId?: string;
-        elementPath?: string;
-        region?: { kind: string; x?: number; y?: number; width?: number; height?: number };
-        offset?: { x: number; y: number };
-      };
+      attachments?: { id: string; kind: string; anchorIndex?: number }[];
+      // `anchors` is canonical; `anchor` is the transitional shadow (always
+      // present), so an older event without `anchors` still works.
+      anchors?: ChannelAnchor[];
+      anchor: ChannelAnchor;
     };
 
     // Only forward human comments — agent replies must not echo back into the session.
@@ -172,27 +162,37 @@ function connect(): void {
     const body =
       comment.payload.kind === 'text' ? (comment.payload.text ?? '') : `[${comment.payload.kind}]`;
 
-    // Render what the operator anchored to, so the agent can see it (not just
-    // read the anchor id). Best-effort: null for general anchors / on failure.
-    const shot = await captureAnchor(DESK_URL, comment.artifactId, comment.id, comment.anchor);
+    // Show the agent every selection the operator anchored to. Primary: the
+    // images the VIEWER captured at comment time (exactly what the operator
+    // saw — their theme, viewport, live state), one per spatial selection,
+    // keyed by anchorIndex. Fallback per anchor: the Puppeteer re-render —
+    // for selections with no attachment (older viewers, capture failure, or
+    // custom-component iframes the viewer cannot rasterize).
+    const anchors = comment.anchors ?? [comment.anchor];
+    const images = await attachmentsToFiles(DESK_URL, comment.id, comment.attachments);
+    for (let i = 0; i < anchors.length; i++) {
+      const anchor = anchors[i]!;
+      if (images.has(i) || anchor.kind === 'general' || !anchor.componentId) continue;
+      const shot = await captureAnchor(DESK_URL, comment.artifactId, `${comment.id}-a${i}`, anchor);
+      if (shot) images.set(i, shot);
+    }
+    const { text: anchorText, paths } = describeAnchors(anchors, images);
 
     log(
-      `forwarding comment ${comment.id} on ${comment.artifactId} from ${who}${shot ? ' (+screenshot)' : ''}`,
+      `forwarding comment ${comment.id} on ${comment.artifactId} from ${who} (${anchors.length} anchor(s)${paths.length ? `, ${paths.length} image(s)` : ''})`,
     );
     await mcp.notification({
       method: 'notifications/claude/channel',
       params: {
-        content: `Comment on "${title}":\n\n${body}${
-          shot
-            ? `\n\nThe operator anchored this to ${describeAnchor(comment.anchor)}. Open this image to see exactly what they selected: ${shot}`
-            : ''
-        }`,
+        content: `Comment on "${title}":\n\n${body}${anchorText ? `\n\n${anchorText}` : ''}`,
         meta: {
           artifact_id: comment.artifactId,
           comment_id: comment.id,
           author: who,
-          anchor: describeAnchor(comment.anchor),
-          ...(shot ? { screenshot: shot } : {}),
+          anchor: anchors.map(describeAnchor).join(', '),
+          // `screenshot` keeps the single-path field for back-compat; the full
+          // set rides alongside it.
+          ...(paths.length > 0 ? { screenshot: paths[0], screenshots: paths } : {}),
         },
       },
     });

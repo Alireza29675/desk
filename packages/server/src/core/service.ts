@@ -5,9 +5,12 @@ import type {
   ArtifactContent,
   ArtifactId,
   ArtifactPatch,
+  AttachmentId,
   Author,
   Comment,
   CommentAnchor,
+  CommentAttachment,
+  CommentAttachmentInput,
   CommentId,
   CommentPayload,
   Component,
@@ -17,14 +20,23 @@ import type {
   RelationType,
   SubscriptionId,
 } from '@desk/types';
-import { newArtifactId, newCommentId, newHistoryEventId, newRelationId } from '../ids';
+import {
+  newArtifactId,
+  newAttachmentId,
+  newCommentId,
+  newHistoryEventId,
+  newRelationId,
+} from '../ids';
 import { ArtifactRepository } from '../storage/artifacts';
+import { AttachmentRepository } from '../storage/attachments';
 import { CommentRepository } from '../storage/comments';
 import { HistoryRepository } from '../storage/history';
 import { RelationRepository } from '../storage/relations';
 import { ALL_ARTIFACTS, type RealtimeHub, type SubscriberSink } from '../ws/hub';
 import { CommitDebouncer } from './commit-debouncer';
+import { compileCustomReact, validateCustomReactCode } from './custom-react';
 import { illegalState, notFound, unknownPlugin, validationFailed } from './errors';
+import { decodePngDataUrl } from './png';
 
 export interface DeskServiceOptions {
   db: Database;
@@ -32,6 +44,12 @@ export interface DeskServiceOptions {
   hub: RealtimeHub;
   autoCommitMs: number;
 }
+
+/** A comment anchors to at most this many selections (UI enforces the same). */
+export const MAX_ANCHORS = 8;
+
+/** A comment carries at most this many images (one per spatial anchor). */
+export const MAX_ATTACHMENTS_PER_COMMENT = MAX_ANCHORS;
 
 /**
  * The domain core. Holds the plugin registry, the repositories, and the
@@ -47,6 +65,7 @@ export class DeskService {
   readonly artifacts: ArtifactRepository;
   readonly history: HistoryRepository;
   readonly comments: CommentRepository;
+  readonly attachments: AttachmentRepository;
   readonly relations: RelationRepository;
   readonly hub: RealtimeHub;
   readonly registry: PluginRegistry;
@@ -56,6 +75,7 @@ export class DeskService {
     this.artifacts = new ArtifactRepository(opts.db);
     this.history = new HistoryRepository(opts.db);
     this.comments = new CommentRepository(opts.db);
+    this.attachments = new AttachmentRepository(opts.db);
     this.relations = new RelationRepository(opts.db);
     this.hub = opts.hub;
     this.registry = opts.registry;
@@ -81,6 +101,7 @@ export class DeskService {
       components: input.initialContent?.components ?? empty.components,
     };
     this.registry.validateContent(input.type, content);
+    validateServerSide(content);
 
     const provenance = authorToProvenance(input.author);
     const now = new Date().toISOString();
@@ -121,6 +142,7 @@ export class DeskService {
       components: input.patch.components ?? current.content.components,
     };
     this.registry.validateContent(current.type, nextContent);
+    validateServerSide(nextContent);
 
     const now = new Date().toISOString();
     const next: Artifact = {
@@ -232,30 +254,128 @@ export class DeskService {
     return this.history.list(id, range);
   }
 
+  /**
+   * The AI-authored baseline of a checklist component: each item's `checked`
+   * at its FIRST appearance in the artifact's committed snapshots, in version
+   * order. "Last agent-authored snapshot" would be wrong here — agents commit
+   * the FULL working content, so a later agent edit carries the human's
+   * checks along with it; first-appearance is the value the item's author
+   * gave it. Works retroactively for every existing artifact (`created`
+   * always snapshots v1 — no migration). Items with no committed appearance
+   * (added but never committed yet) fall back to their current value.
+   */
+  checklistBaseline(
+    artifactId: ArtifactId,
+    componentId: string,
+  ): { items: Record<string, boolean> } {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact) throw notFound(`Artifact "${artifactId}" not found.`);
+    const component = artifact.content.components.find((c: Component) => c.id === componentId);
+    if (!component) {
+      throw notFound(`Component "${componentId}" is not present on artifact "${artifactId}".`);
+    }
+    if (component.type !== 'checkbox') {
+      throw validationFailed(`Component "${componentId}" is not a checklist.`);
+    }
+
+    const firstSeen: Record<string, boolean> = {};
+    for (const event of this.history.snapshots(artifactId)) {
+      if (event.kind !== 'created' && event.kind !== 'edited') continue;
+      const past = event.snapshot.components.find(
+        (c: Component) => c.id === componentId && c.type === 'checkbox',
+      );
+      if (!past) continue;
+      for (const item of checklistItems(past)) {
+        if (!(item.id in firstSeen)) firstSeen[item.id] = item.checked;
+      }
+    }
+
+    // Project onto the CURRENT items only: deleted items drop out, and a
+    // never-committed item's current value IS its authored value.
+    const items: Record<string, boolean> = {};
+    for (const item of checklistItems(component)) {
+      items[item.id] = firstSeen[item.id] ?? item.checked;
+    }
+    return { items };
+  }
+
   // ─── comments ────────────────────────────────────────────────────────
 
   postComment(input: {
     artifactId: ArtifactId;
-    anchor: CommentAnchor;
+    anchors: CommentAnchor[];
     payload: CommentPayload;
     author: Author;
     threadParentId?: CommentId;
+    attachments?: CommentAttachmentInput[];
   }): Comment {
     const artifact = this.artifacts.get(input.artifactId);
     if (!artifact) throw notFound(`Artifact "${input.artifactId}" not found.`);
-    this.validateAnchor(artifact, input.anchor);
+    this.validateAnchors(artifact, input.anchors);
+    if (input.attachments && input.attachments.length > MAX_ATTACHMENTS_PER_COMMENT) {
+      throw validationFailed(
+        `A comment carries at most ${MAX_ATTACHMENTS_PER_COMMENT} attachments.`,
+      );
+    }
+    // Each image must name a real, distinct selection so delivery can pair them
+    // one-to-one. A single-anchor post may omit anchorIndex; it defaults to 0.
+    const seenIndexes = new Set<number>();
+    for (const a of input.attachments ?? []) {
+      const idx = a.anchorIndex ?? 0;
+      if (idx < 0 || idx >= input.anchors.length) {
+        throw validationFailed(
+          `Attachment anchorIndex ${idx} is out of range for ${input.anchors.length} anchor(s).`,
+        );
+      }
+      if (seenIndexes.has(idx)) {
+        throw validationFailed(
+          `Two attachments target the same selection (anchorIndex ${idx}); each selection carries at most one image.`,
+        );
+      }
+      seenIndexes.add(idx);
+    }
+    // Decode-and-validate EVERY attachment before any row is written, so a
+    // bad image can never leave a comment stored without it.
+    const decoded = (input.attachments ?? []).map((a) => ({
+      ...decodePngDataUrl(a.dataUrl),
+      anchorIndex: a.anchorIndex ?? 0,
+    }));
 
     const now = new Date().toISOString();
+    const attachmentMeta: CommentAttachment[] = decoded.map((d) => ({
+      id: newAttachmentId(),
+      kind: 'image',
+      mediaType: 'image/png',
+      width: d.width,
+      height: d.height,
+      anchorIndex: d.anchorIndex,
+    }));
     const comment: Comment = {
       id: newCommentId(),
       artifactId: input.artifactId,
-      anchor: input.anchor,
+      anchors: input.anchors,
+      anchor: input.anchors[0]!, // transitional primary (validated non-empty)
       author: input.author,
       payload: input.payload,
       ...(input.threadParentId ? { threadParentId: input.threadParentId } : {}),
+      ...(attachmentMeta.length > 0 ? { attachments: attachmentMeta } : {}),
       createdAt: now,
     };
     this.comments.insert(comment);
+    decoded.forEach((d, i) => {
+      const meta = attachmentMeta[i];
+      if (!meta) return;
+      this.attachments.insert({
+        id: meta.id,
+        commentId: comment.id,
+        mediaType: meta.mediaType,
+        width: d.width,
+        height: d.height,
+        anchorIndex: d.anchorIndex,
+        bytes: d.bytes,
+        createdAt: now,
+      });
+    });
 
     const next = {
       ...artifact,
@@ -280,7 +400,35 @@ export class DeskService {
 
   listComments(artifactId: ArtifactId): Comment[] {
     if (!this.artifacts.get(artifactId)) throw notFound(`Artifact "${artifactId}" not found.`);
-    return this.comments.listByArtifact(artifactId);
+    // Hydrate envelope metadata; bytes stay behind GET /api/attachments/:id.
+    return this.comments.listByArtifact(artifactId).map((c) => {
+      const attachments = this.attachments.listMetaByComment(c.id);
+      return attachments.length > 0 ? { ...c, attachments } : c;
+    });
+  }
+
+  getAttachment(id: AttachmentId): { mediaType: string; bytes: Uint8Array } {
+    const attachment = this.attachments.get(id);
+    if (!attachment) throw notFound(`Attachment "${id}" not found.`);
+    return attachment;
+  }
+
+  /**
+   * Compiled JS for a `custom-react` component — what the viewer's sandbox
+   * harness executes. Source stays canonical in the artifact; compilation is
+   * cached by content hash.
+   */
+  async compiledComponent(artifactId: ArtifactId, componentId: string): Promise<string> {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact) throw notFound(`Artifact "${artifactId}" not found.`);
+    const component = artifact.content.components.find((c: Component) => c.id === componentId);
+    if (!component) {
+      throw notFound(`Component "${componentId}" is not present on artifact "${artifactId}".`);
+    }
+    if (component.type !== 'custom-react') {
+      throw validationFailed(`Component "${componentId}" is not a custom-react component.`);
+    }
+    return compileCustomReact((component.data as { code: string }).code);
   }
 
   resolveComment(commentId: CommentId, resolved: boolean): void {
@@ -355,15 +503,50 @@ export class DeskService {
 
   // ─── internal ────────────────────────────────────────────────────────
 
-  private validateAnchor(artifact: Artifact, anchor: CommentAnchor): void {
-    if (anchor.kind === 'general') return;
-    const target = artifact.content.components.find((c: Component) => c.id === anchor.componentId);
-    if (!target) {
+  private validateAnchors(artifact: Artifact, anchors: CommentAnchor[]): void {
+    if (anchors.length === 0) {
+      throw validationFailed('A comment must anchor to at least one selection.');
+    }
+    if (anchors.length > MAX_ANCHORS) {
+      throw validationFailed(`A comment anchors to at most ${MAX_ANCHORS} selections.`);
+    }
+    // `general` is a document-level, untethered anchor — it is exclusive: a
+    // comment is EITHER document-level or one-or-more tethered selections,
+    // never a mix.
+    const hasGeneral = anchors.some((a) => a.kind === 'general');
+    if (hasGeneral && anchors.length > 1) {
       throw validationFailed(
-        `Comment anchor references component "${anchor.componentId}", which is not present on artifact "${artifact.id}".`,
+        'A document-level (general) comment cannot be combined with other selections.',
       );
     }
+    for (const anchor of anchors) {
+      if (anchor.kind === 'general') continue;
+      const target = artifact.content.components.find(
+        (c: Component) => c.id === anchor.componentId,
+      );
+      if (!target) {
+        throw validationFailed(
+          `Comment anchor references component "${anchor.componentId}", which is not present on artifact "${artifact.id}".`,
+        );
+      }
+    }
   }
+}
+
+/**
+ * Server-only validation passes that plugin schemas (which must stay
+ * browser-safe — the viewer imports them too) cannot express. Add a case
+ * here when a component type needs write-time checks beyond its Zod shape.
+ */
+function validateServerSide(content: ArtifactContent): void {
+  for (const component of content.components) {
+    if (component.type === 'custom-react') validateCustomReactCode(component.data);
+  }
+}
+
+function checklistItems(component: Component): { id: string; checked: boolean }[] {
+  const data = component.data as { items?: { id: string; checked: boolean }[] };
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 function authorToProvenance(author: Author) {

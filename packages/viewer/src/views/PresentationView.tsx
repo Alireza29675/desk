@@ -1,6 +1,7 @@
 import type { Artifact, Component } from '@desk/types';
 import { locatorValue } from '@desk/types';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArtifactMeta } from '../components/ArtifactMeta';
 import { Commentable } from '../components/Commentable';
 import { RenderedComponent } from '../renderers/renderer-registry';
 import { useStore } from '../state/store';
@@ -15,11 +16,69 @@ import '../renderers/styles.css';
  * `component:<id>` to scroll to within the slide. The current slide is
  * reflected back into the URL as you navigate, so the address bar is always
  * a link to exactly what you're looking at.
+ *
+ * `f` (or the ⛶ button) presents the deck fullscreen; Esc exits via the
+ * browser's native handling.
  */
 export function PresentationView({ artifact }: { artifact: Artifact }) {
   const slides = useMemo(() => splitIntoSlides(artifact.content.components), [artifact]);
   const locator = useStore((s) => s.open?.locator ?? []);
   const setLocator = useStore((s) => s.setLocator);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Fullscreen state is owned by the browser (Esc exits without any React
+  // involvement), so derive it from fullscreenchange instead of toggling
+  // local state optimistically — otherwise Esc would leave the UI stuck in
+  // its fullscreen layout.
+  useEffect(() => {
+    const root = rootRef.current;
+    function onChange() {
+      const isFullscreen = document.fullscreenElement === root;
+      setFullscreen(isFullscreen);
+      // Mobile: present in landscape. The lock API rejects on desktop and in
+      // browsers without orientation lock (Safari) — swallow those, it's a
+      // progressive enhancement, not a requirement.
+      const orientation = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: 'landscape') => Promise<void>;
+      };
+      // `?.catch` (not `.catch`) so a missing API short-circuits to undefined
+      // rather than throwing when there's no promise to catch on.
+      if (isFullscreen) orientation?.lock?.('landscape')?.catch(() => {});
+      else orientation?.unlock?.();
+    }
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // Scale the fixed-size slide canvas to fill the fullscreen viewport so the
+  // deck reads at presentation size instead of looking downscaled. The slide
+  // keeps a logical 960×600 box (its natural windowed size) and --slide-scale
+  // grows text and layout together. Observe the root, not the slide — the
+  // slide remounts on every navigation (keyed by index).
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      if (document.fullscreenElement !== root) {
+        root.style.removeProperty('--slide-scale');
+        return;
+      }
+      // 0.95 leaves a margin so the receding head/nav chrome never overlaps
+      // slide content on a tightly-fitting aspect ratio.
+      const scale = Math.min(root.clientWidth / 960, root.clientHeight / 600) * 0.95;
+      root.style.setProperty('--slide-scale', String(scale));
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(root);
+    update();
+    return () => observer.disconnect();
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else rootRef.current?.requestFullscreen?.();
+  };
 
   const slideParam = Number(locatorValue(locator, 'slide') ?? '1');
   const index = Math.min(
@@ -37,6 +96,7 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === 'ArrowRight' || e.key === 'j') go(index + 1);
       if (e.key === 'ArrowLeft' || e.key === 'k') go(index - 1);
+      if (e.key === 'f') toggleFullscreen();
     }
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -60,17 +120,34 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
   const slide = slides[index];
 
   return (
-    <div className="presentation">
+    <div className="presentation" ref={rootRef} data-fullscreen={fullscreen ? 'true' : undefined}>
       <div className="presentation__deck">
         <header className="presentation__head">
-          <span className="presentation__title serif-accent">
-            {slide?.title ?? artifact.content.title}
-          </span>
-          <span className="presentation__pager">
-            {index + 1} / {slides.length}
-          </span>
+          <div className="presentation__head-row">
+            <span className="presentation__title heading-accent">
+              {slide?.title ?? artifact.content.title}
+            </span>
+            <span className="presentation__head-tools">
+              <span className="presentation__pager">
+                {index + 1} / {slides.length}
+              </span>
+              <button
+                type="button"
+                className="presentation__fullscreen"
+                onClick={toggleFullscreen}
+                aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                title={fullscreen ? 'Exit fullscreen (f)' : 'Fullscreen (f)'}
+              >
+                ⛶
+              </button>
+            </span>
+          </div>
+          <ArtifactMeta artifact={artifact} className="presentation__meta" />
         </header>
-        <div className="presentation__slide" data-layout={slide?.layout ?? 'content'}>
+        {/* Keyed per slide index so ←/→ remounts the canvas and retriggers
+            its content-enter animation; an unkeyed div would re-render the
+            new slide in place with no transition at all. */}
+        <div className="presentation__slide" key={index} data-layout={slide?.layout ?? 'content'}>
           {slide?.body.map((c) => (
             <Commentable key={c.id} componentId={c.id}>
               <RenderedComponent component={c} artifactId={artifact.id} />
@@ -103,7 +180,7 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
         {slides.map((s, i) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: the print deck is a static, never-reordered projection of slides
           <section className="print-slide" key={`print-${i}`} data-layout={s.layout ?? 'content'}>
-            {s.title ? <h2 className="print-slide__title serif-accent">{s.title}</h2> : null}
+            {s.title ? <h2 className="print-slide__title heading-accent">{s.title}</h2> : null}
             <div className="print-slide__body">
               {s.body.map((c) => (
                 <RenderedComponent key={c.id} component={c} artifactId={artifact.id} />

@@ -5,9 +5,13 @@
   display: grid;
   grid-template-columns: var(--sidebar-w) 1fr min-content;
   /* Pin the single row to the viewport so tall columns scroll internally
-     instead of growing the grid and overflowing the page. */
+     instead of growing the grid and overflowing the page. dvh tracks the
+     real visible height on mobile (collapsing browser chrome); vh is the
+     fallback for engines without it. */
   grid-template-rows: 100vh;
+  grid-template-rows: 100dvh;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -18,6 +22,7 @@
   background: var(--color-bg-sunken);
   border-right: 1px solid var(--color-border);
   padding: var(--space-7) var(--space-5);
+  padding-top: calc(var(--space-7) + env(safe-area-inset-top, 0px));
   gap: var(--space-6);
   overflow-y: auto;
 }
@@ -132,8 +137,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: var(--topbar-h);
-  padding: 0 var(--space-7);
+  gap: var(--space-4);
+  height: calc(var(--topbar-h) + env(safe-area-inset-top, 0px));
+  /* Never shrink: .workspace__body's flex-basis is its content height, so a
+     long artifact overflows the column at the preferred-size stage and the
+     default flex-shrink would squeeze this bar to min-content. Only the body
+     may flex; the chrome rows keep their designed height. */
+  flex-shrink: 0;
+  padding: env(safe-area-inset-top, 0px) var(--space-7) 0;
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-elevated);
 }
@@ -189,6 +200,19 @@
   border-bottom: 1px solid var(--color-border);
   background: var(--color-bg-sunken);
   flex-wrap: wrap;
+  /* Same flex item as .topbar: pinned so a long artifact can't squeeze it. */
+  flex-shrink: 0;
+  /* Content fades in; the layout push itself stays instant on purpose —
+     animating the row's height would make the toggle feel slower. */
+  animation: fade-in var(--duration-fast) var(--ease-standard);
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .history-bar__label {
   font-size: var(--text-2xs);
@@ -243,8 +267,12 @@
 .topbar__search {
   display: inline-flex;
   align-items: center;
+  /* Match the 28px icon buttons exactly: without a fixed height these bordered
+     pills inherit the 1.5 line-height and render ~30px, sitting proud of the
+     icons (the reported topbar misalignment). */
+  height: 28px;
   gap: var(--space-3);
-  padding: 6px var(--space-4);
+  padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
@@ -266,7 +294,12 @@
   background: var(--color-bg-sunken);
 }
 .topbar__link {
-  padding: 6px var(--space-4);
+  /* Same 28px height as the icon buttons so the right-zone controls share a
+     baseline (see .topbar__search). */
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
@@ -280,31 +313,88 @@
   color: var(--color-text);
 }
 
+/* Overflow menu — on phones the secondary topbar actions collapse behind ⋯
+   so the artifact title keeps its room. Hidden on wide viewports. */
+.topbar__more {
+  position: relative;
+  display: none;
+}
+.topbar__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-2);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  /* Above the drawer scrim — a tap on ☰/💬 closes this menu anyway (outside
+     pointerdown), but the scrim must never paint over a still-open menu. */
+  z-index: var(--z-modal);
+}
+.topbar__menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  text-align: left;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+.topbar__menu-item:hover {
+  background: var(--color-bg-sunken);
+}
+
 /* ── Workspace body ─────────────────────────────────────────────── */
 .workspace__body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Mount-only enter (App.tsx keys this element per artifact). No exit
+     choreography on purpose: leaving must be instant — snappy first. */
+  animation: content-enter var(--duration-medium) var(--ease-standard);
+}
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ── Document ───────────────────────────────────────────────────── */
 .document {
   max-width: 760px;
   margin: 0 auto;
-  padding: var(--space-12) var(--space-8) var(--space-12);
+  /* Fluid padding: desktop air shrinks gracefully on small screens instead of
+     wasting a phone's width. */
+  padding: clamp(var(--space-9), 8vh, var(--space-12)) clamp(var(--space-6), 4vw, var(--space-8));
   display: flex;
   flex-direction: column;
-  gap: var(--space-9);
+  gap: clamp(var(--space-8), 4vh, var(--space-9));
 }
+/* No font-weight here: the title always carries .heading-accent, which owns
+   the weight (semibold) and tracking for every app heading in one place. */
 .document__title {
-  font-size: var(--text-4xl);
+  font-size: clamp(var(--text-3xl), 5.4vw + 8px, var(--text-4xl));
   line-height: var(--leading-tight);
-  font-weight: var(--weight-semibold);
+  text-wrap: balance;
 }
-.document__meta {
+/* Shared meta line (type · contributors · vN · created · updated) under the
+   title of both the document and presentation views. */
+.artifact-meta {
   font-size: var(--text-xs);
   color: var(--color-text-subtle);
+}
+.document__meta {
   margin-top: var(--space-3);
 }
 .document__components {
@@ -349,12 +439,17 @@
 }
 .presentation__head {
   display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.presentation__head-row {
+  display: flex;
   align-items: baseline;
   justify-content: space-between;
 }
 .presentation__title {
+  /* Weight and tracking come from .heading-accent. */
   font-size: var(--text-2xl);
-  font-weight: var(--weight-semibold);
 }
 .presentation__nav {
   display: flex;
@@ -366,6 +461,23 @@
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
+.presentation__head-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.presentation__fullscreen {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+.presentation__fullscreen:hover {
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+}
 .presentation__slide {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -376,6 +488,9 @@
   flex-direction: column;
   gap: var(--space-7);
   box-shadow: var(--shadow-2);
+  /* Mount-only: PresentationView keys this on the slide index, so ←/→
+     retriggers the enter. The chrome around it (pager, nav) never moves. */
+  animation: content-enter var(--duration-medium) var(--ease-standard);
 }
 .presentation__slide[data-layout="full-bleed"] {
   padding: 0;
@@ -401,6 +516,76 @@
   max-height: 58vh;
 }
 
+/* ── Presentation: fullscreen ───────────────────────────────────── */
+/* data-fullscreen is the React-owned hook (synced from fullscreenchange so
+   Esc keeps markup and layout together); the :fullscreen rule below only
+   covers the UA's default black backdrop. */
+.presentation:fullscreen {
+  /* A fullscreen element paints over a black UA backdrop — set the surface
+     explicitly or the light theme presents on black. */
+  background: var(--color-bg);
+}
+.presentation[data-fullscreen="true"] {
+  background: var(--color-bg);
+  padding: 0;
+  overflow: hidden;
+}
+/* The deck becomes a full-viewport centring layer; the head + nav lift out of
+   flow as floating chrome so the slide alone is centred and free to scale. */
+.presentation[data-fullscreen="true"] .presentation__deck {
+  max-width: none;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  gap: 0;
+  display: grid;
+  place-items: center;
+}
+.presentation[data-fullscreen="true"] .presentation__slide {
+  /* Logical canvas == the natural windowed slide size, so scaling up reflows
+     nothing — it just enlarges text and layout together. --slide-scale is
+     min(viewportW/960, viewportH/600), set from a ResizeObserver in
+     PresentationView; the transform fills the screen instead of leaving the
+     deck looking downscaled. */
+  width: 960px;
+  height: 600px;
+  aspect-ratio: unset;
+  min-height: 0;
+  padding: var(--space-11);
+  flex: none;
+  transform: scale(var(--slide-scale, 1));
+  transform-origin: center;
+}
+.presentation[data-fullscreen="true"] .presentation__head {
+  position: fixed;
+  inset: 0 0 auto 0;
+  margin: 0;
+  padding: var(--space-5) var(--space-7);
+  z-index: 2;
+}
+.presentation[data-fullscreen="true"] .presentation__nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  margin: 0;
+  padding: var(--space-5) var(--space-7);
+  z-index: 2;
+}
+.presentation[data-fullscreen="true"] .presentation__meta {
+  display: none;
+}
+/* Chrome recedes while presenting; hover or keyboard focus brings it back. */
+.presentation[data-fullscreen="true"] .presentation__head-row,
+.presentation[data-fullscreen="true"] .presentation__nav {
+  opacity: 0.25;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+.presentation[data-fullscreen="true"] .presentation__head-row:hover,
+.presentation[data-fullscreen="true"] .presentation__head-row:focus-within,
+.presentation[data-fullscreen="true"] .presentation__nav:hover,
+.presentation[data-fullscreen="true"] .presentation__nav:focus-within {
+  opacity: 1;
+}
+
 /* ── Empty state ────────────────────────────────────────────────── */
 .empty-state {
   display: grid;
@@ -421,6 +606,17 @@
   height: 56px;
   border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--color-accent), var(--color-accent-strong));
+}
+/* The WebGL desk hero (motion lives in its own rAF loop, not CSS). The mark
+   above stays as the no-WebGL fallback. */
+.empty-state__piece {
+  width: 200px;
+  height: 200px;
+}
+.empty-state__piece canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 .empty-state__title {
   font-size: var(--text-2xl);
@@ -604,11 +800,67 @@
 .comment__anchor:hover {
   color: var(--color-accent);
 }
+/* A multi-select comment lists one chip per selection it covers. */
+.comment__anchors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
 .comment__body {
   font-size: var(--text-sm);
   line-height: var(--leading-snug);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+/* ── Comment attachments ────────────────────────────────────────── */
+.comment__attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+/* Keyboard-reachable zoom affordance; the rounded clip lives here so the
+   focus ring hugs the thumb. */
+.comment__attachment {
+  padding: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  line-height: 0;
+  cursor: zoom-in;
+}
+/* The width/height HTML attributes give the browser the aspect ratio; the
+   auto sizes here scale the thumb down to the cap without distorting it. */
+.comment__attachment-thumb {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 96px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+/* Full-size view. Lives inside .comment-rail's DOM, so print's hide rule on
+   the rail keeps it off paper too. Mount-only fade, like .palette-backdrop
+   (the component unmounts on close, so there is no exit). */
+.comment-lightbox {
+  position: fixed;
+  inset: 0;
+  background: var(--color-overlay);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  cursor: zoom-out;
+  animation: fade-in var(--duration-fast) var(--ease-standard);
+}
+.comment-lightbox__image {
+  width: auto;
+  height: auto;
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-3);
 }
 
 /* ── Threads ────────────────────────────────────────────────────── */
@@ -657,47 +909,6 @@
   position: relative;
 }
 
-.commentable__tools {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  z-index: var(--z-elevated);
-  transition: opacity var(--duration-fast) var(--ease-standard);
-}
-.commentable:hover .commentable__tools,
-.commentable__tools:focus-within {
-  opacity: 1;
-}
-.commentable__tool {
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-medium);
-  padding: 3px 9px;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  box-shadow: var(--shadow-1);
-  transition: background var(--duration-fast) var(--ease-standard);
-}
-.commentable__tool:hover {
-  background: var(--color-accent-strong);
-}
-.commentable__tool--icon {
-  padding: 3px 7px;
-  font-size: var(--text-xs);
-  line-height: 1;
-}
-.commentable__tool[data-active="true"] {
-  background: var(--color-text);
-  color: var(--color-bg);
-}
-
-.commentable[data-comment-target="true"] {
-  box-shadow: 0 0 0 2px var(--color-accent-ring);
-  border-radius: var(--radius-md);
-}
 /* Brief pulse when an element-anchored comment is clicked in the rail. The
    store auto-clears `focusedAnchor` after ~1.6s (see store.ts focusTimer), so
    match that duration. text-selection / region / point have their own focused
@@ -714,30 +925,6 @@
     box-shadow: 0 0 0 2px transparent, 0 0 0 6px transparent;
   }
 }
-/* While a point/region tool is armed, the content invites a click/drag. */
-.commentable[data-capture="point"] .commentable__content,
-.commentable[data-capture="region"] .commentable__content {
-  cursor: crosshair;
-}
-.commentable[data-capture] {
-  box-shadow: 0 0 0 2px var(--color-accent-ring);
-  border-radius: var(--radius-md);
-}
-.commentable__capture-hint {
-  position: absolute;
-  left: 50%;
-  bottom: var(--space-3);
-  transform: translateX(-50%);
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--color-text);
-  color: var(--color-bg);
-  font-size: var(--text-2xs);
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: var(--z-elevated);
-}
-
 /* Spatial anchor overlays (point pin + region rect), projected from fractions. */
 .anchor-overlay {
   position: absolute;
@@ -749,8 +936,12 @@
   background: var(--color-accent-ring);
   border-radius: var(--radius-sm);
 }
-.anchor-overlay--region.is-live {
-  border-style: dashed;
+/* Soft static ring around the whole component — drawn while an unresolved
+   element-anchored comment's dot is hovered (the focus pulse, minus motion). */
+.anchor-overlay--ring {
+  inset: 0;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 2px var(--color-accent-ring), 0 0 0 6px var(--color-accent-soft);
 }
 .anchor-overlay--point {
   width: 14px;
@@ -783,6 +974,102 @@
   background: var(--color-accent-ring);
   text-decoration: underline wavy var(--color-accent);
 }
+/* Persistent tint under unresolved text-anchored comments — quieter than the
+   focused highlight (no underline), loud enough to say "something's here". */
+::highlight(desk-anchor-unresolved) {
+  background: var(--color-accent-soft);
+}
+
+/* ── Unresolved comment indicators ──────────────────────────────── */
+/* Persistent dot per unresolved comment, placed at the anchor's spot (point
+   offset, region/element top-right corner, text selection end). Calm at idle;
+   hovering or focusing it reveals the comment card below. */
+.unresolved-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  /* A bg-colored ring so the dot reads on any content underneath. */
+  box-shadow: 0 0 0 2px var(--color-bg);
+  z-index: var(--z-elevated);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-standard);
+}
+.unresolved-dot:hover,
+.unresolved-dot:focus-visible {
+  transform: scale(1.25);
+}
+
+/* Hover/focus card revealing the comment (mirrors .topbar__menu's surface). */
+.unresolved-popover {
+  position: absolute;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+  z-index: var(--z-overlay);
+  /* Above the dot by default; data-flip="below" sits it underneath. */
+  transform: translate(-50%, -100%);
+  animation: unresolved-popover-enter var(--duration-fast) var(--ease-decelerate);
+}
+.unresolved-popover[data-flip="below"] {
+  transform: translate(-50%, 0);
+}
+@keyframes unresolved-popover-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.unresolved-popover__author {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+}
+.unresolved-popover__author[data-kind="agent"] {
+  color: var(--color-accent-strong);
+}
+.unresolved-popover__body {
+  font-size: var(--text-sm);
+  line-height: var(--leading-snug);
+  word-break: break-word;
+  /* Clamp to ~3 lines; the full thread lives in the rail. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.unresolved-popover__view {
+  align-self: flex-start;
+  font-size: var(--text-2xs);
+  color: var(--color-text-muted);
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+.unresolved-popover__view:hover {
+  color: var(--color-accent);
+}
+
+/* One-shot flash on the rail row a dot click revealed (CommentRail sets the
+   attribute while the store's railTarget is live, then removes it). */
+.comment[data-rail-flash] {
+  animation: comment-rail-flash var(--duration-slow) var(--ease-decelerate);
+}
+@keyframes comment-rail-flash {
+  from {
+    background: var(--color-accent-soft);
+  }
+  to {
+    background: var(--color-bg-elevated);
+  }
+}
 
 /* Floating pill that follows a live text selection. */
 .selection-pill {
@@ -802,26 +1089,122 @@
   background: var(--color-accent-strong);
 }
 
-.comment-rail__target {
-  display: flex;
+/* ── Global comment tool ────────────────────────────────────────── */
+/* Desktop entry point: a corner button (bottom-right) arming point/region
+   capture; `C` does the same. Folds into the mobile bottom bar ≤920px. */
+.comment-tool__fab {
+  position: fixed;
+  right: var(--space-7);
+  bottom: var(--space-7);
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-accent-soft);
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-2);
+  font-size: var(--text-lg);
+  z-index: var(--z-modal);
+  transition: transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast)
+    var(--ease-standard);
+}
+.comment-tool__fab:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-3);
+}
+.comment-tool__fab[data-armed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+/* While armed, the whole artifact body invites a click/drag. */
+.workspace__body[data-comment-armed],
+.workspace__body[data-comment-armed] * {
+  cursor: crosshair;
+}
+/* Armed instruction bar (fixed, top-centre) + the live drag rectangle. */
+.comment-capture__hint {
+  position: fixed;
+  top: calc(var(--space-7) + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: var(--z-modal);
+  box-shadow: var(--shadow-2);
+}
+.comment-capture__rect {
+  position: fixed;
+  border: 1.5px dashed var(--color-accent);
+  background: var(--color-accent-ring);
   border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: var(--z-modal);
+}
+
+/* ── Mobile bottom bar ──────────────────────────────────────────── */
+/* Hidden on wide viewports; shown ≤920px (see the media query below). */
+.mobile-bar {
+  display: none;
+}
+
+/* Draft selection chips — one per selection a comment will cover, removable. */
+.comment-rail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.comment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px 3px 3px var(--space-4);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-ring);
+  border-radius: var(--radius-pill);
   font-size: var(--text-2xs);
   color: var(--color-text);
 }
-.comment-rail__target code {
-  font-family: var(--font-mono);
+.comment-chip__label {
+  white-space: nowrap;
 }
-.comment-rail__target-clear {
+.comment-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   color: var(--color-text-muted);
-  padding: 0 4px;
+  line-height: 1;
+  transition: background var(--duration-fast) var(--ease-standard);
 }
-.comment-rail__target-clear:hover {
+.comment-chip__remove:hover {
+  background: var(--color-accent-ring);
+  color: var(--color-text);
+}
+/* The composer's bottom row splits the "add another selection" affordance from
+   the post action. */
+.comment-rail__addmore {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
   color: var(--color-accent);
+  padding: var(--space-2) 0;
+}
+.comment-rail__addmore:hover {
+  color: var(--color-accent-strong);
+}
+.comment-rail__composer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 /* ── Buttons ────────────────────────────────────────────────────── */
@@ -883,11 +1266,15 @@
   z-index: var(--z-modal);
   display: flex;
   justify-content: center;
-  padding-top: 18vh;
-  backdrop-filter: blur(2px);
+  padding-top: 16vh;
+  backdrop-filter: blur(4px);
+  /* Mount-only (the component unmounts on close, so there is no exit —
+     dismissal is instant on purpose). */
+  animation: fade-in var(--duration-fast) var(--ease-standard);
 }
 .palette {
   width: min(var(--command-palette-w), calc(100vw - var(--space-9)));
+  height: fit-content;
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -895,18 +1282,38 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transform-origin: top center;
+  animation: palette-enter var(--duration-fast) var(--ease-standard);
+}
+@keyframes palette-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 .palette__input {
-  padding: var(--space-7) var(--space-7);
+  padding: var(--space-7) var(--space-8);
   border: 0;
   background: transparent;
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
   outline: none;
   border-bottom: 1px solid var(--color-border);
 }
+.palette__input::placeholder {
+  color: var(--color-text-subtle);
+}
+/* The palette itself is the focus signal; the global :focus-visible ring
+   clips against the panel's overflow and reads as a stray error bar. */
+.palette__input:focus-visible {
+  box-shadow: none;
+}
 .palette__list {
   list-style: none;
-  max-height: 320px;
+  max-height: 348px;
   overflow-y: auto;
   padding: var(--space-3);
 }
@@ -914,9 +1321,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-base);
   cursor: pointer;
 }
 .palette__item[data-active="true"] {
@@ -946,31 +1354,31 @@
      which is required because app.css is bundled *before* tokens.css (App is
      imported ahead of globals.css in main.tsx), so equal specificity loses. */
   html[data-theme="dark"] {
-    --color-bg: #fbfaf8;
+    --color-bg: #fafafa;
     --color-bg-elevated: #ffffff;
-    --color-bg-sunken: #f4f2ee;
-    --color-bg-inset: #efece6;
-    --color-overlay: rgba(15, 14, 13, 0.42);
-    --color-border: #e8e3da;
-    --color-border-strong: #d4ccbe;
-    --color-divider: #efece6;
-    --color-text: #1a1815;
-    --color-text-muted: #6b6357;
-    --color-text-subtle: #9a9181;
-    --color-text-inverse: #fbfaf8;
+    --color-bg-sunken: #f4f4f5;
+    --color-bg-inset: #ececee;
+    --color-overlay: rgba(10, 10, 11, 0.4);
+    --color-border: #e4e4e7;
+    --color-border-strong: #d4d4d8;
+    --color-divider: #ececee;
+    --color-text: #171717;
+    --color-text-muted: #62626b;
+    --color-text-subtle: #9b9ba3;
+    --color-text-inverse: #fafafa;
     --color-text-on-accent: #ffffff;
     --color-accent: #ff5a4d;
     --color-accent-strong: #e8412f;
-    --color-accent-soft: #ffe0db;
-    --color-accent-ring: rgba(255, 90, 77, 0.32);
+    --color-accent-soft: #ffe4e0;
+    --color-accent-ring: rgba(255, 90, 77, 0.3);
     --color-info: #2563eb;
-    --color-info-soft: #dbeafe;
+    --color-info-soft: #e8f0fe;
     --color-warn: #d97706;
-    --color-warn-soft: #fef3c7;
+    --color-warn-soft: #fdf3e1;
     --color-danger: #dc2626;
-    --color-danger-soft: #fee2e2;
+    --color-danger-soft: #fdeaea;
     --color-success: #059669;
-    --color-success-soft: #d1fae5;
+    --color-success-soft: #e3f6ee;
   }
 
   /* Strip all chrome and interaction affordances. */
@@ -979,10 +1387,21 @@
   .comment-rail,
   .history-bar,
   .presentation__nav,
-  .commentable__tools,
+  .presentation__fullscreen,
+  .comment-tool__fab,
+  .comment-capture__hint,
+  .comment-capture__rect,
+  .mobile-bar,
   .anchor-overlay,
-  .selection-pill {
+  .selection-pill,
+  .unresolved-dot,
+  .unresolved-popover {
     display: none !important;
+  }
+  /* The unresolved tint is persistent (unlike the transient pending/focused
+     highlights), so it would land on paper — blank it for print. */
+  ::highlight(desk-anchor-unresolved) {
+    background: transparent;
   }
 
   html,
@@ -1036,14 +1455,59 @@
   }
 }
 
-/* ── Responsive: off-canvas drawers on narrow viewports ─────────── */
-/* The fixed sidebar (240px) + comment rail (320px) crush the content pane
-   below ~860px (e.g. Desk in a half-width window next to an editor). Below
-   920px the workspace goes full-width and the panels become drawers toggled
-   from the topbar. */
-.topbar__mobile-only {
-  display: none;
+/* ── Hide panels (desktop) ──────────────────────────────────────── */
+/* `data-sidebar="hidden"` / `data-rail="hidden"` (the store's sidebarHidden /
+   railHidden, toggled with the panel-edge icons) collapse each side panel
+   INDEPENDENTLY so the artifact gets more width. Deliberately separate from the
+   mobile `data-panel` drawer attribute below — at ≤920px these have no effect
+   (the panel-edge toggles are hidden), so the drawers keep working exactly
+   as-is.
+   Technique: both side tracks become min-content (visually identical — each
+   panel already carries its token width), so a transitioned negative margin
+   pulls a panel out of the grid and its track follows frame-by-frame. The
+   panel keeps its internal layout while sliding (zero content reflow) and
+   .app's overflow:hidden clips it. grid-template-columns itself never
+   animates — keyword tracks make that interpolation unreliable across
+   engines, and the rail's track must stay content-driven so it contributes
+   0 when no artifact is open.
+   A negative margin alone leaves the collapsed panel focusable off-screen, so
+   keyboard tab order could land on an invisible panel. Each panel also flips
+   visibility: when showing, visibility transitions with 0s delay so it returns
+   immediately; when hidden, visibility:hidden is delayed until after the slide
+   finishes (var(--duration-slow)) so it animates out and only then leaves the
+   tab order / AT tree. */
+@media (min-width: 921px) {
+  .app {
+    grid-template-columns: min-content 1fr min-content;
+  }
+  .sidebar {
+    width: var(--sidebar-w);
+    transition: margin-left var(--duration-slow) var(--ease-emphasized), visibility 0s;
+  }
+  .comment-rail {
+    transition: margin-right var(--duration-slow) var(--ease-emphasized), visibility 0s;
+  }
+  .app[data-sidebar="hidden"] .sidebar {
+    margin-left: calc(-1 * var(--sidebar-w));
+    visibility: hidden;
+    transition: margin-left var(--duration-slow) var(--ease-emphasized), visibility 0s
+      var(--duration-slow);
+  }
+  .app[data-rail="hidden"] .comment-rail {
+    margin-right: calc(-1 * var(--comment-rail-w));
+    visibility: hidden;
+    transition: margin-right var(--duration-slow) var(--ease-emphasized), visibility 0s
+      var(--duration-slow);
+  }
 }
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+/* Two tiers. ≤920px (half-width windows, tablets): the fixed sidebar +
+   comment rail would crush the content pane, so the workspace goes
+   full-width and the panels become drawers toggled from the topbar.
+   ≤640px (phones): mobile is a first-class citizen — the comment rail
+   becomes a bottom sheet at thumb reach, secondary topbar actions collapse
+   behind a ⋯ menu, and touch targets get real sizes. */
 .mobile-backdrop {
   display: none;
 }
@@ -1052,27 +1516,107 @@
   .app {
     grid-template-columns: 1fr;
   }
-  .topbar__mobile-only {
+  /* The desktop corner comment button folds into the bottom bar's centre. */
+  .comment-tool__fab {
+    display: none;
+  }
+  /* Instagram-style bottom bar: artifacts · comment (centre) · comments. */
+  .mobile-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-6);
+    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
+    z-index: var(--z-sticky);
+  }
+  .mobile-bar__btn {
     display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 56px;
+    min-height: 44px;
+    color: var(--color-text-muted);
+  }
+  .mobile-bar__icon {
+    position: relative;
+    font-size: var(--text-lg);
+    line-height: 1;
+  }
+  .mobile-bar__label {
+    font-size: var(--text-2xs);
+  }
+  .mobile-bar__count {
+    position: absolute;
+    top: -7px;
+    right: -11px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+  }
+  .mobile-bar__comment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    font-size: var(--text-xl);
+    box-shadow: var(--shadow-2);
+  }
+  .mobile-bar__comment[data-armed="true"] {
+    background: var(--color-text);
+  }
+  /* Keep the last of the artifact clear of the fixed bar. */
+  .workspace__body {
+    padding-bottom: 76px;
+  }
+  /* Panel-edge slide toggles are wide-viewport only — ≤920px the panels are
+     drawers opened from the bottom bar, so a slide toggle would be a no-op.
+     Hidden here rather than given a base display so the buttons keep
+     .topbar__icon's grid centring on desktop. */
+  .topbar__wide-only {
+    display: none;
   }
   .sidebar,
   .comment-rail {
     position: fixed;
     top: 0;
     bottom: 0;
-    width: min(85vw, 320px);
+    width: min(86vw, 340px);
     max-height: none;
     z-index: var(--z-modal);
-    transition: transform var(--duration-base) var(--ease-standard);
-    box-shadow: var(--shadow-2);
+    transition: transform var(--duration-slow) var(--ease-emphasized);
+    box-shadow: var(--shadow-3);
   }
   .sidebar {
     left: 0;
     transform: translateX(-100%);
+    border-right: 0;
+    border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+    padding-left: calc(var(--space-5) + env(safe-area-inset-left, 0px));
   }
   .comment-rail {
     right: 0;
     transform: translateX(100%);
+    border-left: 0;
+    border-radius: var(--radius-xl) 0 0 var(--radius-xl);
   }
   .app[data-panel="nav"] .sidebar {
     transform: none;
@@ -1085,7 +1629,152 @@
     position: fixed;
     inset: 0;
     border: 0;
-    background: rgba(0, 0, 0, 0.45);
+    border-radius: 0;
+    background: var(--color-overlay);
     z-index: var(--z-overlay);
+  }
+}
+
+@media (max-width: 640px) {
+  /* Topbar: secondary actions live behind ⋯ so the title keeps its room.
+     Everything tappable is ≥40px. */
+  .topbar {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .topbar__desktop-only {
+    display: none;
+  }
+  .topbar__more {
+    display: inline-flex;
+  }
+  .topbar__icon,
+  .topbar__back {
+    width: 40px;
+    height: 40px;
+  }
+  .topbar__title {
+    font-size: var(--text-base);
+  }
+
+  /* Comments become a bottom sheet — composer lands at thumb reach and the
+     artifact stays visible behind the scrim. Same data-panel mechanics. */
+  .comment-rail {
+    top: auto;
+    left: 0;
+    right: 0;
+    /* --keyboard-inset (set from visualViewport in App.tsx) lifts the sheet
+       above the soft keyboard so the composer stays reachable while typing. */
+    bottom: var(--keyboard-inset, 0px);
+    width: 100%;
+    height: min(78vh, 640px);
+    height: min(78dvh, 640px);
+    max-height: calc(100vh - var(--keyboard-inset, 0px) - var(--space-5));
+    max-height: calc(100dvh - var(--keyboard-inset, 0px) - var(--space-5));
+    transform: translateY(100%);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    border-top: 1px solid var(--color-border);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .app[data-panel="comments"] .comment-rail {
+    transform: none;
+  }
+  /* Grab-handle affordance signalling "sheet", drawn on the header. */
+  .comment-rail::before {
+    content: "";
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-border-strong);
+  }
+  .comment-rail__header {
+    padding-top: var(--space-7);
+  }
+
+  /* Sidebar drawer gets the full safe height and a wider reach on phones. */
+  .sidebar {
+    width: min(88vw, 320px);
+  }
+
+  /* Command palette: keyboard owns the bottom half of a phone screen, so the
+     palette hugs the top and caps its own height. */
+  .palette-backdrop {
+    padding-top: max(var(--space-5), env(safe-area-inset-top, 0px));
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+  .palette {
+    width: 100%;
+  }
+  .palette__input {
+    padding: var(--space-6) var(--space-6);
+    font-size: 16px; /* <16px would trigger iOS auto-zoom on focus */
+  }
+  .palette__list {
+    max-height: 52dvh;
+  }
+
+  /* History chips scroll horizontally instead of stacking rows. */
+  .history-bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  .history-bar__track {
+    flex-wrap: nowrap;
+  }
+  .history-bar__pinned {
+    white-space: nowrap;
+  }
+
+  /* Presentations: keep the canvas readable, drop the desktop air. */
+  .presentation {
+    padding: var(--space-6) var(--space-4);
+  }
+  .presentation__slide {
+    padding: var(--space-7);
+    aspect-ratio: auto;
+    min-height: 52vw;
+  }
+  .presentation__slide[data-layout="two-column"] {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
+
+  /* Timeline: the 120px date gutter is a third of a phone — stack instead. */
+  .timeline__event {
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  /* Comment composer: 16px stops iOS focus-zoom; the ⌘-hint means nothing
+     without a keyboard (visibility keeps the row layout). */
+  .comment-rail__textarea {
+    font-size: 16px;
+  }
+  .comment-rail__hint {
+    visibility: hidden;
+  }
+  /* No keyboard, no ⌘K hint. */
+  .empty-state__row--kbd {
+    display: none;
+  }
+  /* The hero piece scales down so the copy stays above the fold. */
+  .empty-state__piece {
+    width: 140px;
+    height: 140px;
+  }
+}
+
+/* ── Touch input ────────────────────────────────────────────────── */
+/* Hover-revealed affordances don't exist on touch screens — keep the sidebar
+   delete reachable. Keyed on hover:none OR pointer:coarse OR phone width,
+   because emulators/hybrids disagree on which media features they report. */
+@media (hover: none), (pointer: coarse), (max-width: 640px) {
+  .sidebar__delete {
+    opacity: 1;
   }
 }

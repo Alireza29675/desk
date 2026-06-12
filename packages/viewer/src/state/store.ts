@@ -4,6 +4,7 @@ import type {
   Author,
   Comment,
   CommentAnchor,
+  CommentId,
   LocatorSegment,
   RealtimeServerMessage,
   RelationGraph,
@@ -15,6 +16,17 @@ import { type RealtimeClient, buildRealtimeClient } from '../realtime/client';
 
 /** Firehose subscription target: receive realtime events for every artifact. */
 const FIREHOSE = '*' as ArtifactId;
+
+/** A comment can span at most this many selections (matches the server cap). */
+const MAX_DRAFT_ANCHORS = 8;
+
+/** The cleared comment-draft slice, applied on open / close / cancel. The empty
+ *  array is never mutated in place (every action returns a fresh array). */
+const EMPTY_DRAFT = { commentArmed: false, draftAnchors: [] as CommentAnchor[], draftBody: '' };
+
+/** Pending removal of the transient `theme-switching` class (see setTheme).
+ * Module-level, not store state: it's DOM bookkeeping, never rendered. */
+let themeSwitchTimer: ReturnType<typeof setTimeout> | undefined;
 
 /**
  * UI store. Owns:
@@ -51,10 +63,30 @@ interface State {
   open: OpenArtifact | null;
   loading: boolean;
   theme: 'light' | 'dark';
-  /** Pending anchor for a new comment, set when the user targets a component. */
-  commentTarget: CommentAnchor | null;
+  /** Desktop-only: side panels collapse independently so the artifact gets more
+   *  width. Each persists under its own key. */
+  sidebarHidden: boolean;
+  railHidden: boolean;
+  /** The global comment tool is armed: the next click inside a component drops
+   *  a point, the next drag marks a region. Text selection works regardless. */
+  commentArmed: boolean;
+  /**
+   * Selections accumulated for the comment being composed — one comment can
+   * span many (a region in chart A + a sentence in doc B). The composer is
+   * open whenever this is non-empty; an empty array + Submit posts a general
+   * (document-level) comment. Capped at MAX_DRAFT_ANCHORS.
+   */
+  draftAnchors: CommentAnchor[];
+  /**
+   * The comment body being typed. Shared by the desktop rail composer and the
+   * mobile composer sheet, and seeded by auto-draft flows (checkbox toggles).
+   * Single slot, last-write-wins; cleared with the draft on send and cancel.
+   */
+  draftBody: string;
   /** Anchor being momentarily highlighted because its comment was clicked. */
   focusedAnchor: CommentAnchor | null;
+  /** Comment row the rail should scroll to and flash (clears itself). */
+  railTarget: CommentId | null;
   /** Id of an artifact that failed to load (e.g. a stale/deleted deep link). */
   loadError: string | null;
 
@@ -68,13 +100,43 @@ interface State {
   scrubToVersion(version: number | null): Promise<void>;
   /** Re-sync the open artifact from the current address bar (load + popstate). */
   syncFromLocation(fromHistory: boolean): void;
-  /** Begin composing a comment anchored to a specific element. */
-  startComment(anchor: CommentAnchor): void;
-  clearCommentTarget(): void;
+  /** Arm the comment tool (enter point/region capture). */
+  armComment(): void;
+  /** Leave capture mode, keeping the draft selections + body. */
+  disarmComment(): void;
+  /** Add a selection to the draft (caps at MAX_DRAFT_ANCHORS) and leave capture
+   *  mode — one gesture adds one anchor, then back to composing. */
+  addDraftAnchor(anchor: CommentAnchor): void;
+  /** Remove the i-th draft selection (a chip's ×). */
+  removeDraftAnchor(index: number): void;
+  /** Replace the composer body text. */
+  setDraftBody(body: string): void;
+  /** Seed the composer with a single anchor + body (checkbox auto-draft). */
+  seedDraft(anchor: CommentAnchor, body: string): void;
+  /** Discard the whole draft (selections, body, armed flag). */
+  clearDraft(): void;
   /** Momentarily highlight an existing comment's anchor (clears itself). */
   focusAnchor(anchor: CommentAnchor): void;
+  /** Momentarily mark a comment's rail row for scroll + flash (clears itself). */
+  revealInRail(id: CommentId): void;
   applyEvent(msg: RealtimeServerMessage): void;
   setTheme(theme: 'light' | 'dark'): void;
+  toggleSidebar(): void;
+  toggleRail(): void;
+}
+
+/** Persisted panel-collapse choice, read once at store creation (same lifecycle
+ * as `desk-theme`, which the index.html bootstrap reads before first paint).
+ * Falls back to the pre-split `desk-panels-hidden` key so a returning user who
+ * collapsed both panels stays collapsed across the toggle split. */
+function readPanelHidden(key: string): boolean {
+  try {
+    const v = localStorage.getItem(key);
+    if (v !== null) return v === '1';
+    return localStorage.getItem('desk-panels-hidden') === '1';
+  } catch {
+    return false;
+  }
 }
 
 export const useStore = create<State>((set, get) => {
@@ -82,6 +144,8 @@ export const useStore = create<State>((set, get) => {
   realtime.addListener((msg) => get().applyEvent(msg));
   // Auto-clears the focused anchor after its highlight pulse.
   let focusTimer: ReturnType<typeof setTimeout>;
+  // Auto-clears the rail reveal target after its scroll + flash window.
+  let railTimer: ReturnType<typeof setTimeout>;
 
   return {
     realtime,
@@ -90,12 +154,17 @@ export const useStore = create<State>((set, get) => {
     artifacts: [],
     open: null,
     loading: false,
-    commentTarget: null,
+    commentArmed: false,
+    draftAnchors: [],
+    draftBody: '',
     focusedAnchor: null,
+    railTarget: null,
     loadError: null,
     theme:
       (document.documentElement.dataset.theme as 'light' | 'dark') ??
       (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+    sidebarHidden: readPanelHidden('desk-sidebar-hidden'),
+    railHidden: readPanelHidden('desk-rail-hidden'),
 
     async init() {
       get().realtime.connect();
@@ -130,33 +199,67 @@ export const useStore = create<State>((set, get) => {
         // Stale/deleted deep link, or a bad id: surface a not-found state
         // rather than the generic empty desk. Keep the URL so a retry/refresh
         // hits the same id once the artifact (re)appears.
-        set({ open: null, commentTarget: null, loadError: id });
+        set({ open: null, ...EMPTY_DRAFT, loadError: id });
         if (!opts.fromHistory) pushArtifact(id, segments);
         return;
       }
       // No per-artifact subscribe — the firehose (subscribed in init) already
       // delivers this artifact's events.
-      set({ open: { ...bundle, locator: segments }, commentTarget: null, loadError: null });
+      set({ open: { ...bundle, locator: segments }, ...EMPTY_DRAFT, loadError: null });
       if (!opts.fromHistory) pushArtifact(id, segments);
     },
 
     closeArtifact() {
-      set({ open: null, commentTarget: null, loadError: null });
+      set({ open: null, ...EMPTY_DRAFT, loadError: null });
       goHome();
     },
 
-    startComment(anchor) {
-      set({ commentTarget: anchor });
+    armComment() {
+      set({ commentArmed: true });
     },
 
-    clearCommentTarget() {
-      set({ commentTarget: null });
+    disarmComment() {
+      set({ commentArmed: false });
+    },
+
+    addDraftAnchor(anchor) {
+      const draftAnchors = get().draftAnchors;
+      // Leave capture mode either way — one gesture adds one anchor. The cap
+      // silently drops further selections (the composer shows the cap is hit).
+      if (draftAnchors.length >= MAX_DRAFT_ANCHORS) {
+        set({ commentArmed: false });
+        return;
+      }
+      set({ draftAnchors: [...draftAnchors, anchor], commentArmed: false });
+    },
+
+    removeDraftAnchor(index) {
+      set({ draftAnchors: get().draftAnchors.filter((_, i) => i !== index) });
+    },
+
+    setDraftBody(body) {
+      set({ draftBody: body });
+    },
+
+    seedDraft(anchor, body) {
+      // Replace any in-progress draft (single slot, last-write-wins).
+      set({ draftAnchors: [anchor], draftBody: body, commentArmed: false });
+    },
+
+    clearDraft() {
+      set({ ...EMPTY_DRAFT });
     },
 
     focusAnchor(anchor) {
       set({ focusedAnchor: anchor });
       clearTimeout(focusTimer);
       focusTimer = setTimeout(() => set({ focusedAnchor: null }), 1600);
+    },
+
+    revealInRail(id) {
+      set({ railTarget: id });
+      clearTimeout(railTimer);
+      railTimer = setTimeout(() => set({ railTarget: null }), 1600);
     },
 
     setLocator(segments) {
@@ -280,6 +383,15 @@ export const useStore = create<State>((set, get) => {
     },
 
     setTheme(theme) {
+      // Transient class around the data-theme flip: globals.css transitions
+      // colors only while `theme-switching` is present (~300ms), so the swap
+      // cross-fades instead of snapping. Clear any pending removal first so a
+      // rapid double-toggle can't strand the class via a stale timeout.
+      clearTimeout(themeSwitchTimer);
+      document.documentElement.classList.add('theme-switching');
+      themeSwitchTimer = setTimeout(() => {
+        document.documentElement.classList.remove('theme-switching');
+      }, 300);
       document.documentElement.dataset.theme = theme;
       // Persist the choice so it survives reloads and deep-link opens.
       try {
@@ -288,6 +400,27 @@ export const useStore = create<State>((set, get) => {
         // Storage unavailable (private mode): keep the in-memory theme only.
       }
       set({ theme });
+    },
+
+    toggleSidebar() {
+      const sidebarHidden = !get().sidebarHidden;
+      // Persist the choice so it survives reloads and deep-link opens.
+      try {
+        localStorage.setItem('desk-sidebar-hidden', sidebarHidden ? '1' : '0');
+      } catch {
+        // Storage unavailable (private mode): keep the in-memory state only.
+      }
+      set({ sidebarHidden });
+    },
+
+    toggleRail() {
+      const railHidden = !get().railHidden;
+      try {
+        localStorage.setItem('desk-rail-hidden', railHidden ? '1' : '0');
+      } catch {
+        // Storage unavailable (private mode): keep the in-memory state only.
+      }
+      set({ railHidden });
     },
   };
 });

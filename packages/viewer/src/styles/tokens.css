@@ -2,91 +2,110 @@
  * Desk design tokens — dual-mode from day 1.
  *
  * Light is the default. Dark is one selector flip away on <html data-theme="dark">.
- * Coral (#FF5A4D family) is the only accent. Every component reads from these
- * tokens; never reach for raw color values in component CSS.
+ * The scaffold is a neutral achromatic gray ramp (Vercel/Linear DNA); coral
+ * (#FF5A4D family) stays the only accent — it is Desk's identity. Every
+ * component reads from these tokens; never reach for raw color values in
+ * component CSS.
  */
 
 :root,
 [data-theme="light"] {
   /* ── Base surfaces ───────────────────────────────────────────── */
-  --color-bg: #fbfaf8;
+  --color-bg: #fafafa;
   --color-bg-elevated: #ffffff;
-  --color-bg-sunken: #f4f2ee;
-  --color-bg-inset: #efece6;
-  --color-overlay: rgba(15, 14, 13, 0.42);
+  --color-bg-sunken: #f4f4f5;
+  --color-bg-inset: #ececee;
+  --color-overlay: rgba(10, 10, 11, 0.4);
 
   /* ── Borders + rules ─────────────────────────────────────────── */
-  --color-border: #e8e3da;
-  --color-border-strong: #d4ccbe;
+  --color-border: #e4e4e7;
+  --color-border-strong: #d4d4d8;
   --color-border-focus: var(--color-accent);
-  --color-divider: #efece6;
+  --color-divider: #ececee;
 
   /* ── Foreground / type ───────────────────────────────────────── */
-  --color-text: #1a1815;
-  --color-text-muted: #6b6357;
-  --color-text-subtle: #9a9181;
-  --color-text-inverse: #fbfaf8;
+  --color-text: #171717;
+  --color-text-muted: #62626b;
+  --color-text-subtle: #9b9ba3;
+  --color-text-inverse: #fafafa;
   --color-text-on-accent: #ffffff;
 
   /* ── Accent (coral) ──────────────────────────────────────────── */
   --color-accent: #ff5a4d;
   --color-accent-strong: #e8412f;
-  --color-accent-soft: #ffe0db;
-  --color-accent-ring: rgba(255, 90, 77, 0.32);
+  --color-accent-soft: #ffe4e0;
+  --color-accent-ring: rgba(255, 90, 77, 0.3);
 
   /* ── Semantic tones ──────────────────────────────────────────── */
   --color-info: #2563eb;
-  --color-info-soft: #dbeafe;
+  --color-info-soft: #e8f0fe;
   --color-warn: #d97706;
-  --color-warn-soft: #fef3c7;
+  --color-warn-soft: #fdf3e1;
   --color-danger: #dc2626;
-  --color-danger-soft: #fee2e2;
+  --color-danger-soft: #fdeaea;
   --color-success: #059669;
-  --color-success-soft: #d1fae5;
+  --color-success-soft: #e3f6ee;
 
   /* ── Selection + highlight ───────────────────────────────────── */
   --color-selection: var(--color-accent-soft);
   --color-selection-text: var(--color-text);
+
+  /* ── Shadows (light: soft ambient + hairline ring) ───────────── */
+  --shadow-1: 0 1px 2px rgba(10, 10, 11, 0.04), 0 0 0 1px rgba(10, 10, 11, 0.05);
+  --shadow-2: 0 2px 4px rgba(10, 10, 11, 0.04), 0 6px 16px rgba(10, 10, 11, 0.06), 0 0 0 1px
+    rgba(10, 10, 11, 0.05);
+  --shadow-3: 0 8px 24px rgba(10, 10, 11, 0.1), 0 24px 64px rgba(10, 10, 11, 0.12), 0 0 0 1px
+    rgba(10, 10, 11, 0.06);
 }
 
 [data-theme="dark"] {
-  --color-bg: #14130f;
-  --color-bg-elevated: #1c1a16;
-  --color-bg-sunken: #100f0c;
-  --color-bg-inset: #0a0a08;
-  --color-overlay: rgba(0, 0, 0, 0.62);
+  --color-bg: #0a0a0b;
+  --color-bg-elevated: #141416;
+  --color-bg-sunken: #060607;
+  --color-bg-inset: #1d1d20;
+  --color-overlay: rgba(0, 0, 0, 0.6);
 
-  --color-border: #2a2620;
-  --color-border-strong: #3a342a;
-  --color-divider: #25221c;
+  --color-border: #232326;
+  --color-border-strong: #34343a;
+  --color-divider: #1c1c1f;
 
-  --color-text: #f5f0e6;
-  --color-text-muted: #a39a8a;
-  --color-text-subtle: #6e665a;
-  --color-text-inverse: #14130f;
+  --color-text: #ededee;
+  --color-text-muted: #9d9da6;
+  --color-text-subtle: #66666e;
+  --color-text-inverse: #0a0a0b;
   --color-text-on-accent: #ffffff;
 
-  --color-accent: #ff6b5e;
+  --color-accent: #ff6f61;
   --color-accent-strong: #ff8a7e;
-  --color-accent-soft: #3a1f1b;
-  --color-accent-ring: rgba(255, 107, 94, 0.4);
+  --color-accent-soft: #3a1d19;
+  --color-accent-ring: rgba(255, 111, 97, 0.38);
 
-  --color-info: #60a5fa;
-  --color-info-soft: #1e293b;
+  --color-info: #66a3ff;
+  --color-info-soft: #14213a;
   --color-warn: #fbbf24;
-  --color-warn-soft: #2c220e;
+  --color-warn-soft: #2b2008;
   --color-danger: #f87171;
-  --color-danger-soft: #2a1313;
+  --color-danger-soft: #2e1212;
   --color-success: #34d399;
-  --color-success-soft: #122a20;
+  --color-success-soft: #0e2a1e;
+
+  /* Dark elevation reads as border + depth, not glow — shadows stay subtle
+     and the 1px ring does the separating. */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --shadow-3: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 :root {
   /* ── Type ────────────────────────────────────────────────────── */
-  --font-sans: "Inter", "Söhne", "Aeonik", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    sans-serif;
-  --font-serif: "Source Serif 4", "Iowan Old Style", "Apple Garamond", Georgia, serif;
-  --font-mono: "JetBrains Mono", "IBM Plex Mono", "Söhne Mono", ui-monospace, "SF Mono", Menlo,
+  /* Geist carries the UI and its headings (.heading-accent — weight and
+     scale do the hierarchy, no second typeface); Instrument Serif remains
+     for CONTENT typography only (quotes, captions, math in rendered
+     documents); Geist Mono covers code, badges, and timestamps. */
+  --font-sans: "Geist Variable", "Geist", "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", "JetBrains Mono", ui-monospace, "SF Mono", Menlo,
     monospace;
 
   --text-2xs: 11px;
@@ -129,18 +148,15 @@
   --space-11: 56px;
   --space-12: 72px;
 
-  /* ── Radius ──────────────────────────────────────────────────── */
-  --radius-xs: 3px;
-  --radius-sm: 5px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  /* ── Radius (a notch softer — Apple/Raycast) ─────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
   --radius-pill: 999px;
 
-  /* ── Shadows ─────────────────────────────────────────────────── */
-  --shadow-1: 0 1px 2px rgba(15, 14, 13, 0.04), 0 0 0 1px rgba(15, 14, 13, 0.04);
-  --shadow-2: 0 4px 12px rgba(15, 14, 13, 0.08), 0 0 0 1px rgba(15, 14, 13, 0.04);
-  --shadow-3: 0 16px 48px rgba(15, 14, 13, 0.16), 0 0 0 1px rgba(15, 14, 13, 0.06);
+  /* ── Shadows (theme-dependent values live in the palettes above) ─ */
   --shadow-accent-focus: 0 0 0 3px var(--color-accent-ring);
 
   /* ── Motion ──────────────────────────────────────────────────── */
@@ -148,6 +164,9 @@
    * functional signals (state change, position, focus), never decorative. */
   --duration-instant: 60ms;
   --duration-fast: 120ms;
+  /* Content-enter animations: slower than micro-interactions, faster than
+     layout moves. */
+  --duration-medium: 160ms;
   --duration-base: 180ms;
   --duration-slow: 260ms;
 
@@ -157,10 +176,10 @@
   --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
 
   /* ── Layout sizes ────────────────────────────────────────────── */
-  --sidebar-w: 240px;
-  --comment-rail-w: 320px;
-  --topbar-h: 44px;
-  --command-palette-w: 600px;
+  --sidebar-w: 248px;
+  --comment-rail-w: 328px;
+  --topbar-h: 48px;
+  --command-palette-w: 620px;
 
   /* ── Z-index ─────────────────────────────────────────────────── */
   --z-base: 0;
