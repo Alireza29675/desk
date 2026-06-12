@@ -6,8 +6,9 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "bun run build:harness && vite",
+    "build": "bun run build:harness && tsc --noEmit && vite build",
+    "build:harness": "bun build ./src/harness/main.tsx --outfile public/custom-harness.js --format iife --minify",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests"

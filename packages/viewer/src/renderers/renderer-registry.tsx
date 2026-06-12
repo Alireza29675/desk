@@ -5,6 +5,7 @@ import { CalloutRenderer } from './callout';
 import { ChartRenderer } from './chart';
 import { ChecklistRenderer } from './checkbox';
 import { CodeViewRenderer } from './code-view';
+import { CustomReactRenderer } from './custom-react';
 import { DiagramRenderer } from './diagram';
 import { FolderStructureRenderer } from './folder-structure';
 import { IframeRenderer } from './iframe';
@@ -39,6 +40,7 @@ export const renderers: Record<string, AnyRenderer> = {
   chart: ChartRenderer as AnyRenderer,
   checkbox: ChecklistRenderer as AnyRenderer,
   'code-view': CodeViewRenderer as AnyRenderer,
+  'custom-react': CustomReactRenderer as AnyRenderer,
   diagram: DiagramRenderer as AnyRenderer,
   'folder-structure': FolderStructureRenderer as AnyRenderer,
   iframe: IframeRenderer as AnyRenderer,
