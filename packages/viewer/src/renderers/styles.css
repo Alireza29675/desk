@@ -400,8 +400,11 @@ input.checklist__box:disabled {
   background: var(--color-bg-sunken);
   color-scheme: light dark;
 }
-/* Persistent fullscreen affordance (never hover-gated), top-right over the
-   frame. The sandboxed iframe can't fullscreen itself, so the parent does. */
+/* Persistent fullscreen affordance, top-right over the frame. The sandboxed
+   iframe can't fullscreen itself, so the parent does. Always present and
+   clickable; it recedes at rest so it doesn't fight a component's own top-right
+   content (e.g. a chart's headline value) and firms up on hover/focus. Touch
+   has no hover to reveal it, so it stays firm there. */
 .custom-react__fullscreen {
   position: absolute;
   top: var(--space-3);
@@ -417,7 +420,19 @@ input.checklist__box:disabled {
   color: var(--color-text-muted);
   box-shadow: var(--shadow-1);
   cursor: pointer;
-  transition: color var(--duration-fast) var(--ease-standard);
+  opacity: 0.55;
+  transition: color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast)
+    var(--ease-standard);
+}
+.custom-react:hover .custom-react__fullscreen,
+.custom-react:focus-within .custom-react__fullscreen,
+.custom-react[data-fullscreen="true"] .custom-react__fullscreen {
+  opacity: 1;
+}
+@media (hover: none) {
+  .custom-react__fullscreen {
+    opacity: 1;
+  }
 }
 .custom-react__fullscreen:hover {
   color: var(--color-accent);
