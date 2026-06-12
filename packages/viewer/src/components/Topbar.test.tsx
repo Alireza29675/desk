@@ -113,42 +113,66 @@ describe('Topbar overflow menu — open/close via trigger and actions', () => {
   });
 });
 
-describe('Topbar — hide panels toggle', () => {
-  const toggle = () => container.querySelector('button[aria-pressed]') as HTMLElement | null;
+describe('Topbar — panel toggles (independent sidebar + rail)', () => {
+  const sidebarToggle = () =>
+    container.querySelector(
+      'button[aria-label="Hide sidebar"], button[aria-label="Show sidebar"]',
+    ) as HTMLElement | null;
+  const railToggle = () =>
+    container.querySelector(
+      'button[aria-label="Hide comments"], button[aria-label="Show comments"]',
+    ) as HTMLElement | null;
 
   afterEach(() => {
-    localStorage.removeItem('desk-panels-hidden');
-    useStore.setState({ panelsHidden: false });
+    localStorage.removeItem('desk-sidebar-hidden');
+    localStorage.removeItem('desk-rail-hidden');
+    useStore.setState({ sidebarHidden: false, railHidden: false });
   });
 
-  it('renders before search with aria-pressed mirroring the store, and toggles on click', async () => {
-    useStore.setState({ panelsHidden: false });
+  it('sidebar toggle mirrors sidebarHidden and toggles on click, leaving the rail alone', async () => {
+    useStore.setState({ sidebarHidden: false, railHidden: false });
     render();
-    const btn = toggle();
+    const btn = sidebarToggle();
     expect(btn).not.toBeNull();
-    expect(btn?.getAttribute('aria-label')).toBe('Hide panels');
+    expect(btn?.getAttribute('aria-label')).toBe('Hide sidebar');
     expect(btn?.getAttribute('aria-pressed')).toBe('false');
 
     await act(async () => btn?.click());
-    expect(useStore.getState().panelsHidden).toBe(true);
-    // The button flips to the "show" affordance once the panels are hidden.
-    const after = toggle();
+    expect(useStore.getState().sidebarHidden).toBe(true);
+    expect(useStore.getState().railHidden).toBe(false);
+    const after = sidebarToggle();
     expect(after?.getAttribute('aria-pressed')).toBe('true');
-    expect(after?.getAttribute('aria-label')).toBe('Show panels');
+    expect(after?.getAttribute('aria-label')).toBe('Show sidebar');
   });
 
-  it('renders even when no artifact is open (the sidebar is still collapsible)', () => {
-    useStore.setState({ open: null, panelsHidden: false });
+  it('rail toggle mirrors railHidden and toggles on click (artifact open)', async () => {
+    useStore.setState({ railHidden: false });
     render();
-    expect(toggle()).not.toBeNull();
-    expect(toggle()?.getAttribute('aria-label')).toBe('Hide panels');
+    const btn = railToggle();
+    expect(btn).not.toBeNull();
+    expect(btn?.getAttribute('aria-label')).toBe('Hide comments');
+
+    await act(async () => btn?.click());
+    expect(useStore.getState().railHidden).toBe(true);
+    expect(useStore.getState().sidebarHidden).toBe(false);
+    expect(railToggle()?.getAttribute('aria-label')).toBe('Show comments');
   });
 
-  it('reflects an already-hidden state on first render', () => {
-    useStore.setState({ panelsHidden: true });
+  it('keeps the sidebar toggle with no artifact open, but drops the rail toggle', () => {
+    useStore.setState({ open: null, sidebarHidden: false });
     render();
-    expect(toggle()?.getAttribute('aria-pressed')).toBe('true');
-    expect(toggle()?.getAttribute('aria-label')).toBe('Show panels');
+    expect(sidebarToggle()).not.toBeNull();
+    expect(sidebarToggle()?.getAttribute('aria-label')).toBe('Hide sidebar');
+    expect(railToggle()).toBeNull();
+  });
+
+  it('reflects already-hidden panels on first render', () => {
+    useStore.setState({ sidebarHidden: true, railHidden: true });
+    render();
+    expect(sidebarToggle()?.getAttribute('aria-pressed')).toBe('true');
+    expect(sidebarToggle()?.getAttribute('aria-label')).toBe('Show sidebar');
+    expect(railToggle()?.getAttribute('aria-pressed')).toBe('true');
+    expect(railToggle()?.getAttribute('aria-label')).toBe('Show comments');
   });
 });
 

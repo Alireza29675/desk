@@ -25,8 +25,10 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const openArtifact = useStore((s) => s.openArtifact);
   const setTheme = useStore((s) => s.setTheme);
   const theme = useStore((s) => s.theme);
-  const panelsHidden = useStore((s) => s.panelsHidden);
-  const togglePanels = useStore((s) => s.togglePanels);
+  const sidebarHidden = useStore((s) => s.sidebarHidden);
+  const railHidden = useStore((s) => s.railHidden);
+  const toggleSidebar = useStore((s) => s.toggleSidebar);
+  const toggleRail = useStore((s) => s.toggleRail);
   const artifacts = useStore((s) => s.artifacts);
 
   useEffect(() => {
@@ -68,13 +70,19 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         perform: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
       },
       {
-        id: 'panels:toggle',
-        label: panelsHidden ? 'Show panels' : 'Hide panels',
-        hint: 'layout',
-        perform: () => togglePanels(),
+        id: 'sidebar:toggle',
+        label: sidebarHidden ? 'Show sidebar' : 'Hide sidebar',
+        hint: 'layout panels',
+        perform: () => toggleSidebar(),
+      },
+      {
+        id: 'rail:toggle',
+        label: railHidden ? 'Show comments' : 'Hide comments',
+        hint: 'layout panels',
+        perform: () => toggleRail(),
       },
     ],
-    [theme, setTheme, panelsHidden, togglePanels],
+    [theme, setTheme, sidebarHidden, railHidden, toggleSidebar, toggleRail],
   );
 
   // Commands stay findable by name: filter them by the query (label/hint

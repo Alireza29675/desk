@@ -248,28 +248,50 @@ describe('store.revealInRail — rail scroll/flash target (clears itself)', () =
   });
 });
 
-describe('store.togglePanels — hide side panels (desktop)', () => {
+describe('store side-panel toggles — sidebar and rail collapse independently', () => {
   beforeEach(() => {
+    localStorage.removeItem('desk-sidebar-hidden');
+    localStorage.removeItem('desk-rail-hidden');
     localStorage.removeItem('desk-panels-hidden');
-    useStore.setState({ panelsHidden: false });
+    useStore.setState({ sidebarHidden: false, railHidden: false });
   });
 
-  it('flips panelsHidden and persists the choice', () => {
-    expect(useStore.getState().panelsHidden).toBe(false);
-    useStore.getState().togglePanels();
-    expect(useStore.getState().panelsHidden).toBe(true);
-    expect(localStorage.getItem('desk-panels-hidden')).toBe('1');
-    useStore.getState().togglePanels();
-    expect(useStore.getState().panelsHidden).toBe(false);
-    expect(localStorage.getItem('desk-panels-hidden')).toBe('0');
+  it('toggleSidebar flips sidebarHidden and persists, leaving the rail alone', () => {
+    expect(useStore.getState().sidebarHidden).toBe(false);
+    useStore.getState().toggleSidebar();
+    expect(useStore.getState().sidebarHidden).toBe(true);
+    expect(useStore.getState().railHidden).toBe(false);
+    expect(localStorage.getItem('desk-sidebar-hidden')).toBe('1');
+    useStore.getState().toggleSidebar();
+    expect(useStore.getState().sidebarHidden).toBe(false);
+    expect(localStorage.getItem('desk-sidebar-hidden')).toBe('0');
   });
 
-  it('reads a persisted "hidden" choice back on store creation', async () => {
-    localStorage.setItem('desk-panels-hidden', '1');
+  it('toggleRail flips railHidden and persists, leaving the sidebar alone', () => {
+    useStore.getState().toggleRail();
+    expect(useStore.getState().railHidden).toBe(true);
+    expect(useStore.getState().sidebarHidden).toBe(false);
+    expect(localStorage.getItem('desk-rail-hidden')).toBe('1');
+  });
+
+  it('reads persisted per-panel choices back on store creation', async () => {
+    localStorage.setItem('desk-sidebar-hidden', '1');
+    localStorage.setItem('desk-rail-hidden', '0');
     // The read happens once at create() time, so build a fresh store module.
     vi.resetModules();
     const { useStore: fresh } = await import('./store');
-    expect(fresh.getState().panelsHidden).toBe(true);
+    expect(fresh.getState().sidebarHidden).toBe(true);
+    expect(fresh.getState().railHidden).toBe(false);
+    localStorage.removeItem('desk-sidebar-hidden');
+    localStorage.removeItem('desk-rail-hidden');
+  });
+
+  it('migrates the pre-split desk-panels-hidden key into both panels', async () => {
+    localStorage.setItem('desk-panels-hidden', '1');
+    vi.resetModules();
+    const { useStore: fresh } = await import('./store');
+    expect(fresh.getState().sidebarHidden).toBe(true);
+    expect(fresh.getState().railHidden).toBe(true);
     localStorage.removeItem('desk-panels-hidden');
   });
 });

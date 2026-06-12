@@ -267,8 +267,12 @@
 .topbar__search {
   display: inline-flex;
   align-items: center;
+  /* Match the 28px icon buttons exactly: without a fixed height these bordered
+     pills inherit the 1.5 line-height and render ~30px, sitting proud of the
+     icons (the reported topbar misalignment). */
+  height: 28px;
   gap: var(--space-3);
-  padding: 6px var(--space-4);
+  padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
@@ -290,7 +294,12 @@
   background: var(--color-bg-sunken);
 }
 .topbar__link {
-  padding: 6px var(--space-4);
+  /* Same 28px height as the icon buttons so the right-zone controls share a
+     baseline (see .topbar__search). */
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
@@ -1374,11 +1383,12 @@
 }
 
 /* ── Hide panels (desktop) ──────────────────────────────────────── */
-/* `data-panels="hidden"` (the store's panelsHidden, toggled with ◫) collapses
-   BOTH side panels so the artifact gets the full width. Deliberately separate
-   from the mobile `data-panel` drawer attribute below — at ≤920px the toggle
-   is hidden and this attribute has no effect, so the drawers keep working
-   exactly as-is.
+/* `data-sidebar="hidden"` / `data-rail="hidden"` (the store's sidebarHidden /
+   railHidden, toggled with the panel-edge icons) collapse each side panel
+   INDEPENDENTLY so the artifact gets more width. Deliberately separate from the
+   mobile `data-panel` drawer attribute below — at ≤920px these have no effect
+   (the panel-edge toggles are hidden), so the drawers keep working exactly
+   as-is.
    Technique: both side tracks become min-content (visually identical — each
    panel already carries its token width), so a transitioned negative margin
    pulls a panel out of the grid and its track follows frame-by-frame. The
@@ -1404,13 +1414,13 @@
   .comment-rail {
     transition: margin-right var(--duration-slow) var(--ease-emphasized), visibility 0s;
   }
-  .app[data-panels="hidden"] .sidebar {
+  .app[data-sidebar="hidden"] .sidebar {
     margin-left: calc(-1 * var(--sidebar-w));
     visibility: hidden;
     transition: margin-left var(--duration-slow) var(--ease-emphasized), visibility 0s
       var(--duration-slow);
   }
-  .app[data-panels="hidden"] .comment-rail {
+  .app[data-rail="hidden"] .comment-rail {
     margin-right: calc(-1 * var(--comment-rail-w));
     visibility: hidden;
     transition: margin-right var(--duration-slow) var(--ease-emphasized), visibility 0s
@@ -1438,6 +1448,13 @@
   }
   .topbar__mobile-only {
     display: inline-flex;
+  }
+  /* Panel-edge slide toggles are wide-viewport only — ≤920px the panels are
+     drawers opened with ☰ / 💬, so a slide toggle would be a no-op. Hidden
+     here rather than given a base display so the buttons keep .topbar__icon's
+     grid centring on desktop. */
+  .topbar__wide-only {
+    display: none;
   }
   .sidebar,
   .comment-rail {

@@ -56,8 +56,10 @@ interface State {
   open: OpenArtifact | null;
   loading: boolean;
   theme: 'light' | 'dark';
-  /** Desktop-only: both side panels collapsed so the artifact gets full width. */
-  panelsHidden: boolean;
+  /** Desktop-only: side panels collapse independently so the artifact gets more
+   *  width. Each persists under its own key. */
+  sidebarHidden: boolean;
+  railHidden: boolean;
   /** Pending anchor for a new comment, set when the user targets a component. */
   commentTarget: CommentAnchor | null;
   /**
@@ -94,13 +96,18 @@ interface State {
   revealInRail(id: CommentId): void;
   applyEvent(msg: RealtimeServerMessage): void;
   setTheme(theme: 'light' | 'dark'): void;
-  togglePanels(): void;
+  toggleSidebar(): void;
+  toggleRail(): void;
 }
 
-/** Persisted panels choice, read once at store creation (same lifecycle as
- * `desk-theme`, which the index.html bootstrap reads before first paint). */
-function readPanelsHidden(): boolean {
+/** Persisted panel-collapse choice, read once at store creation (same lifecycle
+ * as `desk-theme`, which the index.html bootstrap reads before first paint).
+ * Falls back to the pre-split `desk-panels-hidden` key so a returning user who
+ * collapsed both panels stays collapsed across the toggle split. */
+function readPanelHidden(key: string): boolean {
   try {
+    const v = localStorage.getItem(key);
+    if (v !== null) return v === '1';
     return localStorage.getItem('desk-panels-hidden') === '1';
   } catch {
     return false;
@@ -130,7 +137,8 @@ export const useStore = create<State>((set, get) => {
     theme:
       (document.documentElement.dataset.theme as 'light' | 'dark') ??
       (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
-    panelsHidden: readPanelsHidden(),
+    sidebarHidden: readPanelHidden('desk-sidebar-hidden'),
+    railHidden: readPanelHidden('desk-rail-hidden'),
 
     async init() {
       get().realtime.connect();
@@ -345,15 +353,25 @@ export const useStore = create<State>((set, get) => {
       set({ theme });
     },
 
-    togglePanels() {
-      const panelsHidden = !get().panelsHidden;
+    toggleSidebar() {
+      const sidebarHidden = !get().sidebarHidden;
       // Persist the choice so it survives reloads and deep-link opens.
       try {
-        localStorage.setItem('desk-panels-hidden', panelsHidden ? '1' : '0');
+        localStorage.setItem('desk-sidebar-hidden', sidebarHidden ? '1' : '0');
       } catch {
         // Storage unavailable (private mode): keep the in-memory state only.
       }
-      set({ panelsHidden });
+      set({ sidebarHidden });
+    },
+
+    toggleRail() {
+      const railHidden = !get().railHidden;
+      try {
+        localStorage.setItem('desk-rail-hidden', railHidden ? '1' : '0');
+      } catch {
+        // Storage unavailable (private mode): keep the in-memory state only.
+      }
+      set({ railHidden });
     },
   };
 });

@@ -3,6 +3,46 @@ import { absoluteUrl, artifactPath } from '../lib/router';
 import { useStore } from '../state/store';
 import { Kbd } from './Kbd';
 
+// Panel-toggle marks: a framed rectangle with the divider on the side of the
+// panel they control (left = sidebar, right = comment rail). Crisp line icons
+// rather than the old ◫ glyph, and placed at the edges they act on.
+function PanelLeftIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  );
+}
+function PanelRightIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+  );
+}
+
 export function Topbar({
   onOpenPalette,
   onToggleHistory,
@@ -20,8 +60,10 @@ export function Topbar({
   const closeArtifact = useStore((s) => s.closeArtifact);
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
-  const panelsHidden = useStore((s) => s.panelsHidden);
-  const togglePanels = useStore((s) => s.togglePanels);
+  const sidebarHidden = useStore((s) => s.sidebarHidden);
+  const railHidden = useStore((s) => s.railHidden);
+  const toggleSidebar = useStore((s) => s.toggleSidebar);
+  const toggleRail = useStore((s) => s.toggleRail);
   const [copied, setCopied] = useState(false);
   // Phone-width overflow menu (⋯) holding the secondary actions. Hidden on
   // wide viewports via CSS; the inline buttons hide on phones the same way.
@@ -81,6 +123,17 @@ export function Topbar({
   return (
     <div className="topbar">
       <div className="topbar__left">
+        {/* Sidebar toggle sits at the far left — the edge it controls. Wide
+            viewports only; ≤920px the sidebar is a drawer opened with ☰. */}
+        <button
+          className="topbar__icon topbar__wide-only"
+          onClick={toggleSidebar}
+          aria-pressed={sidebarHidden}
+          aria-label={sidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
+          title={sidebarHidden ? 'Show sidebar' : 'Hide sidebar'}
+        >
+          <PanelLeftIcon />
+        </button>
         <button
           className="topbar__icon topbar__mobile-only"
           onClick={onToggleNav}
@@ -127,15 +180,6 @@ export function Topbar({
             </button>
           </>
         ) : null}
-        <button
-          className="topbar__icon topbar__desktop-only"
-          onClick={togglePanels}
-          aria-pressed={panelsHidden}
-          aria-label={panelsHidden ? 'Show panels' : 'Hide panels'}
-          title={panelsHidden ? 'Show panels' : 'Hide panels'}
-        >
-          ◫
-        </button>
         <button className="topbar__search topbar__desktop-only" onClick={onOpenPalette}>
           Search · <Kbd>⌘K</Kbd>
         </button>
@@ -147,6 +191,19 @@ export function Topbar({
         >
           {theme === 'dark' ? '☀' : '☾'}
         </button>
+        {/* Comment-rail toggle at the far right — the edge it controls. Only
+            meaningful when an artifact (and therefore the rail) is open. */}
+        {open ? (
+          <button
+            className="topbar__icon topbar__wide-only"
+            onClick={toggleRail}
+            aria-pressed={railHidden}
+            aria-label={railHidden ? 'Show comments' : 'Hide comments'}
+            title={railHidden ? 'Show comments' : 'Hide comments'}
+          >
+            <PanelRightIcon />
+          </button>
+        ) : null}
         <div className="topbar__more" ref={menuRef}>
           {/* Plain buttons in a popover, not role="menu" — full ARIA menu
               semantics (roving focus, arrow keys) aren't implemented, and
