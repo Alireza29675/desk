@@ -95,12 +95,18 @@
 .btn:active {
   transform: translateY(0);
 }
+/* CTA label is 13px semibold = WCAG small text → needs 4.5:1 against its own
+   background. The brand pairing (white on accent) measures 3.08:1 light /
+   2.73:1 dark, and dark's accent-strong is LIGHTER, so the token step inverts
+   there. Site-local resolution: light darkens the coral until white passes
+   (#d43824 = 4.78:1, hover #c93420 = 5.26:1); dark keeps the brand coral
+   exact and flips the label to page ink (7.25:1, hover 8.66:1). */
 .btn--primary {
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
+  background: var(--site-cta-bg);
+  color: var(--site-cta-text);
 }
 .btn--primary:hover {
-  background: var(--color-accent-strong);
+  background: var(--site-cta-bg-hover);
 }
 .btn--ghost {
   background: var(--color-bg-elevated);
@@ -115,14 +121,19 @@
 /* Accent-colored SMALL text needs more contrast than the brand coral gives on
    the light background (#ff5a4d ≈ 3.7:1, #e8412f ≈ 4.0:1 — both under AA's
    4.5:1). Site-local darker shade for small accent text; dark theme's
-   accent-strong already clears the bar. Buttons keep the product's own
-   coral-with-white pairing (brand, documented trade-off). */
+   accent-strong already clears the bar. */
 :root,
 [data-theme="light"] {
   --site-accent-text: #c93420;
+  --site-cta-bg: #d43824;
+  --site-cta-bg-hover: #c93420;
+  --site-cta-text: #ffffff;
 }
 [data-theme="dark"] {
   --site-accent-text: var(--color-accent-strong);
+  --site-cta-bg: var(--color-accent);
+  --site-cta-bg-hover: var(--color-accent-strong);
+  --site-cta-text: #0a0a0b;
 }
 
 .eyebrow {
