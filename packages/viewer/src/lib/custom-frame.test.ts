@@ -16,7 +16,13 @@ function makeSupervisor(opts: { bootDeadlineMs?: number; staleMs?: number } = {}
     staleMs: opts.staleMs ?? 3000,
     now: () => t,
   });
-  return { supervisor, callbacks, advance: (ms: number) => (t += ms) };
+  return {
+    supervisor,
+    callbacks,
+    advance: (ms: number) => {
+      t += ms;
+    },
+  };
 }
 
 const FRAME = { tag: 'frame-window' };

@@ -17,7 +17,10 @@ export const customReactComponent = defineComponent({
   displayName: 'Custom component',
   schema: z.object({
     /** TSX source. Must define `function Component(props) { … }`. */
-    code: z.string().min(1).max(64 * 1024),
+    code: z
+      .string()
+      .min(1)
+      .max(64 * 1024),
     /** Extra props handed to the component alongside `theme`. */
     props: z.record(z.unknown()).optional(),
     /** Render height in px (the frame is width-fluid). */
