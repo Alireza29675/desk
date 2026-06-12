@@ -527,12 +527,48 @@
 }
 .presentation[data-fullscreen="true"] {
   background: var(--color-bg);
-  overflow: auto;
+  padding: 0;
+  overflow: hidden;
 }
+/* The deck becomes a full-viewport centring layer; the head + nav lift out of
+   flow as floating chrome so the slide alone is centred and free to scale. */
 .presentation[data-fullscreen="true"] .presentation__deck {
-  /* Fit the 16/10 canvas to the screen: bounded by the viewport width and by
-     the height left after the head row, nav, gaps and padding (~176px). */
-  max-width: min(100vw - 2 * var(--space-8), (100vh - 176px) * 1.6);
+  max-width: none;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  gap: 0;
+  display: grid;
+  place-items: center;
+}
+.presentation[data-fullscreen="true"] .presentation__slide {
+  /* Logical canvas == the natural windowed slide size, so scaling up reflows
+     nothing — it just enlarges text and layout together. --slide-scale is
+     min(viewportW/960, viewportH/600), set from a ResizeObserver in
+     PresentationView; the transform fills the screen instead of leaving the
+     deck looking downscaled. */
+  width: 960px;
+  height: 600px;
+  aspect-ratio: unset;
+  min-height: 0;
+  padding: var(--space-11);
+  flex: none;
+  transform: scale(var(--slide-scale, 1));
+  transform-origin: center;
+}
+.presentation[data-fullscreen="true"] .presentation__head {
+  position: fixed;
+  inset: 0 0 auto 0;
+  margin: 0;
+  padding: var(--space-5) var(--space-7);
+  z-index: 2;
+}
+.presentation[data-fullscreen="true"] .presentation__nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  margin: 0;
+  padding: var(--space-5) var(--space-7);
+  z-index: 2;
 }
 .presentation[data-fullscreen="true"] .presentation__meta {
   display: none;

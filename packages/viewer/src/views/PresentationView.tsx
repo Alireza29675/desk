@@ -32,11 +32,47 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
   // local state optimistically — otherwise Esc would leave the UI stuck in
   // its fullscreen layout.
   useEffect(() => {
+    const root = rootRef.current;
     function onChange() {
-      setFullscreen(document.fullscreenElement === rootRef.current);
+      const isFullscreen = document.fullscreenElement === root;
+      setFullscreen(isFullscreen);
+      // Mobile: present in landscape. The lock API rejects on desktop and in
+      // browsers without orientation lock (Safari) — swallow those, it's a
+      // progressive enhancement, not a requirement.
+      const orientation = screen.orientation as ScreenOrientation & {
+        lock?: (orientation: 'landscape') => Promise<void>;
+      };
+      // `?.catch` (not `.catch`) so a missing API short-circuits to undefined
+      // rather than throwing when there's no promise to catch on.
+      if (isFullscreen) orientation?.lock?.('landscape')?.catch(() => {});
+      else orientation?.unlock?.();
     }
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // Scale the fixed-size slide canvas to fill the fullscreen viewport so the
+  // deck reads at presentation size instead of looking downscaled. The slide
+  // keeps a logical 960×600 box (its natural windowed size) and --slide-scale
+  // grows text and layout together. Observe the root, not the slide — the
+  // slide remounts on every navigation (keyed by index).
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || typeof ResizeObserver === 'undefined') return;
+    const update = () => {
+      if (document.fullscreenElement !== root) {
+        root.style.removeProperty('--slide-scale');
+        return;
+      }
+      // 0.95 leaves a margin so the receding head/nav chrome never overlaps
+      // slide content on a tightly-fitting aspect ratio.
+      const scale = Math.min(root.clientWidth / 960, root.clientHeight / 600) * 0.95;
+      root.style.setProperty('--slide-scale', String(scale));
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(root);
+    update();
+    return () => observer.disconnect();
   }, []);
 
   const toggleFullscreen = () => {

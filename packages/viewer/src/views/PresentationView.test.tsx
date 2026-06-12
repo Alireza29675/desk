@@ -139,6 +139,34 @@ describe('PresentationView — fullscreen presentation mode', () => {
     expect(fullscreenButton().getAttribute('aria-label')).toBe('Enter fullscreen');
   });
 
+  it('locks to landscape on entering fullscreen and unlocks on exit (mobile)', () => {
+    const lock = vi.fn().mockResolvedValue(undefined);
+    const unlock = vi.fn();
+    Object.defineProperty(window.screen, 'orientation', {
+      value: { lock, unlock },
+      configurable: true,
+    });
+    const el = render();
+
+    setFullscreenElement(el);
+    act(() => {
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+    expect(lock).toHaveBeenCalledWith('landscape');
+
+    setFullscreenElement(null);
+    act(() => {
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+    expect(unlock).toHaveBeenCalledTimes(1);
+
+    // Don't leak the mock orientation into the other tests' fullscreen toggles.
+    Object.defineProperty(window.screen, 'orientation', {
+      value: undefined,
+      configurable: true,
+    });
+  });
+
   it('while fullscreen the button (and `f`) exit instead of re-entering', () => {
     const el = render();
     setFullscreenElement(el);
