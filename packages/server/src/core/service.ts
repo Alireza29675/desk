@@ -232,6 +232,51 @@ export class DeskService {
     return this.history.list(id, range);
   }
 
+  /**
+   * The AI-authored baseline of a checklist component: each item's `checked`
+   * at its FIRST appearance in the artifact's committed snapshots, in version
+   * order. "Last agent-authored snapshot" would be wrong here — agents commit
+   * the FULL working content, so a later agent edit carries the human's
+   * checks along with it; first-appearance is the value the item's author
+   * gave it. Works retroactively for every existing artifact (`created`
+   * always snapshots v1 — no migration). Items with no committed appearance
+   * (added but never committed yet) fall back to their current value.
+   */
+  checklistBaseline(
+    artifactId: ArtifactId,
+    componentId: string,
+  ): { items: Record<string, boolean> } {
+    const artifact = this.artifacts.get(artifactId);
+    if (!artifact) throw notFound(`Artifact "${artifactId}" not found.`);
+    const component = artifact.content.components.find((c: Component) => c.id === componentId);
+    if (!component) {
+      throw notFound(`Component "${componentId}" is not present on artifact "${artifactId}".`);
+    }
+    if (component.type !== 'checkbox') {
+      throw validationFailed(`Component "${componentId}" is not a checklist.`);
+    }
+
+    const firstSeen: Record<string, boolean> = {};
+    for (const event of this.history.snapshots(artifactId)) {
+      if (event.kind !== 'created' && event.kind !== 'edited') continue;
+      const past = event.snapshot.components.find(
+        (c: Component) => c.id === componentId && c.type === 'checkbox',
+      );
+      if (!past) continue;
+      for (const item of checklistItems(past)) {
+        if (!(item.id in firstSeen)) firstSeen[item.id] = item.checked;
+      }
+    }
+
+    // Project onto the CURRENT items only: deleted items drop out, and a
+    // never-committed item's current value IS its authored value.
+    const items: Record<string, boolean> = {};
+    for (const item of checklistItems(component)) {
+      items[item.id] = firstSeen[item.id] ?? item.checked;
+    }
+    return { items };
+  }
+
   // ─── comments ────────────────────────────────────────────────────────
 
   postComment(input: {
@@ -364,6 +409,11 @@ export class DeskService {
       );
     }
   }
+}
+
+function checklistItems(component: Component): { id: string; checked: boolean }[] {
+  const data = component.data as { items?: { id: string; checked: boolean }[] };
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 function authorToProvenance(author: Author) {

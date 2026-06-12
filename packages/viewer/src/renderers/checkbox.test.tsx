@@ -11,6 +11,7 @@ vi.mock('../lib/api', () => ({
   api: {
     patchArtifact: vi.fn().mockResolvedValue({}),
     commit: vi.fn().mockResolvedValue({}),
+    checklistBaseline: vi.fn().mockResolvedValue({ items: {} }),
   },
 }));
 
@@ -130,6 +131,47 @@ describe('ChecklistRenderer — really checkable (item 4)', () => {
     expect(box.disabled).toBe(true);
     await clickBox();
     expect(api.patchArtifact).not.toHaveBeenCalled();
+  });
+
+  it('Reset restores the authored baseline and commits as [checkbox reset]', async () => {
+    vi.mocked(api.checklistBaseline).mockResolvedValueOnce({ items: { i1: false, i2: true } });
+    const comp = checklist([
+      { id: 'i1', label: 'A', checked: true }, // human checked it
+      { id: 'i2', label: 'B', checked: true }, // authored pre-checked
+    ]);
+    openWith(comp);
+    render(comp);
+    await act(async () => {
+      (container.querySelector('.checklist__reset') as HTMLButtonElement).click();
+    });
+
+    const call = vi.mocked(api.patchArtifact).mock.calls[0];
+    expect(call).toBeDefined();
+    const patch = (call as NonNullable<typeof call>)[1];
+    const first = patch.components?.[0] as { data: { items: { id: string; checked: boolean }[] } };
+    expect(first.data.items.map((i) => i.checked)).toEqual([false, true]);
+    expect(api.commit).toHaveBeenCalledWith(ART_ID, expect.anything(), '[checkbox reset]');
+    // A reset is not a toggle: no auto-draft.
+    expect(useStore.getState().commentDraft).toBeNull();
+  });
+
+  it('Reset is a no-op (no patch, no commit) when already at the authored state', async () => {
+    vi.mocked(api.checklistBaseline).mockResolvedValueOnce({ items: { i1: false } });
+    const comp = checklist([{ id: 'i1', label: 'A', checked: false }]);
+    openWith(comp);
+    render(comp);
+    await act(async () => {
+      (container.querySelector('.checklist__reset') as HTMLButtonElement).click();
+    });
+    expect(api.patchArtifact).not.toHaveBeenCalled();
+    expect(api.commit).not.toHaveBeenCalled();
+  });
+
+  it('hides Reset while time-traveling', () => {
+    const comp = checklist([{ id: 'i1', label: 'A', checked: false }]);
+    openWith(comp, 1);
+    render(comp);
+    expect(container.querySelector('.checklist__reset')).toBeNull();
   });
 
   it('a failed save surfaces an error and seeds NO draft (the flip never happened)', async () => {

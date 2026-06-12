@@ -77,9 +77,52 @@ export function ChecklistRenderer({ component, artifactId }: RendererProps<Data>
     }
   }
 
+  /** Restore the checklist to its AI-authored state (server-derived baseline). */
+  async function reset() {
+    if (busyId !== null || pinned) return;
+    setBusyId('__reset');
+    setSaveFailed(false);
+    const { open, author } = useStore.getState();
+    if (!open) {
+      setBusyId(null);
+      return;
+    }
+    try {
+      const { items: baseline } = await api.checklistBaseline(
+        artifactId as ArtifactId,
+        component.id,
+      );
+      const restored = items.map((i) => ({ ...i, checked: baseline[i.id] ?? i.checked }));
+      // Already at the authored state: no patch, no version-bump noise.
+      if (restored.every((r, idx) => r.checked === items[idx]?.checked)) return;
+      const components = open.artifact.content.components.map((c) =>
+        c.id === component.id ? { ...c, data: { ...component.data, items: restored } } : c,
+      );
+      await api.patchArtifact(artifactId as ArtifactId, { components }, author);
+      await api.commit(artifactId as ArtifactId, author, '[checkbox reset]');
+    } catch {
+      setSaveFailed(true);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="component-block">
-      {title ? <div style={{ fontWeight: 600 }}>{title}</div> : null}
+      <div className="checklist__head">
+        {title ? <div style={{ fontWeight: 600 }}>{title}</div> : <span />}
+        {!pinned ? (
+          <button
+            type="button"
+            className="checklist__reset"
+            disabled={busyId !== null}
+            title="Restore this checklist to its authored state"
+            onClick={() => void reset()}
+          >
+            Reset
+          </button>
+        ) : null}
+      </div>
       {saveFailed ? (
         <div className="checklist__error" role="alert">
           Couldn’t save that change — try again.

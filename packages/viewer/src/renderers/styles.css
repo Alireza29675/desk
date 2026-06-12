@@ -358,6 +358,28 @@ input.checklist__box:disabled {
   font-size: var(--text-xs);
   color: var(--color-danger);
 }
+.checklist__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+.checklist__reset {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.checklist__reset:hover:not(:disabled) {
+  color: var(--color-accent);
+  text-decoration: underline;
+}
+.checklist__reset:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
 
 /* ── Math ────────────────────────────────────────────────────────── */
 .math {
