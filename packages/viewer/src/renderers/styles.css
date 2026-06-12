@@ -382,11 +382,62 @@ input.checklist__box:disabled {
 }
 
 /* ── Custom component (sandboxed iframe) ─────────────────────────── */
+/* The container floor against the iframe's white UA canvas: `color-scheme` so
+   the frame box adopts the page theme + a themed sunken backdrop. Pairs with
+   the in-frame themed body (custom-frame.ts) so there's never a white slab. */
+.custom-react {
+  position: relative;
+  color-scheme: light dark;
+}
+.custom-react__stage {
+  position: relative;
+}
 .custom-react__frame {
+  display: block;
   width: 100%;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-bg-sunken);
+  color-scheme: light dark;
+}
+/* Persistent fullscreen affordance (never hover-gated), top-right over the
+   frame. The sandboxed iframe can't fullscreen itself, so the parent does. */
+.custom-react__fullscreen {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-standard);
+}
+.custom-react__fullscreen:hover {
+  color: var(--color-accent);
+}
+/* Fullscreen: the figure fills the screen and the frame fills the figure
+   (the iframe height flips to 100% inline). */
+.custom-react[data-fullscreen="true"] {
+  background: var(--color-bg);
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.custom-react[data-fullscreen="true"] .custom-react__stage {
+  flex: 1;
+  min-height: 0;
+}
+.custom-react[data-fullscreen="true"] .custom-react__frame {
+  border: 0;
+  border-radius: 0;
 }
 .custom-react__dead {
   display: flex;

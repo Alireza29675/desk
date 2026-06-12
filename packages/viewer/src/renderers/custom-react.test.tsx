@@ -61,3 +61,59 @@ describe('CustomReactRenderer — containment is structural', () => {
     expect(container.textContent).toContain('A tiny timer');
   });
 });
+
+describe('CustomReactRenderer — fullscreen', () => {
+  // happy-dom ships no Fullscreen API, so stub the surface (same pattern as
+  // PresentationView): requestFullscreen on elements, exit + the
+  // fullscreenElement getter on document.
+  let requestFullscreen: ReturnType<typeof vi.fn>;
+  let exitFullscreen: ReturnType<typeof vi.fn>;
+  function setFullscreenElement(el: Element | null) {
+    Object.defineProperty(document, 'fullscreenElement', { get: () => el, configurable: true });
+  }
+  beforeEach(() => {
+    requestFullscreen = vi.fn().mockResolvedValue(undefined);
+    exitFullscreen = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(Element.prototype, 'requestFullscreen', {
+      value: requestFullscreen,
+      configurable: true,
+      writable: true,
+    });
+    Object.defineProperty(document, 'exitFullscreen', {
+      value: exitFullscreen,
+      configurable: true,
+      writable: true,
+    });
+    setFullscreenElement(null);
+  });
+
+  const fsButton = () => container.querySelector('.custom-react__fullscreen') as HTMLButtonElement;
+  const figure = () => container.querySelector('figure.custom-react') as HTMLElement;
+
+  it('always renders a fullscreen button on the component', () => {
+    render({ caption: 'Widget' });
+    expect(fsButton()).not.toBeNull();
+    expect(fsButton().getAttribute('aria-label')).toBe('Fullscreen');
+  });
+
+  it('clicking it requests fullscreen on the figure (not the sandboxed iframe)', () => {
+    render();
+    act(() => fsButton().click());
+    expect(requestFullscreen).toHaveBeenCalledTimes(1);
+    expect(requestFullscreen.mock.contexts[0]).toBe(figure());
+  });
+
+  it('fullscreenchange flips the label and fills the frame (covers native Esc exit)', () => {
+    render();
+    setFullscreenElement(figure());
+    act(() => document.dispatchEvent(new Event('fullscreenchange')));
+    expect(figure().getAttribute('data-fullscreen')).toBe('true');
+    expect(fsButton().getAttribute('aria-label')).toBe('Exit fullscreen');
+    expect((container.querySelector('iframe') as HTMLIFrameElement).style.height).toBe('100%');
+
+    setFullscreenElement(null);
+    act(() => document.dispatchEvent(new Event('fullscreenchange')));
+    expect(figure().getAttribute('data-fullscreen')).toBeNull();
+    expect(fsButton().getAttribute('aria-label')).toBe('Fullscreen');
+  });
+});

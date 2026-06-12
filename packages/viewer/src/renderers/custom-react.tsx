@@ -35,7 +35,23 @@ export function CustomReactRenderer({ component, artifactId }: RendererProps<Dat
   const [loadError, setLoadError] = useState<string | null>(null);
   const [autoHeight, setAutoHeight] = useState(data.height ?? 320);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const figureRef = useRef<HTMLElement | null>(null);
   const readyRef = useRef(false);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Fullscreen is owned by the browser (Esc exits without React), so derive the
+  // flag from the event rather than toggling optimistically. The sandboxed frame
+  // can't fullscreen itself — the parent figure goes fullscreen with it inside.
+  useEffect(() => {
+    const onChange = () => setFullscreen(document.fullscreenElement === figureRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement === figureRef.current) document.exitFullscreen?.();
+    else figureRef.current?.requestFullscreen?.();
+  };
 
   // The srcdoc is fixed per epoch; theme + surface flow over postMessage after.
   // Seed both so the first paint is themed (no white flash before mount).
@@ -142,7 +158,11 @@ export function CustomReactRenderer({ component, artifactId }: RendererProps<Dat
 
   const height = data.height ?? clampFrameHeight(autoHeight);
   return (
-    <figure className="component-block">
+    <figure
+      className="component-block custom-react"
+      ref={figureRef}
+      data-fullscreen={fullscreen ? 'true' : undefined}
+    >
       {loadError ? (
         <div className="custom-react__dead">
           <span>Custom component couldn’t load: {loadError}</span>
@@ -151,15 +171,28 @@ export function CustomReactRenderer({ component, artifactId }: RendererProps<Dat
           </button>
         </div>
       ) : null}
-      <iframe
-        key={epoch}
-        ref={iframeRef}
-        className="custom-react__frame"
-        title={data.caption ?? 'Custom component'}
-        sandbox="allow-scripts"
-        srcDoc={srcdoc}
-        style={{ height }}
-      />
+      <div className="custom-react__stage">
+        <iframe
+          key={epoch}
+          ref={iframeRef}
+          className="custom-react__frame"
+          title={data.caption ?? 'Custom component'}
+          sandbox="allow-scripts"
+          srcDoc={srcdoc}
+          style={{ height: fullscreen ? '100%' : height }}
+        />
+        {/* Always present — a persistent affordance, never hover-gated, so
+            fullscreen viewing always works. */}
+        <button
+          type="button"
+          className="custom-react__fullscreen"
+          onClick={toggleFullscreen}
+          aria-label={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          title={fullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          ⛶
+        </button>
+      </div>
       {data.caption ? <figcaption className="component-caption">{data.caption}</figcaption> : null}
     </figure>
   );
