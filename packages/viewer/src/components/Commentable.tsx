@@ -1,10 +1,11 @@
-import type { Comment, CommentAnchor, ComponentId } from '@desk/types';
+import { type Comment, type CommentAnchor, type ComponentId, commentAnchors } from '@desk/types';
 import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -54,6 +55,20 @@ export function Commentable({
   const revealInRail = useStore((s) => s.revealInRail);
   const unresolved = useUnresolvedByComponent(componentId);
 
+  // Flatten the unresolved comments into per-anchor markers for THIS component.
+  // A multi-anchor comment shows one dot per anchor it lands here; an anchor in
+  // another component contributes nothing to this Commentable. `key` is stable
+  // per (comment, anchor index) so dot state survives reflows.
+  const markers = useMemo<Marker[]>(
+    () =>
+      unresolved.flatMap((c) =>
+        commentAnchors(c)
+          .map((anchor, ai) => ({ comment: c, anchor, key: `${c.id}:${ai}` }))
+          .filter((m) => anchorBelongsTo(m.anchor, cid)),
+      ),
+    [unresolved, cid],
+  );
+
   const contentRef = useRef<HTMLDivElement | null>(null);
   // Active spatial capture for *this* component, or null when idle.
   const [mode, setMode] = useState<'point' | 'region' | null>(null);
@@ -71,8 +86,10 @@ export function Commentable({
   // the content box, like every other spatial anchor) — see the layout effect.
   const [textDots, setTextDots] = useState<Record<string, Fraction>>({});
   // The one open hover/focus card over an unresolved dot (content-box pixels).
+  // Keyed by marker (comment + anchor index), so the card and the shape preview
+  // track the exact dot under the pointer, not just the comment.
   const [popover, setPopover] = useState<{
-    id: string;
+    key: string;
     left: number;
     top: number;
     below: boolean;
@@ -150,13 +167,13 @@ export function Commentable({
     const box = boxOf();
     const next: Record<string, Fraction> = {};
     if (root && box && box.width > 0 && box.height > 0) {
-      for (const c of unresolved) {
-        if (c.anchor.kind !== 'text-selection') continue;
-        const range = rangeFromTextOffsets(root, c.anchor.start, c.anchor.end);
+      for (const m of markers) {
+        if (m.anchor.kind !== 'text-selection') continue;
+        const range = rangeFromTextOffsets(root, m.anchor.start, m.anchor.end);
         if (!range || typeof range.getClientRects !== 'function') continue;
         const rects = range.getClientRects();
         const last = rects[rects.length - 1];
-        if (last) next[c.id] = fractionalPoint(box, last.right, last.top);
+        if (last) next[m.key] = fractionalPoint(box, last.right, last.top);
       }
     }
     setTextDots((prev) => (sameDots(prev, next) ? prev : next));
@@ -170,7 +187,7 @@ export function Commentable({
   };
   useEffect(() => () => clearTimeout(closeTimer.current), []);
 
-  const openPopover = (c: Comment, dotEl: HTMLElement) => {
+  const openPopover = (m: Marker, dotEl: HTMLElement) => {
     const box = boxOf();
     if (!box) return;
     const d = dotEl.getBoundingClientRect();
@@ -185,30 +202,31 @@ export function Commentable({
     const top = below ? d.bottom - box.top + 8 : d.top - box.top - 8;
     cancelClose();
     popoverOpenedAt.current = Date.now();
-    setPopover({ id: c.id, left, top, below });
+    setPopover({ key: m.key, left, top, below });
   };
 
-  const activateUnresolved = (c: Comment) => {
-    // Pulse the anchor on the artifact and scroll/flash the rail row. On
-    // ≤640px the rail is a closed bottom sheet owned by App's local `panel`
-    // state (not the store), so it can't be opened from here — the on-artifact
-    // pulse still shows, and the rail lands on the row next time it opens.
-    focusAnchor(c.anchor);
-    revealInRail(c.id);
+  const activateUnresolved = (m: Marker) => {
+    // Pulse the SPECIFIC anchor whose dot was clicked, and scroll/flash the
+    // comment's rail row. On ≤640px the rail is a closed bottom sheet owned by
+    // App's local `panel` state (not the store), so it can't be opened from
+    // here — the on-artifact pulse still shows, and the rail lands on the row
+    // next time it opens.
+    focusAnchor(m.anchor);
+    revealInRail(m.comment.id);
     cancelClose();
     setPopover(null);
   };
 
-  const onDotClick = (c: Comment, dotEl: HTMLElement) => {
+  const onDotClick = (m: Marker, dotEl: HTMLElement) => {
     const hoverCapable = window.matchMedia?.('(hover: hover)').matches ?? true;
-    if (!hoverCapable && (popover?.id !== c.id || Date.now() - popoverOpenedAt.current < 500)) {
+    if (!hoverCapable && (popover?.key !== m.key || Date.now() - popoverOpenedAt.current < 500)) {
       // Touch: the first tap reveals the card (the tap's own focus event may
       // have just opened it — same gesture, still the "first" tap); a later
       // tap, or the card's "View in comments" row, navigates.
-      openPopover(c, dotEl);
+      openPopover(m, dotEl);
       return;
     }
-    activateUnresolved(c);
+    activateUnresolved(m);
   };
 
   // Esc closes the card. Capture phase + preventDefault: the card is the
@@ -226,7 +244,7 @@ export function Commentable({
     return () => window.removeEventListener('keydown', onKey, { capture: true });
   }, [popover]);
 
-  const hovered = popover ? (unresolved.find((c) => c.id === popover.id) ?? null) : null;
+  const hoveredMarker = popover ? (markers.find((m) => m.key === popover.key) ?? null) : null;
 
   // ── Text selection → floating pill ──────────────────────────────────
   const refreshPill = useCallback(() => {
@@ -324,20 +342,20 @@ export function Commentable({
         {/* Persistent markers for unresolved comments (calm at idle; hover or
             focus a dot to reveal the comment card and the shape it covers).
             `general` anchors have no spatial placement and stay rail-only. */}
-        {unresolved.map((c, i) => {
-          const at = dotAnchorPoint(c.anchor, textDots[c.id]);
+        {markers.map((m, i) => {
+          const at = dotAnchorPoint(m.anchor, textDots[m.key]);
           if (!at) return null;
           return (
             <button
-              key={c.id}
+              key={m.key}
               className="unresolved-dot"
               style={dotStyle(at, i)}
-              aria-label={`Unresolved comment by ${authorName(c.author)}`}
-              onMouseEnter={(e) => openPopover(c, e.currentTarget)}
+              aria-label={`Unresolved comment by ${authorName(m.comment.author)}`}
+              onMouseEnter={(e) => openPopover(m, e.currentTarget)}
               onMouseLeave={scheduleClose}
-              onFocus={(e) => openPopover(c, e.currentTarget)}
+              onFocus={(e) => openPopover(m, e.currentTarget)}
               onBlur={scheduleClose}
-              onClick={(e) => onDotClick(c, e.currentTarget)}
+              onClick={(e) => onDotClick(m, e.currentTarget)}
               // Don't let an armed point/region tool treat this click as a drop.
               onPointerUp={(e) => e.stopPropagation()}
             />
@@ -346,18 +364,19 @@ export function Commentable({
 
         {/* While its dot is hovered, an unresolved region/element shows its
             shape — persistent outlines for every region would be noisy. */}
-        {hovered?.anchor.kind === 'region' && hovered.anchor.region.kind === 'fractional' ? (
+        {hoveredMarker?.anchor.kind === 'region' &&
+        hoveredMarker.anchor.region.kind === 'fractional' ? (
           <span
             className="anchor-overlay anchor-overlay--region"
-            style={rectStyle(hovered.anchor.region)}
+            style={rectStyle(hoveredMarker.anchor.region)}
           />
         ) : null}
-        {hovered?.anchor.kind === 'element' ? (
+        {hoveredMarker?.anchor.kind === 'element' ? (
           <span className="anchor-overlay anchor-overlay--ring" />
         ) : null}
 
         {/* Hover/focus card for the unresolved comment under the pointer. */}
-        {popover && hovered ? (
+        {popover && hoveredMarker ? (
           <div
             className="unresolved-popover"
             data-flip={popover.below ? 'below' : undefined}
@@ -365,15 +384,18 @@ export function Commentable({
             onMouseEnter={cancelClose}
             onMouseLeave={scheduleClose}
           >
-            <span className="unresolved-popover__author" data-kind={hovered.author.kind}>
-              {authorName(hovered.author)}
+            <span
+              className="unresolved-popover__author"
+              data-kind={hoveredMarker.comment.author.kind}
+            >
+              {authorName(hoveredMarker.comment.author)}
             </span>
-            {hovered.payload.kind === 'text' ? (
-              <p className="unresolved-popover__body">{hovered.payload.text}</p>
+            {hoveredMarker.comment.payload.kind === 'text' ? (
+              <p className="unresolved-popover__body">{hoveredMarker.comment.payload.text}</p>
             ) : null}
             <button
               className="unresolved-popover__view"
-              onClick={() => activateUnresolved(hovered)}
+              onClick={() => activateUnresolved(hoveredMarker)}
               onFocus={cancelClose}
             >
               View in comments →
@@ -429,6 +451,10 @@ export function Commentable({
     </div>
   );
 }
+
+/** One anchor of an unresolved comment that lands in this component — i.e. one
+ *  rendered dot. `key` is `${commentId}:${anchorIndex}`, stable across reflows. */
+type Marker = { comment: Comment; anchor: CommentAnchor; key: string };
 
 /** True when an anchor targets this component (any spatial/text/element shape). */
 function anchorBelongsTo(anchor: CommentAnchor | null, cid: ComponentId): boolean {

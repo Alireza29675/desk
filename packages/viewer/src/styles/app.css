@@ -800,6 +800,12 @@
 .comment__anchor:hover {
   color: var(--color-accent);
 }
+/* A multi-select comment lists one chip per selection it covers. */
+.comment__anchors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
 .comment__body {
   font-size: var(--text-sm);
   line-height: var(--leading-snug);

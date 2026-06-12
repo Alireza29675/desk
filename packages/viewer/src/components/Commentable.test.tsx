@@ -96,6 +96,22 @@ describe('Commentable — unresolved comment dots + hover card', () => {
       createdAt: '2026-01-01T00:00:00.000Z',
     }) as unknown as Comment;
 
+  // A multi-anchor comment: `anchors` carries every selection, `anchor` shadows
+  // anchors[0]. The renderer reads the full set via `commentAnchors`.
+  const commentWithAnchors = (id: string, anchors: CommentAnchor[]): Comment =>
+    ({
+      id,
+      artifactId: 'a',
+      anchor: anchors[0],
+      anchors,
+      author: { kind: 'human', humanId: 'M' },
+      payload: { kind: 'text', text: 'tighten this paragraph' },
+      createdAt: '2026-01-01T00:00:00.000Z',
+    }) as unknown as Comment;
+
+  const pt = (cid: string, x: number, y: number): CommentAnchor =>
+    ({ kind: 'point', componentId: cid as ComponentId, offset: { x, y } }) as CommentAnchor;
+
   function setOpenComments(comments: Comment[]) {
     useStore.setState({
       open: {
@@ -238,6 +254,44 @@ describe('Commentable — unresolved comment dots + hover card', () => {
       dot.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
     });
     expect(container.querySelector('.anchor-overlay--ring')).not.toBeNull();
+  });
+
+  it('renders one dot per anchor a multi-anchor comment places in this component', () => {
+    setOpenComments([commentWithAnchors('m1', [pt('c1', 0.2, 0.3), pt('c1', 0.7, 0.6)])]);
+    render();
+    expect(container.querySelectorAll('.unresolved-dot').length).toBe(2);
+  });
+
+  it('renders only the anchors that land in THIS component (others stay elsewhere)', () => {
+    // Anchored in both c1 and another component; this Commentable is c1, so it
+    // draws c1's single anchor and ignores the one that lives elsewhere.
+    setOpenComments([commentWithAnchors('m1', [pt('c1', 0.2, 0.3), pt('other', 0.7, 0.6)])]);
+    render();
+    expect(container.querySelectorAll('.unresolved-dot').length).toBe(1);
+  });
+
+  it("hovering a specific dot reveals THAT anchor's shape (multi-anchor)", () => {
+    // First anchor is a point (no box), second is a region — hovering the
+    // region's dot must surface the region box, not the point's.
+    setOpenComments([
+      commentWithAnchors('m1', [
+        pt('c1', 0.2, 0.3),
+        {
+          kind: 'region',
+          componentId: 'c1' as ComponentId,
+          region: { kind: 'fractional', x: 0.1, y: 0.1, width: 0.3, height: 0.3 },
+        } as CommentAnchor,
+      ]),
+    ]);
+    render();
+    const dots = container.querySelectorAll('.unresolved-dot');
+    expect(dots.length).toBe(2);
+    expect(container.querySelector('.anchor-overlay--region')).toBeNull();
+    const regionDot = dots[1] as HTMLElement;
+    act(() => {
+      regionDot.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(container.querySelector('.anchor-overlay--region')).not.toBeNull();
   });
 
   it('on touch, the first tap only reveals the card and a later tap navigates', () => {

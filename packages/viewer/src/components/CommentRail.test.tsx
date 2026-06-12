@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import type { Comment, CommentAttachment, CommentId } from '@desk/types';
+import type { Comment, CommentAttachment, CommentId, ComponentId } from '@desk/types';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -197,5 +197,30 @@ describe('CommentRail — draft seeding and Escape', () => {
     // Only an unedited seed is cleared; edited text survives the anchor dismiss.
     expect(textarea().value).toBe('my own words');
     expect(useStore.getState().commentTarget).toBeNull();
+  });
+});
+
+describe('CommentRail — anchor chips', () => {
+  it('renders one chip per spatial anchor of a multi-anchor comment', () => {
+    renderRail([
+      makeComment('c1', {
+        anchor: { kind: 'point', componentId: 'cmp' as ComponentId, offset: { x: 0.5, y: 0.5 } },
+        anchors: [
+          { kind: 'point', componentId: 'cmp' as ComponentId, offset: { x: 0.5, y: 0.5 } },
+          {
+            kind: 'region',
+            componentId: 'cmp' as ComponentId,
+            region: { kind: 'fractional', x: 0.1, y: 0.1, width: 0.2, height: 0.2 },
+          },
+        ],
+      } as Partial<Comment>),
+    ]);
+    expect(container.querySelectorAll('.comment__anchors .comment__anchor').length).toBe(2);
+  });
+
+  it('renders no chip for a general-only comment', () => {
+    renderRail([makeComment('c1')]); // default anchor is { kind: 'general' }
+    expect(container.querySelector('.comment__anchors')).toBeNull();
+    expect(container.querySelector('.comment__anchor')).toBeNull();
   });
 });

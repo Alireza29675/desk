@@ -1,4 +1,4 @@
-import type { CommentAnchor } from '@desk/types';
+import { type CommentAnchor, commentAnchors } from '@desk/types';
 import { useEffect } from 'react';
 import { rangeFromTextOffsets } from '../lib/anchor-geometry';
 import { useStore } from './store';
@@ -30,9 +30,13 @@ export function useAnchorHighlights(): void {
     applyTextHighlight('desk-anchor-focused', focused ? [focused] : []);
     // Persistent indicators: unresolved ROOT comments only (replies inherit
     // the parent's anchor and resolution, so painting roots covers threads).
+    // A comment can carry several text-selection anchors, so flatten the whole
+    // anchor set — applyTextHighlight keeps just the text-selection ones.
     applyTextHighlight(
       'desk-anchor-unresolved',
-      (open?.comments ?? []).filter((c) => !c.resolved && !c.threadParentId).map((c) => c.anchor),
+      (open?.comments ?? [])
+        .filter((c) => !c.resolved && !c.threadParentId)
+        .flatMap((c) => commentAnchors(c)),
     );
     return () => {
       setHighlight('desk-anchor-pending', []);

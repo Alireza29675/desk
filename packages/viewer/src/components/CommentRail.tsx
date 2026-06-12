@@ -1,4 +1,11 @@
-import type { ArtifactId, Author, Comment, CommentAnchor, CommentAttachment } from '@desk/types';
+import {
+  type ArtifactId,
+  type Author,
+  type Comment,
+  type CommentAnchor,
+  type CommentAttachment,
+  commentAnchors,
+} from '@desk/types';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
 import { captureAnchorImage } from '../lib/capture-anchor';
@@ -269,8 +276,13 @@ function CommentCard({
 
   async function submitReply() {
     if (!text.trim()) return;
+    // A reply inherits its parent's primary anchor so the thread stays in
+    // context. commentAnchors() is always ≥1; the `comment.anchor` default
+    // only satisfies the type checker (it equals anchors[0] by the dual-write
+    // contract) and is never taken at runtime.
+    const [primaryAnchor = comment.anchor] = commentAnchors(comment);
     await api.comment(artifactId, {
-      anchor: comment.anchor, // inherit the parent's anchor so the thread stays in context
+      anchor: primaryAnchor,
       payload: { kind: 'text', text: text.trim() },
       author,
       threadParentId: comment.id,
@@ -280,6 +292,9 @@ function CommentCard({
   }
 
   const who = comment.author.kind === 'human' ? comment.author.humanId : comment.author.agentId;
+  // One chip per spatial anchor — a multi-select comment reveals each selection
+  // it covers; `general` anchors have no place to point and stay chip-less.
+  const anchorChips = commentAnchors(comment).filter((a) => a.kind !== 'general');
 
   return (
     <article
@@ -296,22 +311,28 @@ function CommentCard({
           {new Date(comment.createdAt).toLocaleTimeString()}
         </span>
       </header>
-      {comment.anchor.kind !== 'general' ? (
-        <button
-          className="comment__anchor"
-          title="Reveal where this is anchored"
-          onClick={() => {
-            focusAnchor(comment.anchor);
-            const cid = 'componentId' in comment.anchor ? comment.anchor.componentId : null;
-            if (cid) {
-              document
-                .querySelector(`[data-component-id="${cid.replace(/["\\]/g, '\\$&')}"]`)
-                ?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
-            }
-          }}
-        >
-          ⌖ {describeAnchor(comment.anchor)}
-        </button>
+      {anchorChips.length > 0 ? (
+        <div className="comment__anchors">
+          {anchorChips.map((anchor, ai) => (
+            <button
+              // biome-ignore lint/suspicious/noArrayIndexKey: a comment's anchors are a small, never-reordered set
+              key={ai}
+              className="comment__anchor"
+              title="Reveal where this is anchored"
+              onClick={() => {
+                focusAnchor(anchor);
+                const cid = 'componentId' in anchor ? anchor.componentId : null;
+                if (cid) {
+                  document
+                    .querySelector(`[data-component-id="${cid.replace(/["\\]/g, '\\$&')}"]`)
+                    ?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
+                }
+              }}
+            >
+              ⌖ {describeAnchor(anchor)}
+            </button>
+          ))}
+        </div>
       ) : null}
       {comment.payload.kind === 'text' ? (
         <div className="comment__body">{comment.payload.text}</div>
