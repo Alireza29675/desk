@@ -320,24 +320,26 @@
   box-shadow: var(--shadow-3);
 }
 
-/* §2: the held frame cropped to the artifact + comment rail (the sidebar and
-   chat framing belong to the hero). Percentages target the 1440×900 source. */
-.shot--crop-rail {
-  aspect-ratio: 2.2 / 1;
+/* §2: two dedicated frames, composed in-camera (no CSS crop windows). The
+   desktop popover frame is 1368×696; the aspect-ratio reserves its box so the
+   lazy load can't shift layout. The mobile sheet (390×844) swaps in at the
+   720px breakpoint, where it displays ~1:1. */
+.shot--roundtrip {
+  aspect-ratio: 1368 / 696;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-3);
 }
-/* Window onto source x 310–1435, y 56–576: the artifact title, the full
-   diagram, and the complete comment+reply thread. Percent margins resolve
-   against the container WIDTH; at width 128%, one container = 1125 source px,
-   so -27.6% = x 310 and -4.98% = y 56 (the first comment card's border sits
-   at y 66 — don't cut above 65). */
-.shot--crop-rail .shot__img {
-  width: 128%;
-  max-width: none;
-  margin: -4.98% 0 0 -27.6%;
+.shot--sheet {
+  display: none;
+  aspect-ratio: 390 / 844;
+  max-width: 390px;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
 }
 
 /* The space-axis reveal (desktop, motion-ok): the chat speaks first, the
@@ -577,17 +579,15 @@
   .hero-mobile {
     display: block;
   }
-  /* §2 on phones: the wide crop renders comment text at ~4px — swap to a
-     rail-only window (source x 1112–1435, y 56–415) where the thread reads
-     at ~1:1. Width 445.8% makes one container = 323 source px. */
-  .shot--crop-rail {
-    aspect-ratio: 9 / 10;
-    max-width: 360px;
-    margin-inline: auto;
+  /* §2/§4 on phones: the desktop frames would render their text at ~4px —
+     swap to the native 390-shot frames, which read at ~1:1. .shot--sheet is
+     the shared phone-frame card (§2 comment sheet, §4 history view);
+     .shot--desktop marks any desktop frame with a mobile counterpart. */
+  .shot--desktop {
+    display: none;
   }
-  .shot--crop-rail .shot__img {
-    width: 445.8%;
-    margin: -17.3% 0 0 -344.3%;
+  .shot--sheet {
+    display: block;
   }
   .section {
     padding: var(--space-11) 0;

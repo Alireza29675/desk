@@ -2,9 +2,11 @@ import { Shot } from '../components/Shot';
 
 // Section 2 — the round-trip. Desk's unique capability and the section that
 // earns the install: you point at the rendered surface and your agent hears it.
-// The capture is the held frame cropped to the artifact + comment rail (the
-// sidebar and chat framing belong to the hero); a dedicated inline-popover
-// shot replaces it at eng2's drop-2.
+// Two dedicated frames from the capture session, breakpoint-swapped like the
+// hero: desktop shows the inline comment popover on the pinned-v1 (buggy)
+// diagram — the badge must read v1 so the page agrees with the hero's
+// "fixed, see v4"; mobile shows the comment sheet (shot at 390, displays ~1:1
+// so the thread text is native-size).
 export function RoundTrip() {
   return (
     <section className="section container">
@@ -28,9 +30,14 @@ export function RoundTrip() {
         </p>
       </div>
       <Shot
-        name="hero-desktop"
-        className="shot--crop-rail"
-        alt="A rendered artifact with an open comment anchored to one element — “this one refreshes twice — wrong” — and the agent's reply in the same thread: “fixed, see v4”."
+        name="roundtrip"
+        className="shot--roundtrip shot--desktop"
+        alt="The v1 diagram with an inline comment popover anchored to the Token Refresh node — “this one refreshes twice — wrong” — and a ring marking the anchored component."
+      />
+      <Shot
+        name="mobile-sheet"
+        className="shot--sheet"
+        alt="The mobile comment sheet over the artifact: the comment “this one refreshes twice — wrong” and the agent's reply “fixed, see v4”, each labelled with its anchor."
       />
     </section>
   );
