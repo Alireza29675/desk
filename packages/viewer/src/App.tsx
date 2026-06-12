@@ -57,8 +57,7 @@ export function App() {
     const update = () => {
       // Pinch-zoom also shrinks the visual viewport with no keyboard in
       // sight — only treat the shortfall as a keyboard at 1:1 scale.
-      const inset =
-        vv.scale > 1 ? 0 : Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      const inset = vv.scale > 1 ? 0 : Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       const value = `${Math.round(inset)}px`;
       if (value === last) return; // vv 'scroll' fires continuously on iOS
       last = value;
