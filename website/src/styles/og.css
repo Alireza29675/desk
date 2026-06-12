@@ -1,0 +1,84 @@
+/* Social-preview card — fixed 1280×640 (GitHub's 2:1). Solid background (the
+   card renders on arbitrary surfaces), desk's own tokens, light theme. */
+
+.og {
+  width: 1280px;
+  height: 640px;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 48px;
+  align-items: center;
+  padding: 72px;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.og__left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.og__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.og__mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+.og__word {
+  font-size: 32px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.og__line {
+  font-size: 58px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+.og__accent {
+  color: var(--color-accent);
+}
+
+.og__sub {
+  font-size: 24px;
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  max-width: 24ch;
+}
+
+.og__url {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--color-text-subtle);
+}
+
+.og__right {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.og__capture {
+  width: 100%;
+  height: 440px;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-sunken);
+  box-shadow: var(--shadow-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.og__capture-label {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-text-subtle);
+}

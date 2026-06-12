@@ -1,0 +1,464 @@
+/*
+ * Site layout + components. Built on desk's ported tokens — coral is the only
+ * accent, neutrals are the zinc ramp, type is Geist. Linear/Raycast restraint:
+ * whitespace, hairline borders, weight-and-scale hierarchy, no decoration.
+ *
+ * Capture frames are greyboxed for now (dashed placeholders that describe the
+ * intended real capture). eng2 swaps them for real post-R3 session captures.
+ */
+
+/* ── Shell ───────────────────────────────────────────────────────── */
+.site {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--space-8);
+}
+
+/* ── Nav ─────────────────────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+.nav__inner {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+}
+.nav__link {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+.nav__link:hover {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* ── Logo ────────────────────────────────────────────────────────── */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+.logo:hover {
+  text-decoration: none;
+}
+.logo__mark {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+.logo__word {
+  font-size: var(--text-lg);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 40px;
+  padding: 0 var(--space-7);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  transition: transform var(--duration-fast) var(--ease-standard), background var(--duration-fast)
+    var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.btn:hover {
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.btn--primary {
+  background: var(--color-accent);
+  color: var(--color-text-on-accent);
+}
+.btn--primary:hover {
+  background: var(--color-accent-strong);
+}
+.btn--ghost {
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+}
+.btn--ghost:hover {
+  border-color: var(--color-text-subtle);
+}
+
+/* ── Type helpers ────────────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+}
+.lede {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  max-width: 46ch;
+}
+.quiet {
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+}
+.mono-line {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+}
+
+/* ── Section rhythm ──────────────────────────────────────────────── */
+.section {
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-divider);
+}
+.section__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-bottom: var(--space-10);
+  max-width: 52ch;
+}
+.section__title {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+}
+
+/* ── Hero ────────────────────────────────────────────────────────── */
+.hero {
+  padding: var(--space-12) 0 var(--space-11);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-7);
+}
+.hero__title {
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-size: clamp(2.4rem, 6vw, 4.25rem);
+  max-width: 16ch;
+}
+.hero__title .accent {
+  color: var(--color-accent);
+}
+.hero__sub {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  max-width: 54ch;
+}
+.hero__cta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* The space-axis held frame: conversation (left, dimmed) | workspace (right,
+   filling with artifacts). The held frame alone carries the whole idea. */
+.hero-frame {
+  width: 100%;
+  margin-top: var(--space-8);
+}
+.window {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+}
+.window__bar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-bg-sunken);
+}
+.window__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+}
+.window__title {
+  margin-left: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+}
+.hero-stage {
+  display: grid;
+  grid-template-columns: 0.85fr 1.15fr;
+  min-height: 380px;
+  text-align: left;
+}
+.hero-pane {
+  padding: var(--space-7);
+}
+.hero-pane--convo {
+  border-right: 1px solid var(--color-divider);
+  background: var(--color-bg-sunken);
+  opacity: 0.5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.hero-pane--workspace {
+  background: var(--color-bg);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-auto-rows: 1fr;
+  gap: var(--space-5);
+  position: relative;
+}
+
+/* ── Greybox capture placeholder ─────────────────────────────────── */
+.capture {
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-sunken);
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-subtle);
+}
+.capture__kind {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-accent-strong);
+}
+.capture__label {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  max-width: 32ch;
+}
+.capture--wide {
+  min-height: 300px;
+}
+
+/* A faux comment pin to show the round-trip anchor in the greybox. */
+.pin {
+  position: absolute;
+  top: var(--space-7);
+  right: var(--space-7);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+}
+
+/* ── Convo bubbles (greybox) ─────────────────────────────────────── */
+.bubble {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+.bubble__who {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+  margin-bottom: var(--space-2);
+}
+.cursor-idle {
+  margin-top: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+.cursor-idle::after {
+  content: "▍";
+  color: var(--color-accent);
+}
+
+/* ── Input → output pairs ────────────────────────────────────────── */
+.pairs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-9);
+}
+.pair {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: var(--space-7);
+  align-items: stretch;
+}
+/* Grid items default to min-width:auto, so a `white-space: pre` codeblock
+   blows the track wider than the container instead of scrolling internally. */
+.pair > * {
+  min-width: 0;
+}
+.codeblock {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+  background: var(--color-bg-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  overflow-x: auto;
+  color: var(--color-text);
+  white-space: pre;
+  /* Commands must read exactly as typed — Geist Mono's calt ligatures turn
+     `->` into an arrow and visually swallow the space in `run --filter`. */
+  font-feature-settings: "calt" 0;
+  font-variant-ligatures: none;
+}
+.codeblock .tok-key {
+  color: var(--color-accent-strong);
+}
+.codeblock .tok-str {
+  color: var(--color-info);
+}
+.codeblock .tok-dim {
+  color: var(--color-text-subtle);
+}
+
+/* ── Footer + install ────────────────────────────────────────────── */
+.footer {
+  margin-top: auto;
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-12) 0;
+  background: var(--color-bg-sunken);
+}
+.install {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-7);
+  margin: var(--space-8) 0 var(--space-10);
+}
+.install__card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.install__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+.note {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+.footer__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-top: var(--space-7);
+  border-top: 1px solid var(--color-divider);
+}
+.footer__facts {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.footer__links {
+  display: flex;
+  gap: var(--space-7);
+  flex-wrap: wrap;
+}
+
+/* ── Theme toggle ────────────────────────────────────────────────── */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  border: 1px solid transparent;
+}
+.icon-btn:hover {
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+@media (max-width: 880px) {
+  .pair {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+  .install {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    padding: 0 var(--space-6);
+  }
+  /* Mobile hero: the held frame becomes workspace-only — the two-pane reveal is
+     a desktop affordance. No squeeze; the workspace money-shot stands alone. */
+  .hero-stage {
+    grid-template-columns: 1fr;
+    min-height: 280px;
+  }
+  .hero-pane--convo {
+    display: none;
+  }
+  .hero-pane--workspace {
+    grid-template-columns: 1fr;
+  }
+  .section {
+    padding: var(--space-11) 0;
+  }
+  .nav__links {
+    gap: var(--space-6);
+  }
+}
