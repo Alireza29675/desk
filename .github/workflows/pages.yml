@@ -1,0 +1,53 @@
+# Deploys website/ to GitHub Pages (https://alireza29675.github.io/desk/).
+#
+# Pages must be enabled with build_type=workflow BEFORE this workflow first
+# fires, or the deploy step fails:
+#   gh api repos/Alireza29675/desk/pages -X POST -f build_type=workflow
+#
+# website/ lives outside the packages/* workspace glob, so it has its own
+# committed bun.lock and the install runs INSIDE website/ — a root `bun install`
+# never installs a nested non-workspace package.json.
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: website
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: website/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
