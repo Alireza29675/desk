@@ -1,3 +1,8 @@
+import type { ArtifactId, ComponentId } from '@desk/types';
+import { useState } from 'react';
+import { api } from '../lib/api';
+import { draftAfterToggle } from '../lib/checkbox-draft';
+import { useStore } from '../state/store';
 import type { RendererProps } from './renderer-registry';
 
 interface Item {
@@ -12,17 +17,87 @@ interface Data {
   items: Item[];
 }
 
-export function ChecklistRenderer({ component }: RendererProps<Data>) {
+export function ChecklistRenderer({ component, artifactId }: RendererProps<Data>) {
   const { title, items } = component.data;
+  // Time-traveling views are read-only: a toggle would patch LIVE state while
+  // the operator is looking at the past.
+  const pinned = useStore((s) => s.open?.pinnedVersion !== undefined);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  async function toggle(item: Item) {
+    if (busyId !== null || pinned) return;
+    setBusyId(item.id);
+    setSaveFailed(false);
+    const { open, author, commentTarget, commentDraft, startComment } = useStore.getState();
+    if (!open) {
+      setBusyId(null);
+      return;
+    }
+    const nextChecked = !item.checked;
+    const components = open.artifact.content.components.map((c) =>
+      c.id === component.id
+        ? {
+            ...c,
+            data: {
+              ...component.data,
+              items: items.map((i) => (i.id === item.id ? { ...i, checked: nextChecked } : i)),
+            },
+          }
+        : c,
+    );
+    try {
+      await api.patchArtifact(artifactId as ArtifactId, { components }, author);
+      // Commit immediately: a toggle is a complete, intentional change. It
+      // must not sit in the 2s auto-commit window while the draft comment
+      // about it is being written.
+      await api.commit(artifactId as ArtifactId, author, '[checkbox]');
+      // Seed the composer draft — coalescing with a previous toggle-draft on
+      // this same checklist (single slot, last-write-wins).
+      const prev =
+        commentDraft !== null &&
+        commentTarget !== null &&
+        commentTarget.kind !== 'general' &&
+        commentTarget.componentId === component.id
+          ? { text: commentDraft, componentId: commentTarget.componentId }
+          : null;
+      const draft = draftAfterToggle(prev, {
+        componentId: component.id as ComponentId,
+        itemId: item.id,
+        label: item.label,
+        checked: nextChecked,
+      });
+      startComment(draft.anchor, draft.text);
+    } catch {
+      // The flip never happened server-side; the box stays as it was. Tell
+      // the operator instead of failing silently.
+      setSaveFailed(true);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <div className="component-block">
       {title ? <div style={{ fontWeight: 600 }}>{title}</div> : null}
+      {saveFailed ? (
+        <div className="checklist__error" role="alert">
+          Couldn’t save that change — try again.
+        </div>
+      ) : null}
       <ul className="checklist">
         {items.map((item) => (
           <li key={item.id} className="checklist__item">
-            <span className="checklist__box" data-checked={String(item.checked)} aria-hidden>
-              {item.checked ? '✓' : ''}
-            </span>
+            <input
+              type="checkbox"
+              aria-label={item.label}
+              className="checklist__box"
+              checked={item.checked}
+              data-checked={String(item.checked)}
+              data-busy={String(busyId === item.id)}
+              disabled={pinned || busyId !== null}
+              onChange={() => void toggle(item)}
+            />
             <div>
               <span className="checklist__label" data-checked={String(item.checked)}>
                 {item.label}

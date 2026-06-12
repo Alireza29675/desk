@@ -8,6 +8,7 @@ export function CommentRail() {
   const open = useStore((s) => s.open);
   const author = useStore((s) => s.author);
   const commentTarget = useStore((s) => s.commentTarget);
+  const commentDraft = useStore((s) => s.commentDraft);
   const clearCommentTarget = useStore((s) => s.clearCommentTarget);
   const [draft, setDraft] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -16,6 +17,12 @@ export function CommentRail() {
   useEffect(() => {
     if (commentTarget) textareaRef.current?.focus();
   }, [commentTarget]);
+
+  // Seed the composer from the store's draft slot (checkbox toggles etc.).
+  // Single slot, last-write-wins: a newer auto-draft replaces the text.
+  useEffect(() => {
+    if (commentDraft !== null) setDraft(commentDraft);
+  }, [commentDraft]);
 
   if (!open) return null;
   const artifactId = open.artifact.id;
@@ -87,7 +94,13 @@ export function CommentRail() {
               e.preventDefault();
               void post();
             }
-            if (e.key === 'Escape' && commentTarget) clearCommentTarget();
+            if (e.key === 'Escape' && commentTarget) {
+              // Dismissing an UNEDITED auto-draft clears it (the slot's
+              // send-or-dismiss semantic); hand-typed text survives an
+              // anchor dismiss, as before.
+              if (commentDraft !== null && draft === commentDraft) setDraft('');
+              clearCommentTarget();
+            }
           }}
           rows={3}
         />

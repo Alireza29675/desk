@@ -59,6 +59,13 @@ interface State {
   panelsHidden: boolean;
   /** Pending anchor for a new comment, set when the user targets a component. */
   commentTarget: CommentAnchor | null;
+  /**
+   * Composer seed text, set alongside `commentTarget` by flows that auto-draft
+   * (checkbox toggles). Single slot, last-write-wins; cleared together with
+   * the target on send and dismiss alike. The rail decides when/how to
+   * surface it — this is state, not presentation.
+   */
+  commentDraft: string | null;
   /** Anchor being momentarily highlighted because its comment was clicked. */
   focusedAnchor: CommentAnchor | null;
   /** Id of an artifact that failed to load (e.g. a stale/deleted deep link). */
@@ -74,8 +81,9 @@ interface State {
   scrubToVersion(version: number | null): Promise<void>;
   /** Re-sync the open artifact from the current address bar (load + popstate). */
   syncFromLocation(fromHistory: boolean): void;
-  /** Begin composing a comment anchored to a specific element. */
-  startComment(anchor: CommentAnchor): void;
+  /** Begin composing a comment anchored to a specific element. An optional
+   *  pre-filled draft seeds the composer (overwriting any previous seed). */
+  startComment(anchor: CommentAnchor, draft?: string): void;
   clearCommentTarget(): void;
   /** Momentarily highlight an existing comment's anchor (clears itself). */
   focusAnchor(anchor: CommentAnchor): void;
@@ -108,6 +116,7 @@ export const useStore = create<State>((set, get) => {
     open: null,
     loading: false,
     commentTarget: null,
+    commentDraft: null,
     focusedAnchor: null,
     loadError: null,
     theme:
@@ -148,27 +157,32 @@ export const useStore = create<State>((set, get) => {
         // Stale/deleted deep link, or a bad id: surface a not-found state
         // rather than the generic empty desk. Keep the URL so a retry/refresh
         // hits the same id once the artifact (re)appears.
-        set({ open: null, commentTarget: null, loadError: id });
+        set({ open: null, commentTarget: null, commentDraft: null, loadError: id });
         if (!opts.fromHistory) pushArtifact(id, segments);
         return;
       }
       // No per-artifact subscribe — the firehose (subscribed in init) already
       // delivers this artifact's events.
-      set({ open: { ...bundle, locator: segments }, commentTarget: null, loadError: null });
+      set({
+        open: { ...bundle, locator: segments },
+        commentTarget: null,
+        commentDraft: null,
+        loadError: null,
+      });
       if (!opts.fromHistory) pushArtifact(id, segments);
     },
 
     closeArtifact() {
-      set({ open: null, commentTarget: null, loadError: null });
+      set({ open: null, commentTarget: null, commentDraft: null, loadError: null });
       goHome();
     },
 
-    startComment(anchor) {
-      set({ commentTarget: anchor });
+    startComment(anchor, draft) {
+      set({ commentTarget: anchor, commentDraft: draft ?? null });
     },
 
     clearCommentTarget() {
-      set({ commentTarget: null });
+      set({ commentTarget: null, commentDraft: null });
     },
 
     focusAnchor(anchor) {
