@@ -19,14 +19,16 @@ import { useStore } from './store';
  * Called once, near the root.
  */
 export function useAnchorHighlights(): void {
-  const target = useStore((s) => s.commentTarget);
+  // Every text selection in the draft is painted pending — a multi-select
+  // comment can be marking several at once.
+  const draftAnchors = useStore((s) => s.draftAnchors);
   const focused = useStore((s) => s.focusedAnchor);
   // Re-resolve when the open artifact (and thus the live DOM) changes. This
   // also covers the unresolved set: comment posts/resolves replace `open`.
   const open = useStore((s) => s.open);
 
   useEffect(() => {
-    applyTextHighlight('desk-anchor-pending', target ? [target] : []);
+    applyTextHighlight('desk-anchor-pending', draftAnchors);
     applyTextHighlight('desk-anchor-focused', focused ? [focused] : []);
     // Persistent indicators: unresolved ROOT comments only (replies inherit
     // the parent's anchor and resolution, so painting roots covers threads).
@@ -43,7 +45,7 @@ export function useAnchorHighlights(): void {
       setHighlight('desk-anchor-focused', []);
       setHighlight('desk-anchor-unresolved', []);
     };
-  }, [target, focused, open]);
+  }, [draftAnchors, focused, open]);
 }
 
 /** Resolve text-selection anchors against the live DOM and paint them. */

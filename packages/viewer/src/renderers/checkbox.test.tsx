@@ -44,8 +44,8 @@ function openWith(component: Component, pinnedVersion?: number) {
       locator: [],
       ...(pinnedVersion !== undefined ? { pinnedVersion } : {}),
     },
-    commentTarget: null,
-    commentDraft: null,
+    draftAnchors: [],
+    draftBody: '',
   });
 }
 
@@ -61,7 +61,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
-  useStore.setState({ open: null, commentTarget: null, commentDraft: null });
+  useStore.setState({ open: null, draftAnchors: [], draftBody: '' });
 });
 
 function render(component: Component) {
@@ -100,12 +100,10 @@ describe('ChecklistRenderer — really checkable (item 4)', () => {
     await clickBox();
 
     const s = useStore.getState();
-    expect(s.commentDraft).toBe('Checked: Ship');
-    expect(s.commentTarget).toEqual({
-      kind: 'element',
-      componentId: COMP_ID,
-      elementPath: 'items.i1',
-    });
+    expect(s.draftBody).toBe('Checked: Ship');
+    expect(s.draftAnchors).toEqual([
+      { kind: 'element', componentId: COMP_ID, elementPath: 'items.i1' },
+    ]);
   });
 
   it('coalesces a second toggle on the same checklist into one draft', async () => {
@@ -119,8 +117,8 @@ describe('ChecklistRenderer — really checkable (item 4)', () => {
     await clickBox(1);
 
     const s = useStore.getState();
-    expect(s.commentDraft).toBe('Checked: A · Unchecked: B');
-    expect(s.commentTarget).toEqual({ kind: 'element', componentId: COMP_ID });
+    expect(s.draftBody).toBe('Checked: A · Unchecked: B');
+    expect(s.draftAnchors).toEqual([{ kind: 'element', componentId: COMP_ID }]);
   });
 
   it('is read-only while time-traveling (pinned version)', async () => {
@@ -152,7 +150,7 @@ describe('ChecklistRenderer — really checkable (item 4)', () => {
     expect(first.data.items.map((i) => i.checked)).toEqual([false, true]);
     expect(api.commit).toHaveBeenCalledWith(ART_ID, expect.anything(), '[checkbox reset]');
     // A reset is not a toggle: no auto-draft.
-    expect(useStore.getState().commentDraft).toBeNull();
+    expect(useStore.getState().draftBody).toBe('');
   });
 
   it('Reset is a no-op (no patch, no commit) when already at the authored state', async () => {
@@ -182,7 +180,7 @@ describe('ChecklistRenderer — really checkable (item 4)', () => {
     await clickBox();
 
     expect(container.querySelector('.checklist__error')).not.toBeNull();
-    expect(useStore.getState().commentDraft).toBeNull();
+    expect(useStore.getState().draftBody).toBe('');
     expect(api.commit).not.toHaveBeenCalled();
   });
 });

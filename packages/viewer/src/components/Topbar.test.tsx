@@ -32,14 +32,7 @@ const noop = () => {};
 function render(props: Partial<Parameters<typeof Topbar>[0]> = {}) {
   act(() =>
     root.render(
-      <Topbar
-        onOpenPalette={noop}
-        onToggleHistory={noop}
-        historyOpen={false}
-        onToggleNav={noop}
-        onToggleComments={noop}
-        {...props}
-      />,
+      <Topbar onOpenPalette={noop} onToggleHistory={noop} historyOpen={false} {...props} />,
     ),
   );
 }

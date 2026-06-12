@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { CommandPalette } from './components/CommandPalette';
 import { CommentRail } from './components/CommentRail';
+import { CommentTool } from './components/CommentTool';
 import { HistoryBar } from './components/HistoryBar';
+import { MobileBar } from './components/MobileBar';
 import { Sidebar } from './components/Sidebar';
 import { Topbar } from './components/Topbar';
 import { useStore } from './state/store';
@@ -17,11 +19,22 @@ export function App() {
   const loadError = useStore((s) => s.loadError);
   const sidebarHidden = useStore((s) => s.sidebarHidden);
   const railHidden = useStore((s) => s.railHidden);
+  const draftCount = useStore((s) => s.draftAnchors.length);
+  const composing = draftCount > 0;
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   // Which off-canvas panel is open on narrow viewports (ignored on wide via CSS).
   const [panel, setPanel] = useState<'nav' | 'comments' | null>(null);
   useAnchorHighlights();
+
+  // On a narrow viewport the rail is a drawer; surface it (and its composer)
+  // automatically when a comment draft starts, so the operator lands straight
+  // in the big mobile composer after marking a selection.
+  useEffect(() => {
+    if (draftCount > 0 && window.matchMedia?.('(max-width: 920px)').matches) {
+      setPanel('comments');
+    }
+  }, [draftCount]);
 
   // Close the mobile panel when the open artifact changes (e.g. after picking
   // one from the nav drawer).
@@ -101,7 +114,9 @@ export function App() {
       className="app"
       data-panel={panel ?? undefined}
       data-sidebar={sidebarHidden ? 'hidden' : undefined}
-      data-rail={railHidden ? 'hidden' : undefined}
+      // A hidden rail is forced back open while composing so the chips +
+      // composer stay reachable (the operator can re-hide it after posting).
+      data-rail={railHidden && !composing ? 'hidden' : undefined}
     >
       <Sidebar />
       <main className="workspace">
@@ -109,8 +124,6 @@ export function App() {
           onOpenPalette={() => setPaletteOpen(true)}
           onToggleHistory={() => setHistoryOpen((v) => !v)}
           historyOpen={historyOpen}
-          onToggleNav={() => setPanel((p) => (p === 'nav' ? null : 'nav'))}
-          onToggleComments={() => setPanel((p) => (p === 'comments' ? null : 'comments'))}
         />
         {open && historyOpen ? <HistoryBar /> : null}
         {/* Keyed per artifact (or empty/not-found state) so React remounts the
@@ -137,6 +150,11 @@ export function App() {
         </div>
       </main>
       {open ? <CommentRail /> : null}
+      <CommentTool />
+      <MobileBar
+        onToggleNav={() => setPanel((p) => (p === 'nav' ? null : 'nav'))}
+        onToggleComments={() => setPanel((p) => (p === 'comments' ? null : 'comments'))}
+      />
       {panel ? (
         <button
           type="button"

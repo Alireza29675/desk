@@ -68,7 +68,7 @@ beforeEach(() => {
   registry = new Map();
   vi.stubGlobal('CSS', { escape: realEscape, highlights: registry });
   vi.stubGlobal('Highlight', FakeHighlight);
-  useStore.setState({ open: null, commentTarget: null, focusedAnchor: null });
+  useStore.setState({ open: null, draftAnchors: [], focusedAnchor: null });
 });
 
 afterEach(() => {
@@ -76,7 +76,7 @@ afterEach(() => {
   content.remove();
   mount.remove();
   vi.unstubAllGlobals();
-  useStore.setState({ open: null, commentTarget: null, focusedAnchor: null });
+  useStore.setState({ open: null, draftAnchors: [], focusedAnchor: null });
 });
 
 describe('useAnchorHighlights — persistent unresolved text highlight', () => {
@@ -124,7 +124,7 @@ describe('useAnchorHighlights — persistent unresolved text highlight', () => {
     // unresolved comment are all live at once. Each owns its own named key, so
     // all three must be present together — no key overwrites another's.
     useStore.setState({
-      commentTarget: textAnchor(0, 5),
+      draftAnchors: [textAnchor(0, 5)],
       focusedAnchor: textAnchor(6, 11),
     });
     setOpen([textComment('t1')]);

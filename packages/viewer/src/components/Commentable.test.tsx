@@ -13,12 +13,12 @@ beforeEach(() => {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  useStore.setState({ commentTarget: null, focusedAnchor: null });
+  useStore.setState({ draftAnchors: [], focusedAnchor: null });
 });
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
-  useStore.setState({ commentTarget: null, focusedAnchor: null });
+  useStore.setState({ draftAnchors: [], focusedAnchor: null });
 });
 
 function render() {
@@ -63,12 +63,21 @@ describe('Commentable — anchor attributes drive the focus/target visuals', () 
     expect(el.getAttribute('data-comment-focused')).toBeNull();
   });
 
-  it('still paints data-comment-target during composing (unchanged behavior)', () => {
+  it('draws a pending overlay for a draft selection that lives in this component', () => {
+    // While composing, a region/point in the draft set shows its overlay so the
+    // operator sees what they're commenting on (text draws via the highlight
+    // registry instead).
     useStore.setState({
-      commentTarget: { kind: 'element', componentId: 'c1' as ComponentId },
+      draftAnchors: [
+        {
+          kind: 'region',
+          componentId: 'c1' as ComponentId,
+          region: { kind: 'fractional', x: 0.1, y: 0.1, width: 0.4, height: 0.4 },
+        } as CommentAnchor,
+      ],
     });
-    const el = render();
-    expect(el.getAttribute('data-comment-target')).toBe('true');
+    render();
+    expect(container.querySelector('.anchor-overlay--region')).not.toBeNull();
   });
 });
 

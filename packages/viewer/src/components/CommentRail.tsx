@@ -8,33 +8,31 @@ import {
 } from '@desk/types';
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { captureAnchorImage } from '../lib/capture-anchor';
+import { submitComment } from '../lib/submit-comment';
 import { useStore } from '../state/store';
 import { RelationsSection } from './RelationsSection';
 
 export function CommentRail() {
   const open = useStore((s) => s.open);
   const author = useStore((s) => s.author);
-  const commentTarget = useStore((s) => s.commentTarget);
-  const commentDraft = useStore((s) => s.commentDraft);
-  const clearCommentTarget = useStore((s) => s.clearCommentTarget);
-  const [draft, setDraft] = useState('');
+  const draftAnchors = useStore((s) => s.draftAnchors);
+  const draftBody = useStore((s) => s.draftBody);
+  const setDraftBody = useStore((s) => s.setDraftBody);
+  const removeDraftAnchor = useStore((s) => s.removeDraftAnchor);
+  const armComment = useStore((s) => s.armComment);
+  const clearDraft = useStore((s) => s.clearDraft);
   // The one open attachment lightbox (at most one at a time, across all cards).
   const [lightbox, setLightbox] = useState<CommentAttachment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   // Guards post() against a double ⌘-Enter while the capture+POST await runs.
   const submitting = useRef(false);
+  const anchorCount = draftAnchors.length;
 
-  // When the user targets a component, focus the composer so they can type.
+  // Each new selection added to the draft pulls focus to the composer so the
+  // operator can keep typing without reaching for the textarea.
   useEffect(() => {
-    if (commentTarget) textareaRef.current?.focus();
-  }, [commentTarget]);
-
-  // Seed the composer from the store's draft slot (checkbox toggles etc.).
-  // Single slot, last-write-wins: a newer auto-draft replaces the text.
-  useEffect(() => {
-    if (commentDraft !== null) setDraft(commentDraft);
-  }, [commentDraft]);
+    if (anchorCount > 0) textareaRef.current?.focus();
+  }, [anchorCount]);
 
   // An unresolved dot on the artifact was clicked: scroll its rail row into
   // view and flash it. The store auto-clears `railTarget` after ~1.6s (same
@@ -57,22 +55,16 @@ export function CommentRail() {
   const { roots, repliesByParent } = buildThreads(open.comments);
 
   async function post() {
-    if (!draft.trim() || !open || submitting.current) return;
+    const body = draftBody.trim();
+    if (!body || !open || submitting.current) return;
     submitting.current = true;
-    const anchor = commentTarget ?? ({ kind: 'general' } as CommentAnchor);
+    // No selections → a general (document-level) comment, modeled as a single
+    // `general` anchor so the server's ≥1 invariant holds. submitComment does
+    // the per-anchor capture + POST internally.
+    const anchors: CommentAnchor[] = draftAnchors.length > 0 ? draftAnchors : [{ kind: 'general' }];
     try {
-      // Point/region anchors ride with a capture of what the operator sees
-      // (their theme, viewport, live state). Best-effort: a failed capture
-      // still posts the comment and the channel falls back to its own render.
-      const shot = await captureAnchorImage(anchor);
-      await api.comment(artifactId, {
-        anchor,
-        payload: { kind: 'text', text: draft.trim() },
-        author,
-        ...(shot ? { attachments: [{ kind: 'image', dataUrl: shot.dataUrl }] } : {}),
-      });
-      setDraft('');
-      clearCommentTarget();
+      await submitComment({ body, anchors });
+      clearDraft();
     } finally {
       submitting.current = false;
     }
@@ -88,8 +80,8 @@ export function CommentRail() {
       <div className="comment-rail__list">
         {roots.length === 0 ? (
           <p className="comment-rail__empty">
-            No comments yet. Hover any element and click “Comment” to anchor one, or leave a general
-            note below.
+            No comments yet. Press <kbd>C</kbd> (or the comment button) to mark a point, region, or
+            text — or just leave a general note below.
           </p>
         ) : (
           roots.map((c) => (
@@ -105,50 +97,67 @@ export function CommentRail() {
         )}
       </div>
       <div className="comment-rail__composer">
-        {commentTarget && commentTarget.kind !== 'general' ? (
-          <div className="comment-rail__target">
-            <span>
-              Commenting on <code>{describeAnchor(commentTarget)}</code>
-            </span>
-            <button
-              className="comment-rail__target-clear"
-              onClick={clearCommentTarget}
-              title="Make it a general comment"
-            >
-              ✕
-            </button>
+        {anchorCount > 0 ? (
+          <div className="comment-rail__chips">
+            {draftAnchors.map((a, i) => (
+              <span
+                // biome-ignore lint/suspicious/noArrayIndexKey: draft anchors are a small, append-only set
+                key={i}
+                className="comment-chip"
+              >
+                <span className="comment-chip__label">{chipLabel(a)}</span>
+                <button
+                  type="button"
+                  className="comment-chip__remove"
+                  aria-label={`Remove ${chipLabel(a)} selection`}
+                  onClick={() => removeDraftAnchor(i)}
+                >
+                  ✕
+                </button>
+              </span>
+            ))}
           </div>
         ) : null}
         <textarea
           ref={textareaRef}
           className="comment-rail__textarea"
           placeholder={
-            commentTarget && commentTarget.kind !== 'general'
-              ? `Comment on this ${commentTarget.kind === 'text-selection' ? 'selection' : commentTarget.kind}…`
-              : 'Leave a general comment…'
+            anchorCount > 0 ? 'Comment on the selections above…' : 'Leave a general comment…'
           }
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          value={draftBody}
+          onChange={(e) => setDraftBody(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
               void post();
             }
-            if (e.key === 'Escape' && commentTarget) {
-              // Dismissing an UNEDITED auto-draft clears it (the slot's
-              // send-or-dismiss semantic); hand-typed text survives an
-              // anchor dismiss, as before.
-              if (commentDraft !== null && draft === commentDraft) setDraft('');
-              clearCommentTarget();
+            // Escape cancels the whole draft (selections + text).
+            if (e.key === 'Escape' && (anchorCount > 0 || draftBody)) {
+              e.preventDefault();
+              clearDraft();
             }
           }}
           rows={3}
         />
         <div className="comment-rail__composer-row">
-          <span className="comment-rail__hint">⌘+Enter to post</span>
-          <button className="btn btn--primary btn--sm" disabled={!draft.trim()} onClick={post}>
-            Post
+          <button
+            type="button"
+            className="comment-rail__addmore"
+            onClick={armComment}
+            title="Pick another point, region, or text to add to this comment"
+          >
+            + Add selection
           </button>
+          <div className="comment-rail__composer-actions">
+            <span className="comment-rail__hint">⌘+Enter to post</span>
+            <button
+              className="btn btn--primary btn--sm"
+              disabled={!draftBody.trim()}
+              onClick={post}
+            >
+              Post
+            </button>
+          </div>
         </div>
       </div>
       {lightbox ? (
@@ -436,6 +445,22 @@ function buildThreads(comments: Comment[]): {
  *  scrollIntoView honors the same preference the CSS motion budget respects. */
 function scrollBehavior(): ScrollBehavior {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+}
+
+/** Short, glyph-led label for a draft selection chip in the composer. */
+function chipLabel(anchor: CommentAnchor): string {
+  switch (anchor.kind) {
+    case 'point':
+      return '⌖ Point';
+    case 'region':
+      return '▭ Region';
+    case 'text-selection':
+      return '❝ Text';
+    case 'element':
+      return '◳ Element';
+    case 'general':
+      return 'General';
+  }
 }
 
 /** Concise label for an anchor (no leading verb, so callers supply context). */

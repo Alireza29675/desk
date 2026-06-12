@@ -1,7 +1,6 @@
 import { type Comment, type CommentAnchor, type ComponentId, commentAnchors } from '@desk/types';
 import {
   type ReactNode,
-  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -9,11 +8,11 @@ import {
   useRef,
   useState,
 } from 'react';
+import { anchorFromSelection } from '../lib/anchor-construct';
 import {
   type Fraction,
   type FractionalRect,
   fractionalPoint,
-  fractionalRect,
   rangeFromTextOffsets,
   selectedTextPreview,
   textOffsetsWithin,
@@ -22,21 +21,23 @@ import { useUnresolvedByComponent } from '../state/selectors';
 import { useStore } from '../state/store';
 
 /**
- * Wraps a rendered component so the operator can anchor a comment to it. Four
- * of the five anchor shapes are reachable here; the fifth (`general`) is the
- * composer's default when nothing is targeted.
+ * Wraps a rendered component as a comment surface. Point and region capture now
+ * live in the GLOBAL comment tool (see `CommentTool`) — when it's armed, a click
+ * anywhere in here becomes a point and a drag a region, resolved back to this
+ * component by `data-component-id`. Two things stay local:
  *
- *   • element        — the "Comment" tool: targets the component as a whole.
- *   • point          — the "Pin" tool: click inside to drop a pin (fractional).
- *   • region         — the "Region" tool: drag a box (fractional rect).
- *   • text-selection — automatic: select text and a floating pill appears.
+ *   • text-selection — select text inside and a floating "Comment" pill appears
+ *     (works with or without the tool armed); clicking it adds the selection to
+ *     the draft via the shared `anchorFromSelection` constructor.
+ *   • the read side — unresolved-comment dots, their hover cards, and the
+ *     pending/focused overlays for selections that live in this component.
  *
  * Everything stored is semantic or relative (component id, char offsets, 0..1
  * fractions), never a raw pixel — the anchoring pillar. Pixels exist only
  * transiently, to draw overlays, and are recomputed from the live box.
  *
- * It also carries `data-component-id`, so deep links (`#component:<id>`) still
- * resolve to this element.
+ * It also carries `data-component-id`, so deep links (`#component:<id>`) and the
+ * global tool's hit-testing both resolve to this element.
  */
 export function Commentable({
   componentId,
@@ -48,12 +49,17 @@ export function Commentable({
   children: ReactNode;
 }) {
   const cid = componentId as ComponentId;
-  const startComment = useStore((s) => s.startComment);
-  const target = useStore((s) => s.commentTarget);
+  const draftAnchors = useStore((s) => s.draftAnchors);
+  const addDraftAnchor = useStore((s) => s.addDraftAnchor);
   const focused = useStore((s) => s.focusedAnchor);
   const focusAnchor = useStore((s) => s.focusAnchor);
   const revealInRail = useStore((s) => s.revealInRail);
   const unresolved = useUnresolvedByComponent(componentId);
+
+  // The draft selections that live in THIS component — point/region draw their
+  // overlay so the operator sees what they're composing on (text selections are
+  // painted by the shared CSS highlight registry, see useAnchorHighlights).
+  const pendingHere = draftAnchors.filter((a) => anchorBelongsTo(a, cid));
 
   // Flatten the unresolved comments into per-anchor markers for THIS component.
   // A multi-anchor comment shows one dot per anchor it lands here; an anchor in
@@ -70,10 +76,6 @@ export function Commentable({
   );
 
   const contentRef = useRef<HTMLDivElement | null>(null);
-  // Active spatial capture for *this* component, or null when idle.
-  const [mode, setMode] = useState<'point' | 'region' | null>(null);
-  // Live drag rectangle while the region tool is dragging.
-  const [drag, setDrag] = useState<{ from: Fraction; to: Fraction } | null>(null);
   // Floating selection pill: where to show it + the offsets it would anchor.
   const [pill, setPill] = useState<{
     x: number;
@@ -97,65 +99,12 @@ export function Commentable({
   const popoverOpenedAt = useRef(0);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const isTarget = anchorBelongsTo(target, cid);
   const isFocused = anchorBelongsTo(focused, cid);
 
   const boxOf = () => {
     const r = contentRef.current?.getBoundingClientRect();
     return r ? { left: r.left, top: r.top, width: r.width, height: r.height } : null;
   };
-
-  // ── Spatial capture (point / region) ────────────────────────────────
-  const onPointerDown = (e: ReactPointerEvent) => {
-    if (mode !== 'region') return;
-    const box = boxOf();
-    if (!box) return;
-    e.preventDefault();
-    (e.target as Element).setPointerCapture?.(e.pointerId);
-    const f = fractionalPoint(box, e.clientX, e.clientY);
-    setDrag({ from: f, to: f });
-  };
-
-  const onPointerMove = (e: ReactPointerEvent) => {
-    if (mode !== 'region' || !drag) return;
-    const box = boxOf();
-    if (!box) return;
-    setDrag({ from: drag.from, to: fractionalPoint(box, e.clientX, e.clientY) });
-  };
-
-  const onPointerUp = (e: ReactPointerEvent) => {
-    const box = boxOf();
-    if (!box) return;
-    if (mode === 'point') {
-      startComment({
-        kind: 'point',
-        componentId: cid,
-        offset: fractionalPoint(box, e.clientX, e.clientY),
-      });
-      setMode(null);
-    } else if (mode === 'region' && drag) {
-      const rect = fractionalRect(box, drag.from, drag.to);
-      // Ignore an accidental click-without-drag; require a meaningful area.
-      if (rect.width > 0.02 && rect.height > 0.02) {
-        startComment({ kind: 'region', componentId: cid, region: { kind: 'fractional', ...rect } });
-      }
-      setDrag(null);
-      setMode(null);
-    }
-  };
-
-  // Esc leaves capture mode without anchoring.
-  useEffect(() => {
-    if (!mode) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setMode(null);
-        setDrag(null);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [mode]);
 
   // ── Unresolved comment indicators ───────────────────────────────────
   // text-selection anchors have no fractional position of their own — project
@@ -267,9 +216,14 @@ export function Commentable({
   }, []);
 
   const commentOnSelection = () => {
-    if (!pill) return;
-    startComment({ kind: 'text-selection', componentId: cid, start: pill.start, end: pill.end });
-    window.getSelection()?.removeAllRanges();
+    // Build the anchor through the shared constructor (the same path the global
+    // tool uses) so the text-selection shape never drifts. The pill keeps the
+    // selection alive through the click (onMouseDown preventDefault), so
+    // getSelection() is still the live range here.
+    const selection = window.getSelection();
+    const anchor = selection ? anchorFromSelection(selection) : null;
+    if (anchor) addDraftAnchor(anchor);
+    selection?.removeAllRanges();
     setPill(null);
   };
 
@@ -277,53 +231,38 @@ export function Commentable({
   // the CSS Highlight registry is a shared keyed map, so a single writer keeps
   // sibling Commentables from clobbering each other's range.
 
-  const liveRect = drag
-    ? fractionalRect({ left: 0, top: 0, width: 1, height: 1 }, drag.from, drag.to)
-    : null;
-
   return (
     <div
       className={['commentable', className].filter(Boolean).join(' ')}
       data-component-id={componentId}
-      data-comment-target={isTarget && target?.kind === 'element' ? 'true' : undefined}
       // Click-to-reveal feedback for element anchors. text-selection is painted
       // by the CSS Highlight registry; region/point draw their own overlays;
       // element had nothing — clicking the comment did nothing visible. This
       // attribute drives a brief outline pulse on the whole component.
       data-comment-focused={isFocused && focused?.kind === 'element' ? 'true' : undefined}
-      data-capture={mode ?? undefined}
     >
-      <div
-        ref={contentRef}
-        className="commentable__content"
-        onMouseUp={refreshPill}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-      >
+      <div ref={contentRef} className="commentable__content" onMouseUp={refreshPill}>
         {children}
 
-        {/* Live drag rectangle while marking a region. */}
-        {liveRect ? (
-          <span
-            className="anchor-overlay anchor-overlay--region is-live"
-            style={rectStyle(liveRect)}
-          />
-        ) : null}
-
-        {/* Pending spatial anchor (what you're about to comment on). */}
-        {isTarget && target?.kind === 'region' && target.region.kind === 'fractional' ? (
-          <span
-            className="anchor-overlay anchor-overlay--region"
-            style={rectStyle(target.region)}
-          />
-        ) : null}
-        {isTarget && target?.kind === 'point' ? (
-          <span
-            className="anchor-overlay anchor-overlay--point"
-            style={pointStyle(target.offset)}
-          />
-        ) : null}
+        {/* Pending spatial selections (what you're about to comment on) — one
+            overlay per point/region draft anchor that lives here. */}
+        {pendingHere.map((a, i) =>
+          a.kind === 'region' && a.region.kind === 'fractional' ? (
+            <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: draft anchors are a small, append-only set
+              key={i}
+              className="anchor-overlay anchor-overlay--region"
+              style={rectStyle(a.region)}
+            />
+          ) : a.kind === 'point' ? (
+            <span
+              // biome-ignore lint/suspicious/noArrayIndexKey: draft anchors are a small, append-only set
+              key={i}
+              className="anchor-overlay anchor-overlay--point"
+              style={pointStyle(a.offset)}
+            />
+          ) : null,
+        )}
 
         {/* Focused spatial anchor (a clicked comment revealing its location). */}
         {isFocused && focused?.kind === 'region' && focused.region.kind === 'fractional' ? (
@@ -402,39 +341,6 @@ export function Commentable({
             </button>
           </div>
         ) : null}
-
-        {/* Capture-mode hint. */}
-        {mode ? (
-          <span className="commentable__capture-hint">
-            {mode === 'point' ? 'Click to drop a pin' : 'Drag to mark a region'} · Esc to cancel
-          </span>
-        ) : null}
-      </div>
-
-      <div className="commentable__tools" role="toolbar" aria-label="Comment anchors">
-        <button
-          className="commentable__tool"
-          title="Comment on this element"
-          onClick={() => startComment({ kind: 'element', componentId: cid })}
-        >
-          Comment
-        </button>
-        <button
-          className="commentable__tool commentable__tool--icon"
-          title="Pin a point"
-          data-active={mode === 'point' ? 'true' : undefined}
-          onClick={() => setMode((m) => (m === 'point' ? null : 'point'))}
-        >
-          ⌖
-        </button>
-        <button
-          className="commentable__tool commentable__tool--icon"
-          title="Mark a region"
-          data-active={mode === 'region' ? 'true' : undefined}
-          onClick={() => setMode((m) => (m === 'region' ? null : 'region'))}
-        >
-          ▭
-        </button>
       </div>
 
       {/* Floating pill anchored to a live text selection. */}

@@ -1,5 +1,11 @@
 // @vitest-environment happy-dom
-import type { Comment, CommentAttachment, CommentId, ComponentId } from '@desk/types';
+import type {
+  Comment,
+  CommentAnchor,
+  CommentAttachment,
+  CommentId,
+  ComponentId,
+} from '@desk/types';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -29,12 +35,12 @@ beforeEach(() => {
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
-  useStore.setState({ open: null, commentTarget: null, commentDraft: null, railTarget: null });
+  useStore.setState({ open: null, draftAnchors: [], draftBody: '', railTarget: null });
 });
 afterEach(() => {
   act(() => root.unmount());
   container.remove();
-  useStore.setState({ open: null, commentTarget: null, commentDraft: null, railTarget: null });
+  useStore.setState({ open: null, draftAnchors: [], draftBody: '', railTarget: null });
 });
 
 const makeComment = (id: string, overrides: Partial<Comment> = {}): Comment =>
@@ -154,49 +160,90 @@ describe('CommentRail — rail reveal flash', () => {
   });
 });
 
-describe('CommentRail — draft seeding and Escape', () => {
+describe('CommentRail — composer draft (body + selections)', () => {
   const textarea = () =>
     container.querySelector(
       '.comment-rail__composer .comment-rail__textarea',
     ) as HTMLTextAreaElement;
+  const point = (): CommentAnchor =>
+    ({ kind: 'point', componentId: 'cmp' as ComponentId, offset: { x: 0.5, y: 0.5 } }) as never;
 
-  it('seeds the composer from commentDraft and clears an unedited seed on Escape', () => {
-    useStore.setState({ commentTarget: { kind: 'general' }, commentDraft: 'seed text' });
+  it('reflects the store draftBody in the textarea', () => {
+    useStore.setState({ draftAnchors: [], draftBody: 'seed text' });
     renderRail([]);
     expect(textarea().value).toBe('seed text');
-
-    act(() => {
-      textarea().dispatchEvent(
-        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
-      );
-    });
-    expect(textarea().value).toBe('');
-    expect(useStore.getState().commentTarget).toBeNull();
   });
 
-  it('keeps hand-edited text when Escape dismisses the anchor', () => {
-    useStore.setState({ commentTarget: { kind: 'general' }, commentDraft: 'seed text' });
+  it('renders one removable chip per draft selection', () => {
+    useStore.setState({ draftAnchors: [point(), point()], draftBody: '' });
     renderRail([]);
-    // Operator edits the seeded draft to something of their own. Use the native
-    // prototype setter so React's value tracker registers the change.
-    act(() => {
-      const el = textarea();
-      const setter = Object.getOwnPropertyDescriptor(
-        window.HTMLTextAreaElement.prototype,
-        'value',
-      )?.set;
-      setter?.call(el, 'my own words');
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    expect(container.querySelectorAll('.comment-rail__chips .comment-chip').length).toBe(2);
+  });
 
+  it('the chip × removes that selection from the draft', () => {
+    useStore.setState({ draftAnchors: [point(), point()], draftBody: '' });
+    renderRail([]);
+    const removes = container.querySelectorAll('.comment-chip__remove');
+    act(() => (removes[0] as HTMLButtonElement).click());
+    expect(useStore.getState().draftAnchors).toHaveLength(1);
+  });
+
+  it('Escape cancels the whole draft — selections and text together', () => {
+    useStore.setState({ draftAnchors: [point()], draftBody: 'half-written' });
+    renderRail([]);
+    expect(container.querySelector('.comment-chip')).not.toBeNull();
     act(() => {
       textarea().dispatchEvent(
         new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
       );
     });
-    // Only an unedited seed is cleared; edited text survives the anchor dismiss.
-    expect(textarea().value).toBe('my own words');
-    expect(useStore.getState().commentTarget).toBeNull();
+    const s = useStore.getState();
+    expect(s.draftAnchors).toEqual([]);
+    expect(s.draftBody).toBe('');
+    expect(container.querySelector('.comment-chip')).toBeNull();
+  });
+
+  it('"+ Add selection" arms the comment tool, keeping the draft', () => {
+    useStore.setState({ draftAnchors: [point()], draftBody: 'note' });
+    renderRail([]);
+    const addBtn = container.querySelector('.comment-rail__addmore') as HTMLButtonElement;
+    act(() => addBtn.click());
+    expect(useStore.getState().commentArmed).toBe(true);
+    expect(useStore.getState().draftAnchors).toHaveLength(1); // draft preserved
+  });
+});
+
+describe('CommentRail — posting', () => {
+  const point = (): CommentAnchor =>
+    ({ kind: 'point', componentId: 'cmp' as ComponentId, offset: { x: 0.5, y: 0.5 } }) as never;
+  const postButton = () =>
+    [...container.querySelectorAll('button')].find((b) => b.textContent === 'Post') as
+      | HTMLButtonElement
+      | undefined;
+
+  it('posts the body over every draft anchor, then clears the draft', async () => {
+    useStore.setState({ draftAnchors: [point(), point()], draftBody: 'fix these' });
+    renderRail([]);
+    await act(async () => {
+      postButton()?.click();
+    });
+    expect(commentMock).toHaveBeenCalledTimes(1);
+    const body = commentMock.mock.calls[0]?.[1] as { anchors: unknown[]; payload: unknown };
+    expect(body.anchors).toHaveLength(2);
+    expect(body.payload).toEqual({ kind: 'text', text: 'fix these' });
+    const s = useStore.getState();
+    expect(s.draftAnchors).toEqual([]);
+    expect(s.draftBody).toBe('');
+  });
+
+  it('posts a single general anchor when there are no selections', async () => {
+    useStore.setState({ draftAnchors: [], draftBody: 'overall thought' });
+    renderRail([]);
+    await act(async () => {
+      postButton()?.click();
+    });
+    const body = commentMock.mock.calls[0]?.[1] as { anchors: unknown[] };
+    expect(body.anchors).toEqual([{ kind: 'general' }]);
   });
 });
 

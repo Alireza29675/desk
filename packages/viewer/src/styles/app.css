@@ -909,47 +909,6 @@
   position: relative;
 }
 
-.commentable__tools {
-  position: absolute;
-  top: var(--space-3);
-  right: var(--space-3);
-  display: flex;
-  gap: 4px;
-  opacity: 0;
-  z-index: var(--z-elevated);
-  transition: opacity var(--duration-fast) var(--ease-standard);
-}
-.commentable:hover .commentable__tools,
-.commentable__tools:focus-within {
-  opacity: 1;
-}
-.commentable__tool {
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-medium);
-  padding: 3px 9px;
-  border-radius: var(--radius-pill);
-  background: var(--color-accent);
-  color: var(--color-text-on-accent);
-  box-shadow: var(--shadow-1);
-  transition: background var(--duration-fast) var(--ease-standard);
-}
-.commentable__tool:hover {
-  background: var(--color-accent-strong);
-}
-.commentable__tool--icon {
-  padding: 3px 7px;
-  font-size: var(--text-xs);
-  line-height: 1;
-}
-.commentable__tool[data-active="true"] {
-  background: var(--color-text);
-  color: var(--color-bg);
-}
-
-.commentable[data-comment-target="true"] {
-  box-shadow: 0 0 0 2px var(--color-accent-ring);
-  border-radius: var(--radius-md);
-}
 /* Brief pulse when an element-anchored comment is clicked in the rail. The
    store auto-clears `focusedAnchor` after ~1.6s (see store.ts focusTimer), so
    match that duration. text-selection / region / point have their own focused
@@ -966,30 +925,6 @@
     box-shadow: 0 0 0 2px transparent, 0 0 0 6px transparent;
   }
 }
-/* While a point/region tool is armed, the content invites a click/drag. */
-.commentable[data-capture="point"] .commentable__content,
-.commentable[data-capture="region"] .commentable__content {
-  cursor: crosshair;
-}
-.commentable[data-capture] {
-  box-shadow: 0 0 0 2px var(--color-accent-ring);
-  border-radius: var(--radius-md);
-}
-.commentable__capture-hint {
-  position: absolute;
-  left: 50%;
-  bottom: var(--space-3);
-  transform: translateX(-50%);
-  padding: 3px 10px;
-  border-radius: var(--radius-pill);
-  background: var(--color-text);
-  color: var(--color-bg);
-  font-size: var(--text-2xs);
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: var(--z-elevated);
-}
-
 /* Spatial anchor overlays (point pin + region rect), projected from fractions. */
 .anchor-overlay {
   position: absolute;
@@ -1000,9 +935,6 @@
   border: 1.5px solid var(--color-accent);
   background: var(--color-accent-ring);
   border-radius: var(--radius-sm);
-}
-.anchor-overlay--region.is-live {
-  border-style: dashed;
 }
 /* Soft static ring around the whole component — drawn while an unresolved
    element-anchored comment's dot is hovered (the focus pulse, minus motion). */
@@ -1157,26 +1089,122 @@
   background: var(--color-accent-strong);
 }
 
-.comment-rail__target {
-  display: flex;
+/* ── Global comment tool ────────────────────────────────────────── */
+/* Desktop entry point: a corner button (bottom-right) arming point/region
+   capture; `C` does the same. Folds into the mobile bottom bar ≤920px. */
+.comment-tool__fab {
+  position: fixed;
+  right: var(--space-7);
+  bottom: var(--space-7);
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-accent-soft);
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-2);
+  font-size: var(--text-lg);
+  z-index: var(--z-modal);
+  transition: transform var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast)
+    var(--ease-standard);
+}
+.comment-tool__fab:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-3);
+}
+.comment-tool__fab[data-armed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+/* While armed, the whole artifact body invites a click/drag. */
+.workspace__body[data-comment-armed],
+.workspace__body[data-comment-armed] * {
+  cursor: crosshair;
+}
+/* Armed instruction bar (fixed, top-centre) + the live drag rectangle. */
+.comment-capture__hint {
+  position: fixed;
+  top: calc(var(--space-7) + env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: var(--z-modal);
+  box-shadow: var(--shadow-2);
+}
+.comment-capture__rect {
+  position: fixed;
+  border: 1.5px dashed var(--color-accent);
+  background: var(--color-accent-ring);
   border-radius: var(--radius-sm);
+  pointer-events: none;
+  z-index: var(--z-modal);
+}
+
+/* ── Mobile bottom bar ──────────────────────────────────────────── */
+/* Hidden on wide viewports; shown ≤920px (see the media query below). */
+.mobile-bar {
+  display: none;
+}
+
+/* Draft selection chips — one per selection a comment will cover, removable. */
+.comment-rail__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+.comment-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 3px 3px 3px var(--space-4);
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-accent-ring);
+  border-radius: var(--radius-pill);
   font-size: var(--text-2xs);
   color: var(--color-text);
 }
-.comment-rail__target code {
-  font-family: var(--font-mono);
+.comment-chip__label {
+  white-space: nowrap;
 }
-.comment-rail__target-clear {
+.comment-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
   color: var(--color-text-muted);
-  padding: 0 4px;
+  line-height: 1;
+  transition: background var(--duration-fast) var(--ease-standard);
 }
-.comment-rail__target-clear:hover {
+.comment-chip__remove:hover {
+  background: var(--color-accent-ring);
+  color: var(--color-text);
+}
+/* The composer's bottom row splits the "add another selection" affordance from
+   the post action. */
+.comment-rail__addmore {
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-medium);
   color: var(--color-accent);
+  padding: var(--space-2) 0;
+}
+.comment-rail__addmore:hover {
+  color: var(--color-accent-strong);
+}
+.comment-rail__composer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 /* ── Buttons ────────────────────────────────────────────────────── */
@@ -1360,7 +1388,10 @@
   .history-bar,
   .presentation__nav,
   .presentation__fullscreen,
-  .commentable__tools,
+  .comment-tool__fab,
+  .comment-capture__hint,
+  .comment-capture__rect,
+  .mobile-bar,
   .anchor-overlay,
   .selection-pill,
   .unresolved-dot,
@@ -1477,9 +1508,6 @@
    ≤640px (phones): mobile is a first-class citizen — the comment rail
    becomes a bottom sheet at thumb reach, secondary topbar actions collapse
    behind a ⋯ menu, and touch targets get real sizes. */
-.topbar__mobile-only {
-  display: none;
-}
 .mobile-backdrop {
   display: none;
 }
@@ -1488,13 +1516,81 @@
   .app {
     grid-template-columns: 1fr;
   }
-  .topbar__mobile-only {
+  /* The desktop corner comment button folds into the bottom bar's centre. */
+  .comment-tool__fab {
+    display: none;
+  }
+  /* Instagram-style bottom bar: artifacts · comment (centre) · comments. */
+  .mobile-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: var(--space-4);
+    padding: var(--space-2) var(--space-6);
+    padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
+    z-index: var(--z-sticky);
+  }
+  .mobile-bar__btn {
     display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 56px;
+    min-height: 44px;
+    color: var(--color-text-muted);
+  }
+  .mobile-bar__icon {
+    position: relative;
+    font-size: var(--text-lg);
+    line-height: 1;
+  }
+  .mobile-bar__label {
+    font-size: var(--text-2xs);
+  }
+  .mobile-bar__count {
+    position: absolute;
+    top: -7px;
+    right: -11px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: var(--radius-pill);
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+  }
+  .mobile-bar__comment {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    color: var(--color-text-on-accent);
+    font-size: var(--text-xl);
+    box-shadow: var(--shadow-2);
+  }
+  .mobile-bar__comment[data-armed="true"] {
+    background: var(--color-text);
+  }
+  /* Keep the last of the artifact clear of the fixed bar. */
+  .workspace__body {
+    padding-bottom: 76px;
   }
   /* Panel-edge slide toggles are wide-viewport only — ≤920px the panels are
-     drawers opened with ☰ / 💬, so a slide toggle would be a no-op. Hidden
-     here rather than given a base display so the buttons keep .topbar__icon's
-     grid centring on desktop. */
+     drawers opened from the bottom bar, so a slide toggle would be a no-op.
+     Hidden here rather than given a base display so the buttons keep
+     .topbar__icon's grid centring on desktop. */
   .topbar__wide-only {
     display: none;
   }
@@ -1674,33 +1770,10 @@
 }
 
 /* ── Touch input ────────────────────────────────────────────────── */
-/* Hover-revealed affordances don't exist on touch screens. Keep them
-   visible — compact and quiet, but reachable. Keyed on hover:none AND
-   pointer:coarse AND phone width, because emulators/hybrids disagree on
-   which media features they report. */
+/* Hover-revealed affordances don't exist on touch screens — keep the sidebar
+   delete reachable. Keyed on hover:none OR pointer:coarse OR phone width,
+   because emulators/hybrids disagree on which media features they report. */
 @media (hover: none), (pointer: coarse), (max-width: 640px) {
-  .commentable__tools {
-    opacity: 1;
-  }
-  /* Quieter than the hover pills — always-on coral on every block would
-     shout; a bordered neutral chip reads as "available" without noise. */
-  .commentable__tool {
-    background: var(--color-bg-elevated);
-    color: var(--color-text-muted);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-1);
-  }
-  .commentable__tool:hover,
-  .commentable__tool:active {
-    background: var(--color-accent);
-    color: var(--color-text-on-accent);
-    border-color: var(--color-accent);
-  }
-  .commentable__tool[data-active="true"] {
-    background: var(--color-text);
-    color: var(--color-bg);
-    border-color: var(--color-text);
-  }
   .sidebar__delete {
     opacity: 1;
   }

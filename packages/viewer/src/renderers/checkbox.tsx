@@ -29,7 +29,7 @@ export function ChecklistRenderer({ component, artifactId }: RendererProps<Data>
     if (busyId !== null || pinned) return;
     setBusyId(item.id);
     setSaveFailed(false);
-    const { open, author, commentTarget, commentDraft, startComment } = useStore.getState();
+    const { open, author, draftAnchors, draftBody, seedDraft } = useStore.getState();
     if (!open) {
       setBusyId(null);
       return;
@@ -53,13 +53,16 @@ export function ChecklistRenderer({ component, artifactId }: RendererProps<Data>
       // about it is being written.
       await api.commit(artifactId as ArtifactId, author, '[checkbox]');
       // Seed the composer draft — coalescing with a previous toggle-draft on
-      // this same checklist (single slot, last-write-wins).
+      // this same checklist (single slot, last-write-wins). The previous draft
+      // is the primary (first) selection if it's still on this component.
+      const primary = draftAnchors[0];
       const prev =
-        commentDraft !== null &&
-        commentTarget !== null &&
-        commentTarget.kind !== 'general' &&
-        commentTarget.componentId === component.id
-          ? { text: commentDraft, componentId: commentTarget.componentId }
+        draftBody !== '' &&
+        primary !== undefined &&
+        primary.kind !== 'general' &&
+        'componentId' in primary &&
+        primary.componentId === component.id
+          ? { text: draftBody, componentId: primary.componentId }
           : null;
       const draft = draftAfterToggle(prev, {
         componentId: component.id as ComponentId,
@@ -67,7 +70,7 @@ export function ChecklistRenderer({ component, artifactId }: RendererProps<Data>
         label: item.label,
         checked: nextChecked,
       });
-      startComment(draft.anchor, draft.text);
+      seedDraft(draft.anchor, draft.text);
     } catch {
       // The flip never happened server-side; the box stays as it was. Tell
       // the operator instead of failing silently.

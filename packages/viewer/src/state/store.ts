@@ -17,6 +17,13 @@ import { type RealtimeClient, buildRealtimeClient } from '../realtime/client';
 /** Firehose subscription target: receive realtime events for every artifact. */
 const FIREHOSE = '*' as ArtifactId;
 
+/** A comment can span at most this many selections (matches the server cap). */
+const MAX_DRAFT_ANCHORS = 8;
+
+/** The cleared comment-draft slice, applied on open / close / cancel. The empty
+ *  array is never mutated in place (every action returns a fresh array). */
+const EMPTY_DRAFT = { commentArmed: false, draftAnchors: [] as CommentAnchor[], draftBody: '' };
+
 /** Pending removal of the transient `theme-switching` class (see setTheme).
  * Module-level, not store state: it's DOM bookkeeping, never rendered. */
 let themeSwitchTimer: ReturnType<typeof setTimeout> | undefined;
@@ -60,15 +67,22 @@ interface State {
    *  width. Each persists under its own key. */
   sidebarHidden: boolean;
   railHidden: boolean;
-  /** Pending anchor for a new comment, set when the user targets a component. */
-  commentTarget: CommentAnchor | null;
+  /** The global comment tool is armed: the next click inside a component drops
+   *  a point, the next drag marks a region. Text selection works regardless. */
+  commentArmed: boolean;
   /**
-   * Composer seed text, set alongside `commentTarget` by flows that auto-draft
-   * (checkbox toggles). Single slot, last-write-wins; cleared together with
-   * the target on send and dismiss alike. The rail decides when/how to
-   * surface it — this is state, not presentation.
+   * Selections accumulated for the comment being composed — one comment can
+   * span many (a region in chart A + a sentence in doc B). The composer is
+   * open whenever this is non-empty; an empty array + Submit posts a general
+   * (document-level) comment. Capped at MAX_DRAFT_ANCHORS.
    */
-  commentDraft: string | null;
+  draftAnchors: CommentAnchor[];
+  /**
+   * The comment body being typed. Shared by the desktop rail composer and the
+   * mobile composer sheet, and seeded by auto-draft flows (checkbox toggles).
+   * Single slot, last-write-wins; cleared with the draft on send and cancel.
+   */
+  draftBody: string;
   /** Anchor being momentarily highlighted because its comment was clicked. */
   focusedAnchor: CommentAnchor | null;
   /** Comment row the rail should scroll to and flash (clears itself). */
@@ -86,10 +100,21 @@ interface State {
   scrubToVersion(version: number | null): Promise<void>;
   /** Re-sync the open artifact from the current address bar (load + popstate). */
   syncFromLocation(fromHistory: boolean): void;
-  /** Begin composing a comment anchored to a specific element. An optional
-   *  pre-filled draft seeds the composer (overwriting any previous seed). */
-  startComment(anchor: CommentAnchor, draft?: string): void;
-  clearCommentTarget(): void;
+  /** Arm the comment tool (enter point/region capture). */
+  armComment(): void;
+  /** Leave capture mode, keeping the draft selections + body. */
+  disarmComment(): void;
+  /** Add a selection to the draft (caps at MAX_DRAFT_ANCHORS) and leave capture
+   *  mode — one gesture adds one anchor, then back to composing. */
+  addDraftAnchor(anchor: CommentAnchor): void;
+  /** Remove the i-th draft selection (a chip's ×). */
+  removeDraftAnchor(index: number): void;
+  /** Replace the composer body text. */
+  setDraftBody(body: string): void;
+  /** Seed the composer with a single anchor + body (checkbox auto-draft). */
+  seedDraft(anchor: CommentAnchor, body: string): void;
+  /** Discard the whole draft (selections, body, armed flag). */
+  clearDraft(): void;
   /** Momentarily highlight an existing comment's anchor (clears itself). */
   focusAnchor(anchor: CommentAnchor): void;
   /** Momentarily mark a comment's rail row for scroll + flash (clears itself). */
@@ -129,8 +154,9 @@ export const useStore = create<State>((set, get) => {
     artifacts: [],
     open: null,
     loading: false,
-    commentTarget: null,
-    commentDraft: null,
+    commentArmed: false,
+    draftAnchors: [],
+    draftBody: '',
     focusedAnchor: null,
     railTarget: null,
     loadError: null,
@@ -173,32 +199,55 @@ export const useStore = create<State>((set, get) => {
         // Stale/deleted deep link, or a bad id: surface a not-found state
         // rather than the generic empty desk. Keep the URL so a retry/refresh
         // hits the same id once the artifact (re)appears.
-        set({ open: null, commentTarget: null, commentDraft: null, loadError: id });
+        set({ open: null, ...EMPTY_DRAFT, loadError: id });
         if (!opts.fromHistory) pushArtifact(id, segments);
         return;
       }
       // No per-artifact subscribe — the firehose (subscribed in init) already
       // delivers this artifact's events.
-      set({
-        open: { ...bundle, locator: segments },
-        commentTarget: null,
-        commentDraft: null,
-        loadError: null,
-      });
+      set({ open: { ...bundle, locator: segments }, ...EMPTY_DRAFT, loadError: null });
       if (!opts.fromHistory) pushArtifact(id, segments);
     },
 
     closeArtifact() {
-      set({ open: null, commentTarget: null, commentDraft: null, loadError: null });
+      set({ open: null, ...EMPTY_DRAFT, loadError: null });
       goHome();
     },
 
-    startComment(anchor, draft) {
-      set({ commentTarget: anchor, commentDraft: draft ?? null });
+    armComment() {
+      set({ commentArmed: true });
     },
 
-    clearCommentTarget() {
-      set({ commentTarget: null, commentDraft: null });
+    disarmComment() {
+      set({ commentArmed: false });
+    },
+
+    addDraftAnchor(anchor) {
+      const draftAnchors = get().draftAnchors;
+      // Leave capture mode either way — one gesture adds one anchor. The cap
+      // silently drops further selections (the composer shows the cap is hit).
+      if (draftAnchors.length >= MAX_DRAFT_ANCHORS) {
+        set({ commentArmed: false });
+        return;
+      }
+      set({ draftAnchors: [...draftAnchors, anchor], commentArmed: false });
+    },
+
+    removeDraftAnchor(index) {
+      set({ draftAnchors: get().draftAnchors.filter((_, i) => i !== index) });
+    },
+
+    setDraftBody(body) {
+      set({ draftBody: body });
+    },
+
+    seedDraft(anchor, body) {
+      // Replace any in-progress draft (single slot, last-write-wins).
+      set({ draftAnchors: [anchor], draftBody: body, commentArmed: false });
+    },
+
+    clearDraft() {
+      set({ ...EMPTY_DRAFT });
     },
 
     focusAnchor(anchor) {
