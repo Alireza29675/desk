@@ -1,6 +1,6 @@
 import type { Artifact, Component } from '@desk/types';
 import { locatorValue } from '@desk/types';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArtifactMeta } from '../components/ArtifactMeta';
 import { Commentable } from '../components/Commentable';
 import { RenderedComponent } from '../renderers/renderer-registry';
@@ -16,11 +16,33 @@ import '../renderers/styles.css';
  * `component:<id>` to scroll to within the slide. The current slide is
  * reflected back into the URL as you navigate, so the address bar is always
  * a link to exactly what you're looking at.
+ *
+ * `f` (or the ⛶ button) presents the deck fullscreen; Esc exits via the
+ * browser's native handling.
  */
 export function PresentationView({ artifact }: { artifact: Artifact }) {
   const slides = useMemo(() => splitIntoSlides(artifact.content.components), [artifact]);
   const locator = useStore((s) => s.open?.locator ?? []);
   const setLocator = useStore((s) => s.setLocator);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // Fullscreen state is owned by the browser (Esc exits without any React
+  // involvement), so derive it from fullscreenchange instead of toggling
+  // local state optimistically — otherwise Esc would leave the UI stuck in
+  // its fullscreen layout.
+  useEffect(() => {
+    function onChange() {
+      setFullscreen(document.fullscreenElement === rootRef.current);
+    }
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else rootRef.current?.requestFullscreen?.();
+  };
 
   const slideParam = Number(locatorValue(locator, 'slide') ?? '1');
   const index = Math.min(
@@ -38,6 +60,7 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
       if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
       if (e.key === 'ArrowRight' || e.key === 'j') go(index + 1);
       if (e.key === 'ArrowLeft' || e.key === 'k') go(index - 1);
+      if (e.key === 'f') toggleFullscreen();
     }
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -61,15 +84,26 @@ export function PresentationView({ artifact }: { artifact: Artifact }) {
   const slide = slides[index];
 
   return (
-    <div className="presentation">
+    <div className="presentation" ref={rootRef} data-fullscreen={fullscreen ? 'true' : undefined}>
       <div className="presentation__deck">
         <header className="presentation__head">
           <div className="presentation__head-row">
             <span className="presentation__title serif-accent">
               {slide?.title ?? artifact.content.title}
             </span>
-            <span className="presentation__pager">
-              {index + 1} / {slides.length}
+            <span className="presentation__head-tools">
+              <span className="presentation__pager">
+                {index + 1} / {slides.length}
+              </span>
+              <button
+                type="button"
+                className="presentation__fullscreen"
+                onClick={toggleFullscreen}
+                aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                title={fullscreen ? 'Exit fullscreen (f)' : 'Fullscreen (f)'}
+              >
+                ⛶
+              </button>
             </span>
           </div>
           <ArtifactMeta artifact={artifact} className="presentation__meta" />

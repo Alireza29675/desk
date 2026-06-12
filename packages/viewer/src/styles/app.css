@@ -453,6 +453,23 @@
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
+.presentation__head-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.presentation__fullscreen {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+}
+.presentation__fullscreen:hover {
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+}
 .presentation__slide {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border);
@@ -489,6 +506,40 @@
 }
 .presentation__slide .diagram__svg svg {
   max-height: 58vh;
+}
+
+/* ── Presentation: fullscreen ───────────────────────────────────── */
+/* data-fullscreen is the React-owned hook (synced from fullscreenchange so
+   Esc keeps markup and layout together); the :fullscreen rule below only
+   covers the UA's default black backdrop. */
+.presentation:fullscreen {
+  /* A fullscreen element paints over a black UA backdrop — set the surface
+     explicitly or the light theme presents on black. */
+  background: var(--color-bg);
+}
+.presentation[data-fullscreen="true"] {
+  background: var(--color-bg);
+  overflow: auto;
+}
+.presentation[data-fullscreen="true"] .presentation__deck {
+  /* Fit the 16/10 canvas to the screen: bounded by the viewport width and by
+     the height left after the head row, nav, gaps and padding (~176px). */
+  max-width: min(100vw - 2 * var(--space-8), (100vh - 176px) * 1.6);
+}
+.presentation[data-fullscreen="true"] .presentation__meta {
+  display: none;
+}
+/* Chrome recedes while presenting; hover or keyboard focus brings it back. */
+.presentation[data-fullscreen="true"] .presentation__head-row,
+.presentation[data-fullscreen="true"] .presentation__nav {
+  opacity: 0.25;
+  transition: opacity var(--duration-fast) var(--ease-standard);
+}
+.presentation[data-fullscreen="true"] .presentation__head-row:hover,
+.presentation[data-fullscreen="true"] .presentation__head-row:focus-within,
+.presentation[data-fullscreen="true"] .presentation__nav:hover,
+.presentation[data-fullscreen="true"] .presentation__nav:focus-within {
+  opacity: 1;
 }
 
 /* ── Empty state ────────────────────────────────────────────────── */
@@ -1197,6 +1248,7 @@
   .comment-rail,
   .history-bar,
   .presentation__nav,
+  .presentation__fullscreen,
   .commentable__tools,
   .anchor-overlay,
   .selection-pill,
