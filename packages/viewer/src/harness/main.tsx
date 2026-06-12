@@ -69,7 +69,7 @@ class HarnessBoundary extends React.Component<
   }
 }
 
-function App() {
+export function App() {
   const [mount, setMount] = React.useState<Mount | null>(null);
   const [theme, setTheme] = React.useState<'light' | 'dark'>('light');
   // The themed background color the parent resolves from a token (the frame
@@ -104,7 +104,12 @@ function App() {
     // color-scheme themes the UA canvas + native widgets; the surface paints the
     // body the app's themed background. Together they kill the white slab.
     document.documentElement.style.colorScheme = theme;
-    if (surface) document.body.style.background = surface;
+    if (surface) {
+      // The srcdoc seeds the boot surface on BOTH html and body; update both on
+      // flip, or html keeps the boot paint and overrides the color-scheme canvas.
+      document.documentElement.style.background = surface;
+      document.body.style.background = surface;
+    }
   }, [theme, surface]);
 
   React.useEffect(() => {
