@@ -15,6 +15,8 @@ export function CommentRail() {
   // The one open attachment lightbox (at most one at a time, across all cards).
   const [lightbox, setLightbox] = useState<CommentAttachment | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  // Guards post() against a double ⌘-Enter while the capture+POST await runs.
+  const submitting = useRef(false);
 
   // When the user targets a component, focus the composer so they can type.
   useEffect(() => {
@@ -38,7 +40,7 @@ export function CommentRail() {
       `.comment-rail [data-comment-id="${railTarget.replace(/["\\]/g, '\\$&')}"]`,
     );
     if (!(row instanceof HTMLElement)) return;
-    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    row.scrollIntoView({ block: 'nearest', behavior: scrollBehavior() });
     row.setAttribute('data-rail-flash', 'true');
     return () => row.removeAttribute('data-rail-flash');
   }, [railTarget]);
@@ -48,20 +50,25 @@ export function CommentRail() {
   const { roots, repliesByParent } = buildThreads(open.comments);
 
   async function post() {
-    if (!draft.trim() || !open) return;
+    if (!draft.trim() || !open || submitting.current) return;
+    submitting.current = true;
     const anchor = commentTarget ?? ({ kind: 'general' } as CommentAnchor);
-    // Point/region anchors ride with a capture of what the operator sees
-    // (their theme, viewport, live state). Best-effort: a failed capture
-    // still posts the comment and the channel falls back to its own render.
-    const shot = await captureAnchorImage(anchor);
-    await api.comment(artifactId, {
-      anchor,
-      payload: { kind: 'text', text: draft.trim() },
-      author,
-      ...(shot ? { attachments: [{ kind: 'image', dataUrl: shot.dataUrl }] } : {}),
-    });
-    setDraft('');
-    clearCommentTarget();
+    try {
+      // Point/region anchors ride with a capture of what the operator sees
+      // (their theme, viewport, live state). Best-effort: a failed capture
+      // still posts the comment and the channel falls back to its own render.
+      const shot = await captureAnchorImage(anchor);
+      await api.comment(artifactId, {
+        anchor,
+        payload: { kind: 'text', text: draft.trim() },
+        author,
+        ...(shot ? { attachments: [{ kind: 'image', dataUrl: shot.dataUrl }] } : {}),
+      });
+      setDraft('');
+      clearCommentTarget();
+    } finally {
+      submitting.current = false;
+    }
   }
 
   return (
@@ -156,7 +163,12 @@ function AttachmentLightbox({
   attachment: CommentAttachment;
   onClose: () => void;
 }) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
+    // Move focus into the dialog on open and hand it back to whatever held it
+    // when the lightbox closes, so keyboard users aren't dropped at the page top.
+    const restoreTo = document.activeElement;
+    dialogRef.current?.focus();
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         // Capture phase + preventDefault: the lightbox is the topmost surface,
@@ -167,12 +179,24 @@ function AttachmentLightbox({
       }
     }
     window.addEventListener('keydown', onKeyDown, { capture: true });
-    return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', onKeyDown, { capture: true });
+      if (restoreTo instanceof HTMLElement) restoreTo.focus();
+    };
   }, [onClose]);
 
   return (
     // biome-ignore lint/a11y/useKeyWithClickEvents: Escape (window, capture) is the keyboard close path
-    <div className="comment-lightbox" onClick={onClose}>
+    <div
+      ref={dialogRef}
+      className="comment-lightbox"
+      // biome-ignore lint/a11y/useSemanticElements: a native dialog needs showModal lifecycle; a role-dialog overlay is simpler here
+      role="dialog"
+      aria-modal="true"
+      aria-label="Attachment preview"
+      tabIndex={-1}
+      onClick={onClose}
+    >
       <img
         className="comment-lightbox__image"
         src={api.attachmentUrl(attachment.id)}
@@ -282,7 +306,7 @@ function CommentCard({
             if (cid) {
               document
                 .querySelector(`[data-component-id="${cid.replace(/["\\]/g, '\\$&')}"]`)
-                ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                ?.scrollIntoView({ behavior: scrollBehavior(), block: 'center' });
             }
           }}
         >
@@ -385,6 +409,12 @@ function buildThreads(comments: Comment[]): {
     }
   }
   return { roots, repliesByParent };
+}
+
+/** 'auto' when the OS asks for reduced motion, else 'smooth' — so JS-driven
+ *  scrollIntoView honors the same preference the CSS motion budget respects. */
+function scrollBehavior(): ScrollBehavior {
+  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
 }
 
 /** Concise label for an anchor (no leading verb, so callers supply context). */

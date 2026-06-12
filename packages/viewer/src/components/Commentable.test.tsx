@@ -84,6 +84,18 @@ describe('Commentable — unresolved comment dots + hover card', () => {
       ...overrides,
     }) as unknown as Comment;
 
+  // Same shape as pointComment but for the other spatial/text anchor kinds —
+  // every shipped dot branch (point already covered above) gets one fixture.
+  const commentWith = (id: string, anchor: CommentAnchor): Comment =>
+    ({
+      id,
+      artifactId: 'a',
+      anchor,
+      author: { kind: 'human', humanId: 'M' },
+      payload: { kind: 'text', text: 'tighten this paragraph' },
+      createdAt: '2026-01-01T00:00:00.000Z',
+    }) as unknown as Comment;
+
   function setOpenComments(comments: Comment[]) {
     useStore.setState({
       open: {
@@ -164,5 +176,104 @@ describe('Commentable — unresolved comment dots + hover card', () => {
     expect(useStore.getState().railTarget).toBe('u1');
     // Activating dismisses the card.
     expect(container.querySelector('.unresolved-popover')).toBeNull();
+  });
+
+  it('places a dot for an unresolved text-selection comment from its measured range', () => {
+    // text-selection anchors carry no fraction of their own — the layout effect
+    // measures the live range (rangeFromTextOffsets → getClientRects) and
+    // projects the last rect into the content box. Stub both geometries (zero by
+    // default in happy-dom) so the box is non-empty and the range yields a rect.
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      width: 100,
+      height: 40,
+    } as DOMRect);
+    vi.spyOn(Range.prototype, 'getClientRects').mockReturnValue({
+      length: 1,
+      0: { right: 50, top: 20 },
+    } as unknown as DOMRectList);
+    setOpenComments([
+      commentWith('ts1', {
+        kind: 'text-selection',
+        componentId: 'c1' as ComponentId,
+        start: 0,
+        end: 4,
+      } as CommentAnchor),
+    ]);
+    render();
+    // right:50 of width:100 → x 0.5, top:20 of height:40 → y 0.5.
+    const dot = container.querySelector('.unresolved-dot') as HTMLElement;
+    expect(dot).not.toBeNull();
+    expect(dot.getAttribute('style')).toContain('50%');
+  });
+
+  it('reveals the region shape only while its dot is hovered', () => {
+    setOpenComments([
+      commentWith('r1', {
+        kind: 'region',
+        componentId: 'c1' as ComponentId,
+        region: { kind: 'fractional', x: 0.1, y: 0.1, width: 0.3, height: 0.3 },
+      } as CommentAnchor),
+    ]);
+    render();
+    // Idle: the dot is present but the box outline is not (persistent region
+    // outlines would be noisy).
+    expect(container.querySelector('.anchor-overlay--region')).toBeNull();
+    const dot = container.querySelector('.unresolved-dot') as HTMLElement;
+    act(() => {
+      dot.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(container.querySelector('.anchor-overlay--region')).not.toBeNull();
+  });
+
+  it('reveals the element ring only while its dot is hovered', () => {
+    setOpenComments([
+      commentWith('e1', { kind: 'element', componentId: 'c1' as ComponentId } as CommentAnchor),
+    ]);
+    render();
+    expect(container.querySelector('.anchor-overlay--ring')).toBeNull();
+    const dot = container.querySelector('.unresolved-dot') as HTMLElement;
+    act(() => {
+      dot.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(container.querySelector('.anchor-overlay--ring')).not.toBeNull();
+  });
+
+  it('on touch, the first tap only reveals the card and a later tap navigates', () => {
+    // Pin a non-hover (coarse pointer) environment so onDotClick takes the
+    // tap-to-reveal branch — the opposite of every test above.
+    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: false } as MediaQueryList);
+    // onDotClick gates the first vs. later tap on a 500ms Date.now() window
+    // (popoverOpenedAt). Drive that clock directly — no fake timers, so nothing
+    // can leak into sibling test files.
+    const now = vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    const focusAnchorSpy = vi.spyOn(useStore.getState(), 'focusAnchor');
+    const revealSpy = vi.spyOn(useStore.getState(), 'revealInRail');
+
+    const c = pointComment('u1');
+    setOpenComments([c]);
+    render();
+    const dot = container.querySelector('.unresolved-dot') as HTMLButtonElement;
+
+    // First tap: the tap's own focus opens the card (stamping popoverOpenedAt),
+    // and the click — same gesture, still inside the 500ms guard — must reveal
+    // only, never navigate.
+    act(() => dot.focus());
+    act(() => dot.click());
+    expect(container.querySelector('.unresolved-popover')).not.toBeNull();
+    expect(focusAnchorSpy).not.toHaveBeenCalled();
+    expect(revealSpy).not.toHaveBeenCalled();
+    expect(useStore.getState().focusedAnchor).toBeNull();
+    expect(useStore.getState().railTarget).toBeNull();
+
+    // A later tap (past the 500ms guard, card still open) activates: pulse the
+    // anchor + target the rail row.
+    now.mockReturnValue(1_501);
+    act(() => dot.click());
+    expect(focusAnchorSpy).toHaveBeenCalledWith(c.anchor);
+    expect(revealSpy).toHaveBeenCalledWith('u1');
+    expect(useStore.getState().focusedAnchor).toEqual(c.anchor);
+    expect(useStore.getState().railTarget).toBe('u1');
   });
 });

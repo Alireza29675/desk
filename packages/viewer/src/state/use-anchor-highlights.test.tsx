@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import type { Comment } from '@desk/types';
+import type { Comment, CommentAnchor } from '@desk/types';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -30,11 +30,15 @@ let content: HTMLDivElement;
 let root: Root;
 let registry: Map<string, unknown>;
 
+/** A text-selection anchor over `[start, end)` of component `c1` (branded id). */
+const textAnchor = (start: number, end: number): CommentAnchor =>
+  ({ kind: 'text-selection', componentId: 'c1', start, end }) as unknown as CommentAnchor;
+
 const textComment = (id: string, overrides: Partial<Comment> = {}): Comment =>
   ({
     id,
     artifactId: 'a',
-    anchor: { kind: 'text-selection', componentId: 'c1', start: 0, end: 5 },
+    anchor: textAnchor(0, 5),
     author: { kind: 'human', humanId: 'M' },
     payload: { kind: 'text', text: 'hm' },
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -98,5 +102,35 @@ describe('useAnchorHighlights — persistent unresolved text highlight', () => {
     vi.unstubAllGlobals();
     setOpen([textComment('t1')]);
     expect(() => act(() => root.render(<Host />))).not.toThrow();
+  });
+
+  it('folds multiple unresolved ranges into one desk-anchor-unresolved Highlight', () => {
+    // Two distinct text selections in the same component, both unresolved: the
+    // spread-into-one-Highlight path (`new HighlightCtor(...ranges)`) must carry
+    // both, not register two competing highlights or keep only the last.
+    setOpen([
+      textComment('t1', { anchor: textAnchor(0, 5) }),
+      textComment('t2', { anchor: textAnchor(6, 11) }),
+    ]);
+    act(() => root.render(<Host />));
+    const h = registry.get('desk-anchor-unresolved') as FakeHighlight | undefined;
+    expect(h).toBeInstanceOf(FakeHighlight);
+    expect(h?.ranges).toHaveLength(2);
+    expect(h?.ranges.map((r) => r.toString())).toEqual(['hello', 'world']);
+  });
+
+  it('lets pending, focused, and unresolved highlights coexist without clobbering', () => {
+    // Single-writer guarantee: a compose target, a focused anchor, and an
+    // unresolved comment are all live at once. Each owns its own named key, so
+    // all three must be present together — no key overwrites another's.
+    useStore.setState({
+      commentTarget: textAnchor(0, 5),
+      focusedAnchor: textAnchor(6, 11),
+    });
+    setOpen([textComment('t1')]);
+    act(() => root.render(<Host />));
+    expect(registry.get('desk-anchor-pending')).toBeInstanceOf(FakeHighlight);
+    expect(registry.get('desk-anchor-focused')).toBeInstanceOf(FakeHighlight);
+    expect(registry.get('desk-anchor-unresolved')).toBeInstanceOf(FakeHighlight);
   });
 });

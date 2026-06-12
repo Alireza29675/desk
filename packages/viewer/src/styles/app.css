@@ -1386,23 +1386,35 @@
    .app's overflow:hidden clips it. grid-template-columns itself never
    animates — keyword tracks make that interpolation unreliable across
    engines, and the rail's track must stay content-driven so it contributes
-   0 when no artifact is open. */
+   0 when no artifact is open.
+   A negative margin alone leaves the collapsed panel focusable off-screen, so
+   keyboard tab order could land on an invisible panel. Each panel also flips
+   visibility: when showing, visibility transitions with 0s delay so it returns
+   immediately; when hidden, visibility:hidden is delayed until after the slide
+   finishes (var(--duration-slow)) so it animates out and only then leaves the
+   tab order / AT tree. */
 @media (min-width: 921px) {
   .app {
     grid-template-columns: min-content 1fr min-content;
   }
   .sidebar {
     width: var(--sidebar-w);
-    transition: margin-left var(--duration-slow) var(--ease-emphasized);
+    transition: margin-left var(--duration-slow) var(--ease-emphasized), visibility 0s;
   }
   .comment-rail {
-    transition: margin-right var(--duration-slow) var(--ease-emphasized);
+    transition: margin-right var(--duration-slow) var(--ease-emphasized), visibility 0s;
   }
   .app[data-panels="hidden"] .sidebar {
     margin-left: calc(-1 * var(--sidebar-w));
+    visibility: hidden;
+    transition: margin-left var(--duration-slow) var(--ease-emphasized), visibility 0s
+      var(--duration-slow);
   }
   .app[data-panels="hidden"] .comment-rail {
     margin-right: calc(-1 * var(--comment-rail-w));
+    visibility: hidden;
+    transition: margin-right var(--duration-slow) var(--ease-emphasized), visibility 0s
+      var(--duration-slow);
   }
 }
 

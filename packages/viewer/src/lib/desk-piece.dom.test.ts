@@ -63,6 +63,45 @@ function mountWithFakeGL(reducedMotion: boolean) {
   return { handle: mountDeskPiece(canvas), gl, loseContext, raf, caf };
 }
 
+/**
+ * Like `mountWithFakeGL`, but hands back the bare canvas + GL *before* mount so
+ * a test can install constructor/listener spies first, and exposes the captured
+ * IntersectionObserver callback so visibility can be driven by hand (happy-dom
+ * has real observers but never fires their callbacks on its own).
+ */
+function fakeGLEnv(reducedMotion: boolean) {
+  const { gl, loseContext } = fakeGL();
+  vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(((type: string) =>
+    type === 'webgl2' ? gl : null) as never);
+  stubMatchMedia(reducedMotion);
+  const canvas = document.createElement('canvas');
+  document.body.appendChild(canvas);
+
+  // Wrap the IntersectionObserver constructor to grab the callback the module
+  // registers, while still returning a real observer (so observe/disconnect and
+  // the prototype.disconnect spy all stay live).
+  type IOCb = ConstructorParameters<typeof IntersectionObserver>[0];
+  const RealIO = window.IntersectionObserver;
+  let ioCallback: IOCb | null = null;
+  vi.spyOn(window, 'IntersectionObserver').mockImplementation(
+    (cb: IOCb, init?: IntersectionObserverInit) => {
+      ioCallback = cb;
+      return new RealIO(cb, init);
+    },
+  );
+
+  return {
+    gl,
+    loseContext,
+    canvas,
+    /** Drive the IO callback as if the canvas crossed the viewport edge. */
+    setIntersecting(isIntersecting: boolean) {
+      const entry = { isIntersecting } as IntersectionObserverEntry;
+      ioCallback?.([entry], {} as IntersectionObserver);
+    },
+  };
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
   document.body.innerHTML = '';
@@ -114,5 +153,135 @@ describe('mountDeskPiece — lifecycle', () => {
     expect(loseContext).toHaveBeenCalledTimes(1);
     handle?.setTheme('dark');
     expect(gl.drawArrays).toHaveBeenCalledTimes(draws);
+  });
+});
+
+describe('mountDeskPiece — listener & observer cleanup', () => {
+  it('removes every listener it added and disconnects both observers on dispose', () => {
+    // happy-dom ships real observers; spy straight on the shared prototypes so
+    // the instances the module news up route disconnect() through here. This
+    // must happen before fakeGLEnv wraps the IO constructor — the wrapper still
+    // returns real observers, so the real prototype is the one that matters.
+    const ioDisconnect = vi.spyOn(IntersectionObserver.prototype, 'disconnect');
+    const roDisconnect = vi.spyOn(ResizeObserver.prototype, 'disconnect');
+
+    const env = fakeGLEnv(false);
+    const { canvas } = env;
+
+    // Record (type, handler) pairs added vs. removed on both targets the module
+    // touches: the canvas (pointer) and the document (visibilitychange).
+    const added: Array<[EventTarget, string, EventListenerOrEventListenerObject | null]> = [];
+    const removed: Array<[EventTarget, string, EventListenerOrEventListenerObject | null]> = [];
+    for (const target of [canvas, document] as EventTarget[]) {
+      vi.spyOn(target, 'addEventListener').mockImplementation(((
+        type: string,
+        fn: EventListenerOrEventListenerObject | null,
+      ) => {
+        added.push([target, type, fn]);
+      }) as never);
+      vi.spyOn(target, 'removeEventListener').mockImplementation(((
+        type: string,
+        fn: EventListenerOrEventListenerObject | null,
+      ) => {
+        removed.push([target, type, fn]);
+      }) as never);
+    }
+
+    const handle = mountDeskPiece(canvas);
+    expect(handle).not.toBeNull();
+    // The mount wired up at least the pointer + visibility listeners.
+    expect(added.length).toBeGreaterThan(0);
+
+    handle?.dispose();
+
+    // Every listener registered at mount is torn down with the same handler.
+    for (const [target, type, fn] of added) {
+      expect(removed).toContainEqual([target, type, fn]);
+    }
+    expect(ioDisconnect).toHaveBeenCalledTimes(1);
+    expect(roDisconnect).toHaveBeenCalledTimes(1);
+    // The WEBGL_lose_context release ran exactly once.
+    expect(env.loseContext).toHaveBeenCalledTimes(1);
+
+    // dispose() is idempotent: a second call neither throws nor re-tears-down.
+    expect(() => handle?.dispose()).not.toThrow();
+    expect(ioDisconnect).toHaveBeenCalledTimes(1);
+    expect(roDisconnect).toHaveBeenCalledTimes(1);
+    expect(env.loseContext).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('mountDeskPiece — visibility gating', () => {
+  it('parks the rAF loop while off-screen and re-arms it on re-entry', () => {
+    const env = fakeGLEnv(false);
+    const { canvas } = env;
+
+    // Fake rAF/cAF that count scheduling without ever firing a frame, so the
+    // assertions see only what `sync()` arms — not runaway self-rescheduling.
+    let nextId = 1;
+    const raf = vi.fn(() => nextId++);
+    const caf = vi.fn();
+    vi.stubGlobal('requestAnimationFrame', raf);
+    vi.stubGlobal('cancelAnimationFrame', caf);
+
+    const handle = mountDeskPiece(canvas);
+    expect(handle).not.toBeNull();
+    // Motion is allowed and the canvas is assumed visible → one armed frame.
+    expect(raf).toHaveBeenCalledTimes(1);
+
+    // Off-screen: the loop is cancelled and no fresh frame is scheduled.
+    env.setIntersecting(false);
+    expect(caf).toHaveBeenCalledTimes(1);
+    expect(raf).toHaveBeenCalledTimes(1);
+
+    // Still hidden: repeated not-intersecting reports must not re-arm.
+    env.setIntersecting(false);
+    expect(raf).toHaveBeenCalledTimes(1);
+
+    // Back on-screen: the loop re-arms with exactly one new frame.
+    env.setIntersecting(true);
+    expect(raf).toHaveBeenCalledTimes(2);
+
+    vi.unstubAllGlobals();
+    handle?.dispose();
+  });
+
+  it('parks the loop when the tab is hidden and re-arms when it returns', () => {
+    const env = fakeGLEnv(false);
+    const { canvas } = env;
+
+    let nextId = 1;
+    const raf = vi.fn(() => nextId++);
+    const caf = vi.fn();
+    vi.stubGlobal('requestAnimationFrame', raf);
+    vi.stubGlobal('cancelAnimationFrame', caf);
+
+    const handle = mountDeskPiece(canvas);
+    expect(raf).toHaveBeenCalledTimes(1);
+
+    // Tab hidden: the module reads document.visibilityState on the event, so
+    // override it before dispatching visibilitychange.
+    let hidden = false;
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => (hidden ? 'hidden' : 'visible'),
+    });
+
+    hidden = true;
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(caf).toHaveBeenCalledTimes(1);
+    expect(raf).toHaveBeenCalledTimes(1);
+
+    // Tab visible again: the loop re-arms.
+    hidden = false;
+    document.dispatchEvent(new Event('visibilitychange'));
+    expect(raf).toHaveBeenCalledTimes(2);
+
+    vi.unstubAllGlobals();
+    handle?.dispose();
+    // restoreAllMocks can't undo defineProperty — drop the override by hand so
+    // the shared document goes back to its native visibilityState.
+    // biome-ignore lint/performance/noDelete: removing a defineProperty override in test teardown
+    delete (document as unknown as Record<string, unknown>).visibilityState;
   });
 });

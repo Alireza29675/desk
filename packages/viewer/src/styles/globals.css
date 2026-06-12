@@ -71,7 +71,11 @@ code {
    ~300ms around the data-theme flip, and only then do colors transition.
    Transient on purpose: a permanent global color transition would make hover
    states feel sluggish and fight every micro-interaction's own timing. No
-   !important here, so the reduced-motion override above keeps winning. */
+   !important here, so the reduced-motion override above keeps winning.
+   margin/transform are included alongside the colors so a layout transition
+   already in flight during a theme toggle (e.g. a panel mid-slide) keeps
+   easing — without them this shorthand would override their transition and
+   snap the motion instead of cutting it off. */
 html.theme-switching,
 html.theme-switching *,
 html.theme-switching ::before,
@@ -80,7 +84,8 @@ html.theme-switching ::after {
     background-color var(--duration-slow) var(--ease-standard), color
     var(--duration-slow) var(--ease-standard), border-color var(--duration-slow)
     var(--ease-standard), fill var(--duration-slow) var(--ease-standard), stroke
-    var(--duration-slow) var(--ease-standard);
+    var(--duration-slow) var(--ease-standard), margin var(--duration-slow)
+    var(--ease-standard), transform var(--duration-slow) var(--ease-standard);
 }
 
 /* Controls that carry their own box-shadow would otherwise suppress the focus

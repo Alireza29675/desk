@@ -1,15 +1,31 @@
 // @vitest-environment happy-dom
-import type { Comment, CommentAttachment } from '@desk/types';
+import type { Comment, CommentAttachment, CommentId } from '@desk/types';
 import { act } from 'react';
 import { type Root, createRoot } from 'react-dom/client';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStore } from '../state/store';
 import { CommentRail } from './CommentRail';
+
+// Composer flows post via api.comment after a best-effort anchor capture; stub
+// both so tests stay offline. attachmentUrl keeps its real shape so the
+// thumbnail/lightbox tests still see /api/attachments/<id>.
+const commentMock = vi.fn().mockResolvedValue({});
+vi.mock('../lib/api', () => ({
+  api: {
+    comment: (...args: unknown[]) => commentMock(...args),
+    attachmentUrl: (id: string) => `/api/attachments/${id}`,
+    resolveComment: vi.fn().mockResolvedValue({ ok: true }),
+  },
+}));
+vi.mock('../lib/capture-anchor', () => ({
+  captureAnchorImage: vi.fn().mockResolvedValue(null),
+}));
 
 let container: HTMLDivElement;
 let root: Root;
 
 beforeEach(() => {
+  commentMock.mockClear();
   container = document.createElement('div');
   document.body.appendChild(container);
   root = createRoot(container);
@@ -102,5 +118,84 @@ describe('CommentRail — attachment lightbox', () => {
     const backdrop = container.querySelector('.comment-lightbox') as HTMLElement;
     act(() => backdrop.click());
     expect(container.querySelector('.comment-lightbox')).toBeNull();
+  });
+});
+
+describe('CommentRail — rail reveal flash', () => {
+  it('flashes the matching row, then clears when the store auto-clears railTarget', () => {
+    // Fake timers must be installed BEFORE the React root mounts, or React 18's
+    // scheduler binds the real timer env and trips on the store's auto-clear.
+    vi.useFakeTimers();
+    try {
+      renderRail([makeComment('c1')]);
+      act(() => useStore.getState().revealInRail('c1' as CommentId));
+      const row = container.querySelector('[data-comment-id="c1"]') as HTMLElement;
+      expect(row.getAttribute('data-rail-flash')).toBe('true');
+      // The store clears railTarget ~1.6s later; the effect cleanup re-arms the
+      // one-shot by stripping the attribute.
+      act(() => vi.advanceTimersByTime(1700));
+      expect(row.getAttribute('data-rail-flash')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('escapes backslashes in the id when locating the row', () => {
+    // A backslash in the id forces the selector-escaping path
+    // (.replace(/["\\]/g, ...)); without it the querySelector would miss/throw.
+    const id = 'c\\1';
+    renderRail([makeComment(id)]);
+    act(() => useStore.getState().revealInRail(id as CommentId));
+    const row = container.querySelector(
+      `[data-comment-id="${id.replace(/["\\]/g, '\\$&')}"]`,
+    ) as HTMLElement;
+    expect(row).not.toBeNull();
+    expect(row.getAttribute('data-rail-flash')).toBe('true');
+  });
+});
+
+describe('CommentRail — draft seeding and Escape', () => {
+  const textarea = () =>
+    container.querySelector(
+      '.comment-rail__composer .comment-rail__textarea',
+    ) as HTMLTextAreaElement;
+
+  it('seeds the composer from commentDraft and clears an unedited seed on Escape', () => {
+    useStore.setState({ commentTarget: { kind: 'general' }, commentDraft: 'seed text' });
+    renderRail([]);
+    expect(textarea().value).toBe('seed text');
+
+    act(() => {
+      textarea().dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+    expect(textarea().value).toBe('');
+    expect(useStore.getState().commentTarget).toBeNull();
+  });
+
+  it('keeps hand-edited text when Escape dismisses the anchor', () => {
+    useStore.setState({ commentTarget: { kind: 'general' }, commentDraft: 'seed text' });
+    renderRail([]);
+    // Operator edits the seeded draft to something of their own. Use the native
+    // prototype setter so React's value tracker registers the change.
+    act(() => {
+      const el = textarea();
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLTextAreaElement.prototype,
+        'value',
+      )?.set;
+      setter?.call(el, 'my own words');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    act(() => {
+      textarea().dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+      );
+    });
+    // Only an unedited seed is cleared; edited text survives the anchor dismiss.
+    expect(textarea().value).toBe('my own words');
+    expect(useStore.getState().commentTarget).toBeNull();
   });
 });
