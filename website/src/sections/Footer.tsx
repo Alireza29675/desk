@@ -14,12 +14,11 @@ export function Footer() {
         <div className="install">
           <div className="install__card">
             <span className="install__title">Start desk</span>
-            {/* tabIndex: the pre scrolls horizontally on narrow screens — it must
-                be keyboard-reachable (WCAG 2.1.1). */}
-            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
             <pre
               className="codeblock"
+              // biome-ignore lint/a11y/useSemanticElements: must stay a <pre>; region + label name the scrollable code block for AT
               role="region"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: horizontally scrollable region must be keyboard-reachable (WCAG 2.1.1)
               tabIndex={0}
               aria-label="Commands to start desk"
             >
@@ -34,10 +33,11 @@ export function Footer() {
 
           <div className="install__card">
             <span className="install__title">Connect your agent</span>
-            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
             <pre
               className="codeblock"
+              // biome-ignore lint/a11y/useSemanticElements: must stay a <pre>; region + label name the scrollable code block for AT
               role="region"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: horizontally scrollable region must be keyboard-reachable (WCAG 2.1.1)
               tabIndex={0}
               aria-label="Command to connect your agent"
             >

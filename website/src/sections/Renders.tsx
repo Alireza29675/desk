@@ -49,10 +49,11 @@ export function Renders() {
         <div className="pair">
           <div className="pair__side">
             <span className="pair__tag">input — create_artifact (diagram component)</span>
-            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
             <pre
               className="codeblock"
+              // biome-ignore lint/a11y/useSemanticElements: must stay a <pre>; region + label name the scrollable code block for AT
               role="region"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: horizontally scrollable region must be keyboard-reachable (WCAG 2.1.1)
               tabIndex={0}
               aria-label="The create_artifact call's diagram component: a D2 source with one named, anchorable node."
             >
@@ -71,10 +72,11 @@ export function Renders() {
         <div className="pair">
           <div className="pair__side">
             <span className="pair__tag">input — same call (chart component)</span>
-            {/* biome-ignore lint/a11y/noNoninteractiveTabindex: focusable scroll region */}
             <pre
               className="codeblock"
+              // biome-ignore lint/a11y/useSemanticElements: must stay a <pre>; region + label name the scrollable code block for AT
               role="region"
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: horizontally scrollable region must be keyboard-reachable (WCAG 2.1.1)
               tabIndex={0}
               aria-label="The same call's chart component: a bar series of sign-ins per day."
             >
