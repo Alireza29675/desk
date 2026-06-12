@@ -20,6 +20,8 @@ export function Topbar({
   const closeArtifact = useStore((s) => s.closeArtifact);
   const theme = useStore((s) => s.theme);
   const setTheme = useStore((s) => s.setTheme);
+  const panelsHidden = useStore((s) => s.panelsHidden);
+  const togglePanels = useStore((s) => s.togglePanels);
   const [copied, setCopied] = useState(false);
   // Phone-width overflow menu (⋯) holding the secondary actions. Hidden on
   // wide viewports via CSS; the inline buttons hide on phones the same way.
@@ -125,6 +127,15 @@ export function Topbar({
             </button>
           </>
         ) : null}
+        <button
+          className="topbar__icon topbar__desktop-only"
+          onClick={togglePanels}
+          aria-pressed={panelsHidden}
+          aria-label={panelsHidden ? 'Show panels' : 'Hide panels'}
+          title={panelsHidden ? 'Show panels' : 'Hide panels'}
+        >
+          ◫
+        </button>
         <button className="topbar__search topbar__desktop-only" onClick={onOpenPalette}>
           Search · <Kbd>⌘K</Kbd>
         </button>

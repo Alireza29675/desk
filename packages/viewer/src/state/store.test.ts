@@ -1,6 +1,6 @@
 import type { Artifact, ArtifactId, Comment, RealtimeServerMessage } from '@desk/types';
 // @vitest-environment happy-dom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStore } from './store';
 
 function artifact(id: string, title = id, version = 1): Artifact {
@@ -179,5 +179,31 @@ describe('store.applyEvent — open artifact', () => {
     apply(committed(artifact('a', 'New', 2)));
     expect(useStore.getState().open?.artifact.content.title).toBe('New');
     expect(useStore.getState().open?.artifact.version).toBe(2);
+  });
+});
+
+describe('store.togglePanels — hide side panels (desktop)', () => {
+  beforeEach(() => {
+    localStorage.removeItem('desk-panels-hidden');
+    useStore.setState({ panelsHidden: false });
+  });
+
+  it('flips panelsHidden and persists the choice', () => {
+    expect(useStore.getState().panelsHidden).toBe(false);
+    useStore.getState().togglePanels();
+    expect(useStore.getState().panelsHidden).toBe(true);
+    expect(localStorage.getItem('desk-panels-hidden')).toBe('1');
+    useStore.getState().togglePanels();
+    expect(useStore.getState().panelsHidden).toBe(false);
+    expect(localStorage.getItem('desk-panels-hidden')).toBe('0');
+  });
+
+  it('reads a persisted "hidden" choice back on store creation', async () => {
+    localStorage.setItem('desk-panels-hidden', '1');
+    // The read happens once at create() time, so build a fresh store module.
+    vi.resetModules();
+    const { useStore: fresh } = await import('./store');
+    expect(fresh.getState().panelsHidden).toBe(true);
+    localStorage.removeItem('desk-panels-hidden');
   });
 });

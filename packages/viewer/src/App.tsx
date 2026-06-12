@@ -15,6 +15,7 @@ export function App() {
   const init = useStore((s) => s.init);
   const open = useStore((s) => s.open);
   const loadError = useStore((s) => s.loadError);
+  const panelsHidden = useStore((s) => s.panelsHidden);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   // Which off-canvas panel is open on narrow viewports (ignored on wide via CSS).
@@ -92,7 +93,14 @@ export function App() {
   }, []);
 
   return (
-    <div className="app" data-panel={panel ?? undefined}>
+    // data-panels (plural) is the desktop hide-panels toggle; data-panel
+    // (singular) is the mobile drawer/sheet state. Separate on purpose —
+    // ≤920px the CSS ignores data-panels entirely, so drawers are unaffected.
+    <div
+      className="app"
+      data-panel={panel ?? undefined}
+      data-panels={panelsHidden ? 'hidden' : undefined}
+    >
       <Sidebar />
       <main className="workspace">
         <Topbar

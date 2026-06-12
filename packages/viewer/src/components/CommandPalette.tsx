@@ -25,6 +25,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const openArtifact = useStore((s) => s.openArtifact);
   const setTheme = useStore((s) => s.setTheme);
   const theme = useStore((s) => s.theme);
+  const panelsHidden = useStore((s) => s.panelsHidden);
+  const togglePanels = useStore((s) => s.togglePanels);
   const artifacts = useStore((s) => s.artifacts);
 
   useEffect(() => {
@@ -65,8 +67,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
         hint: 'theme',
         perform: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
       },
+      {
+        id: 'panels:toggle',
+        label: panelsHidden ? 'Show panels' : 'Hide panels',
+        hint: 'layout',
+        perform: () => togglePanels(),
+      },
     ],
-    [theme, setTheme],
+    [theme, setTheme, panelsHidden, togglePanels],
   );
 
   // Commands stay findable by name: filter them by the query (label/hint

@@ -1109,6 +1109,39 @@
   }
 }
 
+/* ── Hide panels (desktop) ──────────────────────────────────────── */
+/* `data-panels="hidden"` (the store's panelsHidden, toggled with ◫) collapses
+   BOTH side panels so the artifact gets the full width. Deliberately separate
+   from the mobile `data-panel` drawer attribute below — at ≤920px the toggle
+   is hidden and this attribute has no effect, so the drawers keep working
+   exactly as-is.
+   Technique: both side tracks become min-content (visually identical — each
+   panel already carries its token width), so a transitioned negative margin
+   pulls a panel out of the grid and its track follows frame-by-frame. The
+   panel keeps its internal layout while sliding (zero content reflow) and
+   .app's overflow:hidden clips it. grid-template-columns itself never
+   animates — keyword tracks make that interpolation unreliable across
+   engines, and the rail's track must stay content-driven so it contributes
+   0 when no artifact is open. */
+@media (min-width: 921px) {
+  .app {
+    grid-template-columns: min-content 1fr min-content;
+  }
+  .sidebar {
+    width: var(--sidebar-w);
+    transition: margin-left var(--duration-slow) var(--ease-emphasized);
+  }
+  .comment-rail {
+    transition: margin-right var(--duration-slow) var(--ease-emphasized);
+  }
+  .app[data-panels="hidden"] .sidebar {
+    margin-left: calc(-1 * var(--sidebar-w));
+  }
+  .app[data-panels="hidden"] .comment-rail {
+    margin-right: calc(-1 * var(--comment-rail-w));
+  }
+}
+
 /* ── Responsive ─────────────────────────────────────────────────── */
 /* Two tiers. ≤920px (half-width windows, tablets): the fixed sidebar +
    comment rail would crush the content pane, so the workspace goes

@@ -51,6 +51,8 @@ interface State {
   open: OpenArtifact | null;
   loading: boolean;
   theme: 'light' | 'dark';
+  /** Desktop-only: both side panels collapsed so the artifact gets full width. */
+  panelsHidden: boolean;
   /** Pending anchor for a new comment, set when the user targets a component. */
   commentTarget: CommentAnchor | null;
   /** Anchor being momentarily highlighted because its comment was clicked. */
@@ -75,6 +77,17 @@ interface State {
   focusAnchor(anchor: CommentAnchor): void;
   applyEvent(msg: RealtimeServerMessage): void;
   setTheme(theme: 'light' | 'dark'): void;
+  togglePanels(): void;
+}
+
+/** Persisted panels choice, read once at store creation (same lifecycle as
+ * `desk-theme`, which the index.html bootstrap reads before first paint). */
+function readPanelsHidden(): boolean {
+  try {
+    return localStorage.getItem('desk-panels-hidden') === '1';
+  } catch {
+    return false;
+  }
 }
 
 export const useStore = create<State>((set, get) => {
@@ -96,6 +109,7 @@ export const useStore = create<State>((set, get) => {
     theme:
       (document.documentElement.dataset.theme as 'light' | 'dark') ??
       (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
+    panelsHidden: readPanelsHidden(),
 
     async init() {
       get().realtime.connect();
@@ -288,6 +302,17 @@ export const useStore = create<State>((set, get) => {
         // Storage unavailable (private mode): keep the in-memory theme only.
       }
       set({ theme });
+    },
+
+    togglePanels() {
+      const panelsHidden = !get().panelsHidden;
+      // Persist the choice so it survives reloads and deep-link opens.
+      try {
+        localStorage.setItem('desk-panels-hidden', panelsHidden ? '1' : '0');
+      } catch {
+        // Storage unavailable (private mode): keep the in-memory state only.
+      }
+      set({ panelsHidden });
     },
   };
 });

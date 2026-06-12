@@ -113,6 +113,45 @@ describe('Topbar overflow menu — open/close via trigger and actions', () => {
   });
 });
 
+describe('Topbar — hide panels toggle', () => {
+  const toggle = () => container.querySelector('button[aria-pressed]') as HTMLElement | null;
+
+  afterEach(() => {
+    localStorage.removeItem('desk-panels-hidden');
+    useStore.setState({ panelsHidden: false });
+  });
+
+  it('renders before search with aria-pressed mirroring the store, and toggles on click', async () => {
+    useStore.setState({ panelsHidden: false });
+    render();
+    const btn = toggle();
+    expect(btn).not.toBeNull();
+    expect(btn?.getAttribute('aria-label')).toBe('Hide panels');
+    expect(btn?.getAttribute('aria-pressed')).toBe('false');
+
+    await act(async () => btn?.click());
+    expect(useStore.getState().panelsHidden).toBe(true);
+    // The button flips to the "show" affordance once the panels are hidden.
+    const after = toggle();
+    expect(after?.getAttribute('aria-pressed')).toBe('true');
+    expect(after?.getAttribute('aria-label')).toBe('Show panels');
+  });
+
+  it('renders even when no artifact is open (the sidebar is still collapsible)', () => {
+    useStore.setState({ open: null, panelsHidden: false });
+    render();
+    expect(toggle()).not.toBeNull();
+    expect(toggle()?.getAttribute('aria-label')).toBe('Hide panels');
+  });
+
+  it('reflects an already-hidden state on first render', () => {
+    useStore.setState({ panelsHidden: true });
+    render();
+    expect(toggle()?.getAttribute('aria-pressed')).toBe('true');
+    expect(toggle()?.getAttribute('aria-label')).toBe('Show panels');
+  });
+});
+
 describe('Topbar overflow menu — outside pointerdown', () => {
   it('closes on a pointerdown outside the menu', async () => {
     render();
