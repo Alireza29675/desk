@@ -1,4 +1,4 @@
-import type { Artifact, ArtifactId, Comment, RealtimeServerMessage } from '@desk/types';
+import type { Artifact, ArtifactId, Comment, CommentId, RealtimeServerMessage } from '@desk/types';
 // @vitest-environment happy-dom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useStore } from './store';
@@ -214,6 +214,37 @@ describe('store.setTheme — transient theme-switching class', () => {
     expect(root().classList.contains('theme-switching')).toBe(false);
     vi.runAllTimers();
     expect(root().classList.contains('theme-switching')).toBe(false);
+  });
+});
+
+describe('store.revealInRail — rail scroll/flash target (clears itself)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    useStore.setState({ railTarget: null });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('sets the target and auto-clears after the reveal window', () => {
+    useStore.getState().revealInRail('c1' as CommentId);
+    expect(useStore.getState().railTarget).toBe('c1');
+    vi.advanceTimersByTime(1599);
+    expect(useStore.getState().railTarget).toBe('c1');
+    vi.advanceTimersByTime(1);
+    expect(useStore.getState().railTarget).toBeNull();
+  });
+
+  it('a second reveal restarts the window (stale timer cleared)', () => {
+    useStore.getState().revealInRail('c1' as CommentId);
+    vi.advanceTimersByTime(1000);
+    useStore.getState().revealInRail('c2' as CommentId);
+    // The first reveal's timeout would fire here; it must not — the second
+    // reveal owns the full window.
+    vi.advanceTimersByTime(1599);
+    expect(useStore.getState().railTarget).toBe('c2');
+    vi.advanceTimersByTime(1);
+    expect(useStore.getState().railTarget).toBeNull();
   });
 });
 

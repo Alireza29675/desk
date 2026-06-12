@@ -25,6 +25,22 @@ export function CommentRail() {
     if (commentDraft !== null) setDraft(commentDraft);
   }, [commentDraft]);
 
+  // An unresolved dot on the artifact was clicked: scroll its rail row into
+  // view and flash it. The store auto-clears `railTarget` after ~1.6s (same
+  // pattern as focusAnchor), which removes the flash attribute via cleanup so
+  // a repeat reveal can re-run the one-shot animation.
+  const railTarget = useStore((s) => s.railTarget);
+  useEffect(() => {
+    if (!railTarget) return;
+    const row = document.querySelector(
+      `.comment-rail [data-comment-id="${railTarget.replace(/["\\]/g, '\\$&')}"]`,
+    );
+    if (!(row instanceof HTMLElement)) return;
+    row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    row.setAttribute('data-rail-flash', 'true');
+    return () => row.removeAttribute('data-rail-flash');
+  }, [railTarget]);
+
   if (!open) return null;
   const artifactId = open.artifact.id;
   const { roots, repliesByParent } = buildThreads(open.comments);
@@ -186,7 +202,11 @@ function CommentCard({
   const who = comment.author.kind === 'human' ? comment.author.humanId : comment.author.agentId;
 
   return (
-    <article className="comment" data-resolved={String(Boolean(comment.resolved))}>
+    <article
+      className="comment"
+      data-comment-id={comment.id}
+      data-resolved={String(Boolean(comment.resolved))}
+    >
       <header className="comment__head">
         <span className="comment__author" data-kind={comment.author.kind}>
           {who}

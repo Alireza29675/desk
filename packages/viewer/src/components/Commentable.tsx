@@ -1,9 +1,10 @@
-import type { CommentAnchor, ComponentId } from '@desk/types';
+import type { Comment, CommentAnchor, ComponentId } from '@desk/types';
 import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -12,9 +13,11 @@ import {
   type FractionalRect,
   fractionalPoint,
   fractionalRect,
+  rangeFromTextOffsets,
   selectedTextPreview,
   textOffsetsWithin,
 } from '../lib/anchor-geometry';
+import { useUnresolvedByComponent } from '../state/selectors';
 import { useStore } from '../state/store';
 
 /**
@@ -47,6 +50,9 @@ export function Commentable({
   const startComment = useStore((s) => s.startComment);
   const target = useStore((s) => s.commentTarget);
   const focused = useStore((s) => s.focusedAnchor);
+  const focusAnchor = useStore((s) => s.focusAnchor);
+  const revealInRail = useStore((s) => s.revealInRail);
+  const unresolved = useUnresolvedByComponent(componentId);
 
   const contentRef = useRef<HTMLDivElement | null>(null);
   // Active spatial capture for *this* component, or null when idle.
@@ -61,6 +67,18 @@ export function Commentable({
     end: number;
     preview: string;
   } | null>(null);
+  // Measured dot positions for unresolved text-selection anchors (fractions of
+  // the content box, like every other spatial anchor) — see the layout effect.
+  const [textDots, setTextDots] = useState<Record<string, Fraction>>({});
+  // The one open hover/focus card over an unresolved dot (content-box pixels).
+  const [popover, setPopover] = useState<{
+    id: string;
+    left: number;
+    top: number;
+    below: boolean;
+  } | null>(null);
+  const popoverOpenedAt = useRef(0);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const isTarget = anchorBelongsTo(target, cid);
   const isFocused = anchorBelongsTo(focused, cid);
@@ -121,6 +139,94 @@ export function Commentable({
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [mode]);
+
+  // ── Unresolved comment indicators ───────────────────────────────────
+  // text-selection anchors have no fractional position of their own — project
+  // the range's last client rect into the content box so the dot sits at the
+  // selection's end. Runs on every commit (content reflows move the rect) but
+  // only re-renders when a measured position actually changes.
+  useLayoutEffect(() => {
+    const root = contentRef.current;
+    const box = boxOf();
+    const next: Record<string, Fraction> = {};
+    if (root && box && box.width > 0 && box.height > 0) {
+      for (const c of unresolved) {
+        if (c.anchor.kind !== 'text-selection') continue;
+        const range = rangeFromTextOffsets(root, c.anchor.start, c.anchor.end);
+        if (!range || typeof range.getClientRects !== 'function') continue;
+        const rects = range.getClientRects();
+        const last = rects[rects.length - 1];
+        if (last) next[c.id] = fractionalPoint(box, last.right, last.top);
+      }
+    }
+    setTextDots((prev) => (sameDots(prev, next) ? prev : next));
+  });
+
+  const cancelClose = () => clearTimeout(closeTimer.current);
+  const scheduleClose = () => {
+    clearTimeout(closeTimer.current);
+    // Small grace window so the pointer can travel from the dot into the card.
+    closeTimer.current = setTimeout(() => setPopover(null), 150);
+  };
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
+  const openPopover = (c: Comment, dotEl: HTMLElement) => {
+    const box = boxOf();
+    if (!box) return;
+    const d = dotEl.getBoundingClientRect();
+    // Above the dot by default; flip under it when the card would leave the
+    // top of the viewport. Clamp the center within the component box.
+    const below = d.top < POPOVER_HEADROOM;
+    const half = POPOVER_WIDTH / 2;
+    const left = Math.min(
+      Math.max(d.left + d.width / 2 - box.left, half),
+      Math.max(box.width - half, half),
+    );
+    const top = below ? d.bottom - box.top + 8 : d.top - box.top - 8;
+    cancelClose();
+    popoverOpenedAt.current = Date.now();
+    setPopover({ id: c.id, left, top, below });
+  };
+
+  const activateUnresolved = (c: Comment) => {
+    // Pulse the anchor on the artifact and scroll/flash the rail row. On
+    // ≤640px the rail is a closed bottom sheet owned by App's local `panel`
+    // state (not the store), so it can't be opened from here — the on-artifact
+    // pulse still shows, and the rail lands on the row next time it opens.
+    focusAnchor(c.anchor);
+    revealInRail(c.id);
+    cancelClose();
+    setPopover(null);
+  };
+
+  const onDotClick = (c: Comment, dotEl: HTMLElement) => {
+    const hoverCapable = window.matchMedia?.('(hover: hover)').matches ?? true;
+    if (!hoverCapable && (popover?.id !== c.id || Date.now() - popoverOpenedAt.current < 500)) {
+      // Touch: the first tap reveals the card (the tap's own focus event may
+      // have just opened it — same gesture, still the "first" tap); a later
+      // tap, or the card's "View in comments" row, navigates.
+      openPopover(c, dotEl);
+      return;
+    }
+    activateUnresolved(c);
+  };
+
+  // Esc closes the card. Capture phase + preventDefault: the card is the
+  // topmost surface, so this press must not also close a drawer (App checks
+  // defaultPrevented) — same pattern as the topbar overflow menu.
+  useEffect(() => {
+    if (!popover) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setPopover(null);
+      }
+    };
+    window.addEventListener('keydown', onKey, { capture: true });
+    return () => window.removeEventListener('keydown', onKey, { capture: true });
+  }, [popover]);
+
+  const hovered = popover ? (unresolved.find((c) => c.id === popover.id) ?? null) : null;
 
   // ── Text selection → floating pill ──────────────────────────────────
   const refreshPill = useCallback(() => {
@@ -215,6 +321,66 @@ export function Commentable({
           />
         ) : null}
 
+        {/* Persistent markers for unresolved comments (calm at idle; hover or
+            focus a dot to reveal the comment card and the shape it covers).
+            `general` anchors have no spatial placement and stay rail-only. */}
+        {unresolved.map((c, i) => {
+          const at = dotAnchorPoint(c.anchor, textDots[c.id]);
+          if (!at) return null;
+          return (
+            <button
+              key={c.id}
+              className="unresolved-dot"
+              style={dotStyle(at, i)}
+              aria-label={`Unresolved comment by ${authorName(c.author)}`}
+              onMouseEnter={(e) => openPopover(c, e.currentTarget)}
+              onMouseLeave={scheduleClose}
+              onFocus={(e) => openPopover(c, e.currentTarget)}
+              onBlur={scheduleClose}
+              onClick={(e) => onDotClick(c, e.currentTarget)}
+              // Don't let an armed point/region tool treat this click as a drop.
+              onPointerUp={(e) => e.stopPropagation()}
+            />
+          );
+        })}
+
+        {/* While its dot is hovered, an unresolved region/element shows its
+            shape — persistent outlines for every region would be noisy. */}
+        {hovered?.anchor.kind === 'region' && hovered.anchor.region.kind === 'fractional' ? (
+          <span
+            className="anchor-overlay anchor-overlay--region"
+            style={rectStyle(hovered.anchor.region)}
+          />
+        ) : null}
+        {hovered?.anchor.kind === 'element' ? (
+          <span className="anchor-overlay anchor-overlay--ring" />
+        ) : null}
+
+        {/* Hover/focus card for the unresolved comment under the pointer. */}
+        {popover && hovered ? (
+          <div
+            className="unresolved-popover"
+            data-flip={popover.below ? 'below' : undefined}
+            style={{ left: popover.left, top: popover.top }}
+            onMouseEnter={cancelClose}
+            onMouseLeave={scheduleClose}
+          >
+            <span className="unresolved-popover__author" data-kind={hovered.author.kind}>
+              {authorName(hovered.author)}
+            </span>
+            {hovered.payload.kind === 'text' ? (
+              <p className="unresolved-popover__body">{hovered.payload.text}</p>
+            ) : null}
+            <button
+              className="unresolved-popover__view"
+              onClick={() => activateUnresolved(hovered)}
+              onFocus={cancelClose}
+            >
+              View in comments →
+            </button>
+          </div>
+        ) : null}
+
         {/* Capture-mode hint. */}
         {mode ? (
           <span className="commentable__capture-hint">
@@ -281,4 +447,55 @@ function rectStyle(r: FractionalRect) {
 function pointStyle(offset?: { x: number; y: number }) {
   const o = offset ?? { x: 0.5, y: 0.5 };
   return { left: `${o.x * 100}%`, top: `${o.y * 100}%` };
+}
+
+/** Card geometry for the unresolved-comment popover (kept in sync with CSS). */
+const POPOVER_WIDTH = 240;
+/** Viewport headroom under which the card flips below its dot. */
+const POPOVER_HEADROOM = 132;
+
+/**
+ * Where an unresolved comment's dot sits, as a fraction of the content box.
+ * Reuses the same fraction→percent projection as the transient overlays.
+ */
+function dotAnchorPoint(anchor: CommentAnchor, measured?: Fraction): Fraction | null {
+  switch (anchor.kind) {
+    case 'point': {
+      const o = anchor.offset ?? { x: 0.5, y: 0.5 };
+      return { x: o.x, y: o.y };
+    }
+    case 'region':
+      // Top-right corner; the rect itself draws only while hovered.
+      return anchor.region.kind === 'fractional'
+        ? { x: anchor.region.x + anchor.region.width, y: anchor.region.y }
+        : null;
+    case 'element':
+      return { x: 1, y: 0 };
+    case 'text-selection':
+      // Measured against the live range (see the layout effect); null until
+      // (or unless) the range resolves.
+      return measured ?? null;
+    default:
+      return null;
+  }
+}
+
+function dotStyle(at: Fraction, index: number) {
+  // Near-coincident dots fan out by a couple px per index so none fully
+  // occludes another (no clustering logic in v1).
+  return {
+    left: `calc(${at.x * 100}% + ${index * 3}px)`,
+    top: `calc(${at.y * 100}% + ${index * 3}px)`,
+  };
+}
+
+function authorName(author: Comment['author']): string {
+  return author.kind === 'human' ? author.humanId : author.agentId;
+}
+
+/** Shallow equality over the measured text-dot map (guards the layout effect). */
+function sameDots(a: Record<string, Fraction>, b: Record<string, Fraction>): boolean {
+  const ak = Object.keys(a);
+  if (ak.length !== Object.keys(b).length) return false;
+  return ak.every((k) => a[k]?.x === b[k]?.x && a[k]?.y === b[k]?.y);
 }

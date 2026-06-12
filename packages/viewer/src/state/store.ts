@@ -4,6 +4,7 @@ import type {
   Author,
   Comment,
   CommentAnchor,
+  CommentId,
   LocatorSegment,
   RealtimeServerMessage,
   RelationGraph,
@@ -68,6 +69,8 @@ interface State {
   commentDraft: string | null;
   /** Anchor being momentarily highlighted because its comment was clicked. */
   focusedAnchor: CommentAnchor | null;
+  /** Comment row the rail should scroll to and flash (clears itself). */
+  railTarget: CommentId | null;
   /** Id of an artifact that failed to load (e.g. a stale/deleted deep link). */
   loadError: string | null;
 
@@ -87,6 +90,8 @@ interface State {
   clearCommentTarget(): void;
   /** Momentarily highlight an existing comment's anchor (clears itself). */
   focusAnchor(anchor: CommentAnchor): void;
+  /** Momentarily mark a comment's rail row for scroll + flash (clears itself). */
+  revealInRail(id: CommentId): void;
   applyEvent(msg: RealtimeServerMessage): void;
   setTheme(theme: 'light' | 'dark'): void;
   togglePanels(): void;
@@ -107,6 +112,8 @@ export const useStore = create<State>((set, get) => {
   realtime.addListener((msg) => get().applyEvent(msg));
   // Auto-clears the focused anchor after its highlight pulse.
   let focusTimer: ReturnType<typeof setTimeout>;
+  // Auto-clears the rail reveal target after its scroll + flash window.
+  let railTimer: ReturnType<typeof setTimeout>;
 
   return {
     realtime,
@@ -118,6 +125,7 @@ export const useStore = create<State>((set, get) => {
     commentTarget: null,
     commentDraft: null,
     focusedAnchor: null,
+    railTarget: null,
     loadError: null,
     theme:
       (document.documentElement.dataset.theme as 'light' | 'dark') ??
@@ -189,6 +197,12 @@ export const useStore = create<State>((set, get) => {
       set({ focusedAnchor: anchor });
       clearTimeout(focusTimer);
       focusTimer = setTimeout(() => set({ focusedAnchor: null }), 1600);
+    },
+
+    revealInRail(id) {
+      set({ railTarget: id });
+      clearTimeout(railTimer);
+      railTimer = setTimeout(() => set({ railTarget: null }), 1600);
     },
 
     setLocator(segments) {
