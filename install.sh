@@ -14,14 +14,16 @@
 # The PUBLIC defaults below are gated on the maintainer publishing desk; until
 # then (and for local/throwaway testing) point them at local artifacts:
 #   DESK_PACKAGE_SOURCE      what `bun add -g` installs to get the desk + desk-channel
-#                            bins. Default: the published package. Local test: a
-#                            path to the packed tarball (eng1's bundle).
+#                            bins. Default: @desk/cli (the published package). Local
+#                            test: a path to the packed tarball (eng1's bundle).
+#                            NOTE: bare `desk` on npm is an unrelated squatted package
+#                            — the scope (@desk/cli) is load-bearing, do not drop it.
 #   DESK_MARKETPLACE_SOURCE  what `claude plugin marketplace add` registers.
 #                            Default: the GitHub repo. Local test: a path to a
 #                            desk checkout containing .claude-plugin/marketplace.json.
 set -eu
 
-DESK_PACKAGE_SOURCE="${DESK_PACKAGE_SOURCE:-desk}"
+DESK_PACKAGE_SOURCE="${DESK_PACKAGE_SOURCE:-@desk/cli}"
 DESK_MARKETPLACE_SOURCE="${DESK_MARKETPLACE_SOURCE:-Alireza29675/desk}"
 MIN_CLAUDE_VERSION="2.1.80"   # channels (the comment loop) require this or newer
 
