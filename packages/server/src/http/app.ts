@@ -66,8 +66,16 @@ export function buildHttpApp(service: DeskService): Hono {
   api.onError(onError);
 
   // Root liveness probe (kept off /api so external health checks stay simple).
+  // `pid` lets `desk stop` confirm the port holder is the exact process its
+  // pidfile names — closing the pid-reuse window so it never signals a stranger.
   app.get('/health', (c) =>
-    c.json({ ok: true, server: 'desk', version: SERVER_VERSION, time: new Date().toISOString() }),
+    c.json({
+      ok: true,
+      server: 'desk',
+      version: SERVER_VERSION,
+      pid: process.pid,
+      time: new Date().toISOString(),
+    }),
   );
 
   api.get('/plugins', (c) =>

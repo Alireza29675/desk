@@ -1,7 +1,14 @@
 #!/usr/bin/env bun
-import { startServer } from '@desk/server';
 import { runDoctor } from './commands/doctor';
 import { printHelp } from './commands/help';
+import {
+  type StartOptions,
+  runRestart,
+  runServe,
+  runStart,
+  runStatus,
+  runStop,
+} from './commands/lifecycle';
 import { runMcp } from './commands/mcp';
 import { runWhere } from './commands/where';
 
@@ -10,8 +17,19 @@ async function main(): Promise<void> {
 
   switch (command) {
     case undefined:
+      // Bare `desk`: ensure the server is running and open the viewer.
+      return runStart({ open: true });
+    case 'serve':
+      return runServe();
     case 'start':
-      return runStart();
+      return runStart(parseStartOptions(rest));
+    case 'stop':
+      await runStop();
+      return;
+    case 'status':
+      return runStatus();
+    case 'restart':
+      return runRestart(parseStartOptions(rest));
     case 'mcp':
       return runMcp(rest);
     case 'where':
@@ -29,43 +47,11 @@ async function main(): Promise<void> {
   }
 }
 
-async function runStart(): Promise<void> {
-  const running = await startServer();
-  const url = `http://${running.config.host}:${running.config.port}`;
-  console.log(banner(url));
-
-  void openInBrowser(url);
-
-  const shutdown = async () => {
-    console.log('\nShutting down…');
-    await running.stop();
-    process.exit(0);
+function parseStartOptions(rest: string[]): StartOptions {
+  return {
+    open: rest.includes('--open'),
+    foreground: rest.includes('--foreground') || rest.includes('-f'),
   };
-  process.on('SIGINT', shutdown);
-  process.on('SIGTERM', shutdown);
-}
-
-function banner(url: string): string {
-  return [
-    '',
-    '  Desk · v0.1.0',
-    `  Viewer    ${url}`,
-    `  MCP       ${url}/mcp`,
-    `  WebSocket ${url.replace(/^http/, 'ws')}/ws`,
-    '',
-    '  Press ⌘C to quit.',
-    '',
-  ].join('\n');
-}
-
-async function openInBrowser(url: string): Promise<void> {
-  const platform = process.platform;
-  const bin = platform === 'darwin' ? 'open' : platform === 'win32' ? 'start' : 'xdg-open';
-  try {
-    await Bun.spawn([bin, url], { stdout: 'ignore', stderr: 'ignore' }).exited;
-  } catch {
-    /* the URL is already in the banner, so a failed launch is recoverable */
-  }
 }
 
 void main();

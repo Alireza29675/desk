@@ -142,4 +142,5 @@ interface SocketState {
 
 export { DeskService } from './core/service';
 export { buildRegistry } from './plugins';
+export { SERVER_VERSION } from './config';
 export type { ServerConfig } from './config';
