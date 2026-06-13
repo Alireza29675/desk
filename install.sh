@@ -93,7 +93,7 @@ install_desk() {
   else
     warn "'desk-channel' is not on PATH — the live comment loop (desk-code) is unavailable until it is."
   fi
-  say "desk CLI installed: $(desk --version 2>/dev/null || echo 'ok')"
+  say "desk CLI installed (desk + desk-channel)."
 }
 
 # ── 4. Register the plugin with Claude Code (both MCP surfaces, one step) ─────
