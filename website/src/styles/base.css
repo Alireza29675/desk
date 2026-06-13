@@ -1,0 +1,105 @@
+/*
+ * Base element styles — adapted from the product viewer's globals.css so the
+ * site reads in desk's own voice. Geist everywhere; coral links; the same
+ * focus ring, selection, scrollbar and reduced-motion contract as the app.
+ */
+
+html {
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-feature-settings: "calt";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+::selection {
+  background: var(--color-selection);
+  color: var(--color-selection-text);
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-muted);
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+:focus-visible {
+  /* Transparent outline (not none): repainted with a system color in
+     forced-colors / Windows High Contrast, where box-shadow is dropped. */
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  box-shadow: var(--shadow-accent-focus);
+  border-radius: var(--radius-sm);
+}
+
+/* Respect the OS "reduce motion" setting (WCAG 2.3.3) — every transition and
+   the hero reveal collapse for users who opt out (with `both` fill, the
+   reveal snaps to its settled end state). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Theme cross-fade — the toggle puts `theme-switching` on <html> for ~300ms
+   around the data-theme flip, and only then do colors transition. Reduced
+   motion still wins (no !important here). */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching ::before,
+html.theme-switching ::after {
+  transition:
+    background-color var(--duration-slow) var(--ease-standard),
+    color var(--duration-slow) var(--ease-standard),
+    border-color var(--duration-slow) var(--ease-standard),
+    fill var(--duration-slow) var(--ease-standard),
+    stroke var(--duration-slow) var(--ease-standard);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-subtle);
+}

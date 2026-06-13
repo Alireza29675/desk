@@ -1,0 +1,177 @@
+/*
+ * Desk design tokens — VALUES ported verbatim from the product viewer
+ * (packages/viewer/src/styles/tokens.css @ cdb34fb; layout-size tokens omitted
+ * — the site has no app chrome — and comments condensed, so compare token
+ * values, not raw bytes). Keep in sync with the product; the website's whole
+ * point is to look exactly like desk. Light is the default; dark is one
+ * selector flip away on <html data-theme="dark">. Coral is the only accent.
+ */
+
+:root,
+[data-theme="light"] {
+  /* ── Base surfaces ───────────────────────────────────────────── */
+  --color-bg: #fafafa;
+  --color-bg-elevated: #ffffff;
+  --color-bg-sunken: #f4f4f5;
+  --color-bg-inset: #ececee;
+  --color-overlay: rgba(10, 10, 11, 0.4);
+
+  /* ── Borders + rules ─────────────────────────────────────────── */
+  --color-border: #e4e4e7;
+  --color-border-strong: #d4d4d8;
+  --color-border-focus: var(--color-accent);
+  --color-divider: #ececee;
+
+  /* ── Foreground / type ───────────────────────────────────────── */
+  --color-text: #171717;
+  --color-text-muted: #62626b;
+  --color-text-subtle: #9b9ba3;
+  --color-text-inverse: #fafafa;
+  --color-text-on-accent: #ffffff;
+
+  /* ── Accent (coral) ──────────────────────────────────────────── */
+  --color-accent: #ff5a4d;
+  --color-accent-strong: #e8412f;
+  --color-accent-soft: #ffe4e0;
+  --color-accent-ring: rgba(255, 90, 77, 0.3);
+
+  /* ── Semantic tones ──────────────────────────────────────────── */
+  --color-info: #2563eb;
+  --color-info-soft: #e8f0fe;
+  --color-warn: #d97706;
+  --color-warn-soft: #fdf3e1;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fdeaea;
+  --color-success: #059669;
+  --color-success-soft: #e3f6ee;
+
+  /* ── Selection + highlight ───────────────────────────────────── */
+  --color-selection: var(--color-accent-soft);
+  --color-selection-text: var(--color-text);
+
+  /* ── Shadows (light: soft ambient + hairline ring) ───────────── */
+  --shadow-1: 0 1px 2px rgba(10, 10, 11, 0.04), 0 0 0 1px rgba(10, 10, 11, 0.05);
+  --shadow-2: 0 2px 4px rgba(10, 10, 11, 0.04), 0 6px 16px rgba(10, 10, 11, 0.06), 0 0 0 1px
+    rgba(10, 10, 11, 0.05);
+  --shadow-3: 0 8px 24px rgba(10, 10, 11, 0.1), 0 24px 64px rgba(10, 10, 11, 0.12), 0 0 0 1px
+    rgba(10, 10, 11, 0.06);
+}
+
+[data-theme="dark"] {
+  --color-bg: #0a0a0b;
+  --color-bg-elevated: #141416;
+  --color-bg-sunken: #060607;
+  --color-bg-inset: #1d1d20;
+  --color-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-border: #232326;
+  --color-border-strong: #34343a;
+  --color-divider: #1c1c1f;
+
+  --color-text: #ededee;
+  --color-text-muted: #9d9da6;
+  --color-text-subtle: #66666e;
+  --color-text-inverse: #0a0a0b;
+  --color-text-on-accent: #ffffff;
+
+  --color-accent: #ff6f61;
+  --color-accent-strong: #ff8a7e;
+  --color-accent-soft: #3a1d19;
+  --color-accent-ring: rgba(255, 111, 97, 0.38);
+
+  --color-info: #66a3ff;
+  --color-info-soft: #14213a;
+  --color-warn: #fbbf24;
+  --color-warn-soft: #2b2008;
+  --color-danger: #f87171;
+  --color-danger-soft: #2e1212;
+  --color-success: #34d399;
+  --color-success-soft: #0e2a1e;
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-2: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.07);
+  --shadow-3: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+:root {
+  /* ── Type ────────────────────────────────────────────────────── */
+  /* Geist carries the UI and its headings (weight and scale do the hierarchy,
+     no second typeface); Instrument Serif is for CONTENT typography only
+     (quotes, captions); Geist Mono covers code, badges, and timestamps. */
+  --font-sans: "Geist Variable", "Geist", "Inter", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", sans-serif;
+  --font-serif: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --font-mono: "Geist Mono Variable", "Geist Mono", "JetBrains Mono", ui-monospace, "SF Mono", Menlo,
+    monospace;
+
+  --text-2xs: 11px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 17px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 38px;
+
+  --leading-tight: 1.15;
+  --leading-snug: 1.3;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ── Spacing ─────────────────────────────────────────────────── */
+  --space-0: 0px;
+  --space-1: 2px;
+  --space-2: 4px;
+  --space-3: 6px;
+  --space-4: 8px;
+  --space-5: 12px;
+  --space-6: 16px;
+  --space-7: 20px;
+  --space-8: 24px;
+  --space-9: 32px;
+  --space-10: 40px;
+  --space-11: 56px;
+  --space-12: 72px;
+
+  /* ── Radius (a notch softer — Apple/Raycast) ─────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  /* ── Shadows (theme-dependent values live in the palettes above) ─ */
+  --shadow-accent-focus: 0 0 0 3px var(--color-accent-ring);
+
+  /* ── Motion ──────────────────────────────────────────────────── */
+  --duration-instant: 60ms;
+  --duration-fast: 120ms;
+  --duration-medium: 160ms;
+  --duration-base: 180ms;
+  --duration-slow: 260ms;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --ease-accelerate: cubic-bezier(0.4, 0, 1, 1);
+
+  /* ── Z-index ─────────────────────────────────────────────────── */
+  --z-base: 0;
+  --z-elevated: 10;
+  --z-sticky: 100;
+  --z-overlay: 1000;
+  --z-modal: 1100;
+  --z-toast: 1200;
+}

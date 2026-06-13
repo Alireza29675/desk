@@ -1,0 +1,76 @@
+/* Social-preview card — fixed 1280×640 (GitHub's 2:1). Solid background (the
+   card renders on arbitrary surfaces), desk's own tokens, light theme. */
+
+.og {
+  width: 1280px;
+  height: 640px;
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 48px;
+  align-items: center;
+  padding: 72px;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.og__left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.og__brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.og__mark {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+.og__word {
+  font-size: 32px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.og__line {
+  font-size: 58px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1.08;
+}
+.og__accent {
+  color: var(--color-accent);
+}
+
+.og__sub {
+  font-size: 24px;
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  max-width: 24ch;
+}
+
+.og__url {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--color-text-subtle);
+}
+
+.og__right {
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* og-shot.png is pre-cropped to this slot's aspect (790×672 ≈ 517×440), so
+   cover here is a no-op safety net, not a framing tool. */
+.og__shot {
+  width: 100%;
+  height: 440px;
+  object-fit: cover;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+}

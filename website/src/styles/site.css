@@ -1,0 +1,598 @@
+/*
+ * Site layout + components. Built on desk's ported tokens — coral is the only
+ * accent, neutrals are the zinc ramp, type is Geist. Linear/Raycast restraint:
+ * whitespace, hairline borders, weight-and-scale hierarchy, no decoration.
+ *
+ * Every capture is a real frame from one fixture session (post-R3 main; see
+ * the capture protocol in the task folder) — light + dark variants per shot.
+ */
+
+/* ── Shell ───────────────────────────────────────────────────────── */
+.site {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.container {
+  width: 100%;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 var(--space-8);
+}
+
+/* ── Nav ─────────────────────────────────────────────────────────── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: color-mix(in srgb, var(--color-bg) 82%, transparent);
+  backdrop-filter: saturate(1.4) blur(12px);
+  border-bottom: 1px solid var(--color-border);
+}
+.nav__inner {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+.nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+}
+.nav__link {
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+.nav__link:hover {
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+/* ── Logo ────────────────────────────────────────────────────────── */
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+.logo:hover {
+  text-decoration: none;
+}
+.logo__mark {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+  display: block;
+}
+.logo__word {
+  font-size: var(--text-lg);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 40px;
+  padding: 0 var(--space-7);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  transition: transform var(--duration-fast) var(--ease-standard), background var(--duration-fast)
+    var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+.btn:hover {
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+/* CTA label is 13px semibold = WCAG small text → needs 4.5:1 against its own
+   background. The brand pairing (white on accent) measures 3.08:1 light /
+   2.73:1 dark, and dark's accent-strong is LIGHTER, so the token step inverts
+   there. Site-local resolution: light darkens the coral until white passes
+   (#d43824 = 4.78:1, hover #c93420 = 5.26:1); dark keeps the brand coral
+   exact and flips the label to page ink (7.25:1, hover 8.66:1). */
+.btn--primary {
+  background: var(--site-cta-bg);
+  color: var(--site-cta-text);
+}
+.btn--primary:hover {
+  background: var(--site-cta-bg-hover);
+}
+.btn--ghost {
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  border: 1px solid var(--color-border-strong);
+}
+.btn--ghost:hover {
+  border-color: var(--color-text-subtle);
+}
+
+/* ── Type helpers ────────────────────────────────────────────────── */
+/* Accent-colored SMALL text needs more contrast than the brand coral gives on
+   the light background (#ff5a4d ≈ 3.7:1, #e8412f ≈ 4.0:1 — both under AA's
+   4.5:1). Site-local darker shade for small accent text; dark theme's
+   accent-strong already clears the bar. */
+:root,
+[data-theme="light"] {
+  --site-accent-text: #c93420;
+  --site-cta-bg: #d43824;
+  --site-cta-bg-hover: #c93420;
+  --site-cta-text: #ffffff;
+  /* Hero chat "quiet" text on the elevated card: 4.84:1 on #ffffff. */
+  --site-chat-quiet: #717179;
+}
+[data-theme="dark"] {
+  --site-accent-text: var(--color-accent-strong);
+  --site-cta-bg: var(--color-accent);
+  --site-cta-bg-hover: var(--color-accent-strong);
+  --site-cta-text: #0a0a0b;
+  /* 4.96:1 on the dark elevated card (#141416). */
+  --site-chat-quiet: #84848d;
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--site-accent-text);
+}
+.lede {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  max-width: 46ch;
+}
+.quiet {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.mono-line {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* ── Section rhythm ──────────────────────────────────────────────── */
+.section {
+  padding: var(--space-12) 0;
+  border-top: 1px solid var(--color-divider);
+}
+.section__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-bottom: var(--space-10);
+  max-width: 52ch;
+}
+.section__title {
+  font-size: var(--text-3xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-tight);
+}
+
+/* ── Hero ────────────────────────────────────────────────────────── */
+.hero {
+  padding: var(--space-12) 0 var(--space-11);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-7);
+}
+.hero__title {
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-size: clamp(2.4rem, 6vw, 4.25rem);
+  max-width: 16ch;
+}
+/* Display-size accent text: large-text AA is 3:1 — base coral is a hair under
+   on light (#ff5a4d ≈ 2.95:1), accent-strong clears it (#e8412f ≈ 4.0:1). */
+.hero__title .accent {
+  color: var(--color-accent-strong);
+}
+[data-theme="dark"] .hero__title .accent {
+  color: var(--color-accent);
+}
+.hero__sub {
+  font-size: var(--text-xl);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+  max-width: 54ch;
+}
+.hero__cta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* The space-axis held frame: conversation (left, dimmed) | workspace (right,
+   filling with artifacts). The held frame alone carries the whole idea. */
+.hero-frame {
+  width: 100%;
+  margin-top: var(--space-8);
+}
+.window {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+}
+.window__bar {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-5);
+  border-bottom: 1px solid var(--color-divider);
+  background: var(--color-bg-sunken);
+}
+.window__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: var(--color-border-strong);
+}
+.window__title {
+  margin-left: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+}
+/* The held frame: the real workspace capture fills the window, the quiet
+   conversation rides on top as a compact dimmed card. (Side-by-side panes
+   scaled the 1440px capture to ~0.46 — comment text unreadable — so the
+   space axis is layered instead of split.) */
+.hero-stage {
+  position: relative;
+  text-align: left;
+}
+.hero-chat {
+  position: absolute;
+  top: var(--space-6);
+  left: var(--space-5);
+  z-index: 1;
+  /* 212px right edge. The capture's own title starts at 22.2% of the image,
+     so the card clears it only when the stage renders ≥ ~954px — below
+     1040px the card is dropped (media query at the bottom) and the capture,
+     which carries the comment + reply itself, stands alone. */
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-2);
+}
+/* "Quiet" is a dimmer-but-AA color (≥4.5:1 on the elevated card in both
+   themes — see --site-chat-quiet). Not opacity: card-level opacity lets the
+   screenshot bleed through the surface, and text-level opacity composites
+   muted below 4.5:1 (and survives forced-colors, dimming forced ink). */
+.hero-chat .bubble {
+  color: var(--site-chat-quiet);
+}
+.hero-chat .bubble__who {
+  color: var(--site-chat-quiet);
+}
+
+/* ── Real captures (one img per theme; data-theme picks the visible one) ── */
+.shot {
+  display: block;
+}
+.shot__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.shot__img--dark {
+  display: none;
+}
+[data-theme="dark"] .shot__img--light {
+  display: none;
+}
+[data-theme="dark"] .shot__img--dark {
+  display: block;
+}
+
+/* §4 standalone frame */
+.shot--wide {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-3);
+}
+
+/* §2: two dedicated frames, composed in-camera (no CSS crop windows). The
+   desktop popover frame is 1368×696; the aspect-ratio reserves its box so the
+   lazy load can't shift layout. The mobile sheet (390×844) swaps in at the
+   720px breakpoint, where it displays ~1:1. */
+.shot--roundtrip {
+  aspect-ratio: 1368 / 696;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+}
+.shot--sheet {
+  display: none;
+  aspect-ratio: 390 / 844;
+  max-width: 390px;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+}
+
+/* The space-axis reveal (desktop, motion-ok): the chat speaks first, the
+   workspace fills, the chat goes quiet. One shot, settles to the static
+   state; reduced-motion and mobile get the settled frame directly. The shot
+   starts at partial opacity, never 0 — an invisible first frame would push
+   LCP out by the whole animation (Chromium ignores opacity:0 paints), which
+   would defeat the preload in index.html. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-stage .shot {
+    animation: hero-shot-fill 1.2s var(--ease-standard) both;
+  }
+  .hero-chat .bubble,
+  .hero-chat .bubble__who {
+    animation: hero-chat-quiet 2s var(--ease-standard) both;
+  }
+}
+@keyframes hero-shot-fill {
+  0% {
+    opacity: 0.45;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hero-chat-quiet {
+  0%,
+  55% {
+    color: var(--color-text-muted);
+  }
+  100% {
+    color: var(--site-chat-quiet);
+  }
+}
+
+/* The rider-1 mobile frame: a dedicated held-frame slot for the mobile-crop
+   capture. Hidden on desktop; replaces the layered stage below 720px. */
+.hero-mobile {
+  display: none;
+  padding: var(--space-6);
+}
+.hero-mobile .shot {
+  max-width: 390px;
+  margin: 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-2);
+}
+
+/* ── Convo bubbles (greybox) ─────────────────────────────────────── */
+.bubble {
+  font-size: var(--text-xs);
+  line-height: var(--leading-snug);
+  color: var(--color-text-muted);
+}
+.bubble__who {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--color-text-subtle);
+  margin-bottom: var(--space-2);
+}
+.cursor-idle {
+  margin-top: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+}
+.cursor-idle::after {
+  content: "▍";
+  color: var(--color-accent);
+}
+
+/* ── Input → output pairs ────────────────────────────────────────── */
+.pairs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-9);
+}
+.pair {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: var(--space-7);
+  align-items: stretch;
+}
+/* Grid items default to min-width:auto, so a `white-space: pre` codeblock
+   blows the track wider than the container instead of scrolling internally. */
+.pair > * {
+  min-width: 0;
+}
+.pair__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.pair__side .codeblock {
+  flex: 1;
+}
+.pair__side .shot {
+  flex: 1;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-bg-sunken);
+  display: flex;
+  align-items: center;
+  padding: var(--space-4);
+}
+/* The §3 element captures are 712px-wide 1x PNGs — never scale past 1:1
+   (the single-column 730–880px band would otherwise upscale ~1.2x). */
+.pair__side .shot__img {
+  max-width: 712px;
+  margin-inline: auto;
+}
+.pair__tag {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--color-text-subtle);
+}
+.codeblock {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: var(--leading-relaxed);
+  background: var(--color-bg-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  overflow-x: auto;
+  color: var(--color-text);
+  white-space: pre;
+  /* Commands must read exactly as typed — Geist Mono's calt ligatures turn
+     `->` into an arrow and visually swallow the space in `run --filter`. */
+  font-feature-settings: "calt" 0;
+  font-variant-ligatures: none;
+}
+
+/* ── Footer + install ────────────────────────────────────────────── */
+.footer {
+  margin-top: auto;
+  border-top: 1px solid var(--color-border);
+  padding: var(--space-12) 0;
+  background: var(--color-bg-sunken);
+}
+.install {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-7);
+  margin: var(--space-8) 0 var(--space-10);
+}
+.install__card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+.install__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+.note {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+.footer__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-top: var(--space-7);
+  border-top: 1px solid var(--color-divider);
+}
+.footer__facts {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+.footer__links {
+  display: flex;
+  gap: var(--space-7);
+  flex-wrap: wrap;
+}
+
+/* ── Theme toggle ────────────────────────────────────────────────── */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--color-text-muted);
+  border: 1px solid transparent;
+}
+.icon-btn:hover {
+  background: var(--color-bg-sunken);
+  color: var(--color-text);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+/* Below ~1004px viewport the 212px chat card would cover the capture's own
+   artifact title (title starts at 22.2% of the scaling image while the card
+   is fixed-px) — drop the card; the capture carries comment + reply itself. */
+@media (max-width: 1040px) {
+  .hero-chat {
+    display: none;
+  }
+}
+
+@media (max-width: 880px) {
+  .pair {
+    grid-template-columns: 1fr;
+    gap: var(--space-5);
+  }
+  .install {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .container {
+    padding: 0 var(--space-6);
+  }
+  /* Mobile hero (rider 1): swap the layered stage for the dedicated
+     mobile-crop frame — its own capture, its own aria-label, no squeeze. */
+  .hero-stage {
+    display: none;
+  }
+  .hero-mobile {
+    display: block;
+  }
+  /* §2/§4 on phones: the desktop frames would render their text at ~4px —
+     swap to the native 390-shot frames, which read at ~1:1. .shot--sheet is
+     the shared phone-frame card (§2 comment sheet, §4 history view);
+     .shot--desktop marks any desktop frame with a mobile counterpart. */
+  .shot--desktop {
+    display: none;
+  }
+  .shot--sheet {
+    display: block;
+  }
+  .section {
+    padding: var(--space-11) 0;
+  }
+  .nav__links {
+    gap: var(--space-6);
+  }
+}
