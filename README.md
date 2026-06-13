@@ -49,6 +49,30 @@ This serves the viewer on `http://127.0.0.1:7878`. Then connect your agent (the
 bun packages/cli/src/index.ts mcp claude-desktop   # prints config to paste — also: cursor · generic
 ```
 
+## Use it in Claude Code
+
+One command installs desk and wires it into Claude Code — no clone, no hand-written MCP config:
+
+```bash
+curl -fsSL https://alireza29675.github.io/desk/install.sh | sh
+```
+
+It installs [Bun](https://bun.sh) (if you don't have it) and the desk CLI, then registers the desk
+plugin with Claude Code. Launch `claude` and your agent renders artifacts into the live viewer; leave
+notes on them in the viewer and ask the agent to "check the comments" — it reads them and revises.
+
+To have comments arrive **live** the moment you leave them (rather than when you ask), launch with the
+`desk-code` wrapper the installer sets up — it turns on desk's research-preview comment channel.
+
+Prefer to wire it by hand? With the desk CLI on your PATH:
+
+```bash
+/plugin marketplace add Alireza29675/desk
+/plugin install desk@desk
+```
+
+See the [Claude Code plugin README](claude-code/README.md) for the full picture.
+
 ## What you get
 
 - **Typed artifacts** — enriched documents and presentations, built from 15
