@@ -12,8 +12,10 @@ at their feedback ("check the comments", "I left notes on the diagram", "address
 1. **Find the artifact(s).** Use the ids of artifacts you created or updated this session. If you
    don't have them, call `list_artifacts` (most-recently-updated first) and pick the relevant one(s).
 2. **Read the comments.** Call `get_artifact` for each — the response carries a `comments` array
-   alongside the artifact itself. Focus on unresolved comments authored by the human; each is anchored
-   to a specific component (and sometimes a sub-element), so you know exactly what it points at.
+   alongside the artifact itself. Each comment has the note text at `payload.text`, an `author`, a
+   `resolved` flag (omitted when not yet resolved), and `anchors[]` saying what it points at —
+   `kind:"general"` is the whole artifact, otherwise it targets a specific component (and sometimes a
+   sub-element). Focus on the human's comments that aren't `resolved`, so you act on what's still open.
 3. **Act on each.** Revise the artifact with `update_artifact` (and `commit` when you want to snapshot
    a version the human can scrub back to). When a comment deserves a written answer, reply with the
    `comment` tool: set `body` to your reply text, `thread_parent_id` to the comment you're answering,
