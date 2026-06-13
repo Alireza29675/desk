@@ -16,8 +16,8 @@ at their feedback ("check the comments", "I left notes on the diagram", "address
    to a specific component (and sometimes a sub-element), so you know exactly what it points at.
 3. **Act on each.** Revise the artifact with `update_artifact` (and `commit` when you want to snapshot
    a version the human can scrub back to). When a comment deserves a written answer, reply with the
-   `comment` tool: set `thread_parent_id` to the comment you're answering, `author` to your agent
-   identity, and anchor it to the same component the comment targets.
+   `comment` tool: set `body` to your reply text, `thread_parent_id` to the comment you're answering,
+   `author` to your agent identity, and `anchor` to the same component the comment targets.
 4. **Summarize** what each comment asked for and what you changed.
 
 Live push — comments arriving automatically, without you being asked — is available by launching with

@@ -38,10 +38,16 @@ version_ge() {
   IFS=. ; set -- $_a ; _a1="${1:-0}" ; _a2="${2:-0}" ; _a3="${3:-0}"
   set -- $_b ; _b1="${1:-0}" ; _b2="${2:-0}" ; _b3="${3:-0}"
   unset IFS
+  # Strip any prerelease suffix (e.g. "80-beta" -> "80") so the integer tests below never error.
+  _a1="${_a1%%[!0-9]*}" ; _a2="${_a2%%[!0-9]*}" ; _a3="${_a3%%[!0-9]*}"
+  _a1="${_a1:-0}" ; _a2="${_a2:-0}" ; _a3="${_a3:-0}"
   [ "$_a1" -gt "$_b1" ] && return 0 ; [ "$_a1" -lt "$_b1" ] && return 1
   [ "$_a2" -gt "$_b2" ] && return 0 ; [ "$_a2" -lt "$_b2" ] && return 1
   [ "$_a3" -ge "$_b3" ]
 }
+
+# Set by install_desk: 1 if the desk-channel bin is present (the comment loop can work).
+HAVE_CHANNEL=0
 
 # ── 1. Bun (the runtime desk needs) ──────────────────────────────────────────
 ensure_bun() {
@@ -79,8 +85,12 @@ ensure_claude() {
 install_desk() {
   step "Installing the desk CLI"
   bun add -g "$DESK_PACKAGE_SOURCE" || die "Failed to install desk from '$DESK_PACKAGE_SOURCE'."
-  have desk         || die "desk installed but 'desk' is not on PATH. Add Bun's global bin dir to PATH and re-run."
-  have desk-channel || warn "'desk-channel' not on PATH — the comment loop won't work until it is."
+  have desk || die "desk installed but 'desk' is not on PATH. Add Bun's global bin dir to PATH and re-run."
+  if have desk-channel; then
+    HAVE_CHANNEL=1
+  else
+    warn "'desk-channel' is not on PATH — the live comment loop (desk-code) is unavailable until it is."
+  fi
   say "desk CLI installed: $(desk --version 2>/dev/null || echo 'ok')"
 }
 
@@ -99,9 +109,14 @@ register_plugin() {
 # Co-located with the `desk` bin so it inherits the same PATH. It launches Claude
 # Code with the research-preview flag the channel needs — nothing more.
 install_launcher() {
+  if [ "$HAVE_CHANNEL" != 1 ]; then
+    say "Skipping the desk-code launcher (desk-channel not present)."
+    return 0
+  fi
   step "Installing the desk-code launcher"
   _bindir="$(dirname "$(command -v desk)")"
   _target="$_bindir/desk-code"
+  : > "$_target" 2>/dev/null || die "Cannot write the desk-code launcher to $_bindir (directory not writable?)."
   cat > "$_target" <<'LAUNCHER'
 #!/usr/bin/env sh
 # Launch Claude Code with desk's comment loop enabled (research-preview channel).
@@ -113,25 +128,26 @@ LAUNCHER
 
 # ── 6. First-run guidance (honest about what works where) ────────────────────
 first_run_message() {
+  printf '\n==> desk is ready.\n\n'
   cat <<'EOF'
-
-==> desk is ready.
-
-Two ways to use it from Claude Code:
-
   claude       The full loop, pull style. Your agent renders artifacts into a live
                viewer (http://127.0.0.1:7878); you comment on them there; ask the agent
                to "check the comments" and it reads them and revises. Run /mcp to see
                desk's tools.
-
+EOF
+  if [ "$HAVE_CHANNEL" = 1 ]; then
+    cat <<'EOF'
   desk-code    Adds LIVE push: your comments arrive in the session automatically, the
                moment you leave them. Uses Claude Code's research-preview "channels"
                feature, so desk-code launches Claude Code with the flag it needs for you.
+EOF
+  fi
+  cat <<'EOF'
 
-The viewer auto-starts in the background when you launch Claude Code, and is reused
-if it's already running.
-  - Manage it yourself:   desk start  /  desk status  /  desk stop
-  - Don't want auto-start? Set DESK_NO_AUTOSTART=1 (a manual `desk start` still works).
+The viewer auto-starts in the background when you launch Claude Code, and is reused if
+it's already running.
+  - Stop or check it:   desk stop  /  desk status
+  - Skip auto-start:    set DESK_NO_AUTOSTART=1  (a manual 'desk start' still works)
 
 Everything runs on your machine: one Bun process, a SQLite file under ~/.desk, no cloud.
 EOF

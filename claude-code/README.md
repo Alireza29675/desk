@@ -28,7 +28,8 @@ always start it yourself with `desk start` and stop it with `desk stop`.
 
 - The `desk` CLI on your PATH (the [install script](https://github.com/Alireza29675/desk#readme)
   installs it, plus [Bun](https://bun.sh), which desk runs on).
-- Claude Code **v2.1.80 or later** — required for the comment-loop channel.
+- Claude Code **v2.1.80+** for the live-push comment loop (`desk-code`). The tools and the pull loop
+  work on earlier versions.
 
 ## Install
 
