@@ -6,16 +6,27 @@
   "type": "module",
   "main": "./src/index.ts",
   "bin": {
-    "desk": "./src/index.ts"
+    "desk": "./bin/desk.mjs",
+    "desk-channel": "./bin/desk-channel.mjs"
   },
+  "files": ["bin", "dist", "viewer/dist"],
   "scripts": {
     "dev": "bun run src/index.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.json",
+    "bundle": "bun run scripts/build-dist.ts",
+    "prepack": "bun run scripts/build-dist.ts",
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
-    "@desk/server": "workspace:*"
+    "puppeteer-core": "^25.0.4"
+  },
+  "devDependencies": {
+    "@desk/server": "workspace:*",
+    "@desk/channel": "workspace:*"
+  },
+  "engines": {
+    "bun": ">=1.1.0"
   },
   "publishConfig": {
     "access": "public"
