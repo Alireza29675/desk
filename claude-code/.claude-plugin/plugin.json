@@ -1,0 +1,14 @@
+{
+  "name": "desk",
+  "displayName": "Desk",
+  "version": "0.1.0",
+  "description": "Typed artifacts rendered into a live viewer, with the human's comments wired back into your session.",
+  "author": {
+    "name": "Alireza Sheikholmolouki",
+    "url": "https://github.com/Alireza29675"
+  },
+  "homepage": "https://github.com/Alireza29675/desk",
+  "repository": "https://github.com/Alireza29675/desk",
+  "license": "MIT",
+  "keywords": ["mcp", "artifacts", "viewer", "diagrams", "channel"]
+}

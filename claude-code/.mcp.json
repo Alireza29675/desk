@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "desk": {
+      "type": "http",
+      "url": "http://127.0.0.1:7878/mcp"
+    },
+    "desk-channel": {
+      "command": "desk-channel"
+    }
+  }
+}

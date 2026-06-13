@@ -1,0 +1,20 @@
+{
+  "name": "desk",
+  "description": "Desk — render typed artifacts into a live local viewer from your coding agent, with the human's comments wired back into the session.",
+  "owner": {
+    "name": "Alireza Sheikholmolouki"
+  },
+  "plugins": [
+    {
+      "name": "desk",
+      "source": "./claude-code",
+      "description": "Render typed artifacts into a live local viewer, and get the human's comments back in your session.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Alireza Sheikholmolouki"
+      },
+      "homepage": "https://github.com/Alireza29675/desk",
+      "repository": "https://github.com/Alireza29675/desk"
+    }
+  ]
+}
