@@ -41,7 +41,15 @@ jobs:
         working-directory: website
     steps:
       - uses: actions/checkout@v6
+      # Pin bun to the version that generated website/bun.lock (lockfileVersion 1).
+      # This `uses:` step runs at the repo root — it ignores the working-directory
+      # default — so without an explicit pin setup-bun reads the root
+      # package.json's `packageManager: bun@1.1.42`, which predates this lockfile
+      # format and fails `--frozen-lockfile` with InvalidLockfileVersion. The
+      # website is a standalone non-workspace package; root/product CI keeps 1.1.42.
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.13
       - run: bun install --frozen-lockfile
       - run: bun run build
       # Pages steps skip on PRs: they need Pages enabled, and PR runs are a pure
