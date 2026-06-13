@@ -10,6 +10,7 @@ export function printHelp(): void {
       '  desk stop           Stop the background server.',
       '  desk status         Report whether the server is running, its url, version, and pid.',
       '  desk restart [--open] Stop then start the background server.',
+      '  desk init claude-code  Wire Desk into Claude Code (desk + desk-channel). --scope user|local|project, --dry-run.',
       '  desk mcp [client]   Print MCP registration snippet. client: claude-desktop | cursor | generic',
       '  desk where          Print the Desk data directory.',
       '  desk doctor         Diagnose the install.',

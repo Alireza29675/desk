@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { runDoctor } from './commands/doctor';
 import { printHelp } from './commands/help';
+import { runInit } from './commands/init';
 import {
   type StartOptions,
   runRestart,
@@ -30,6 +31,8 @@ async function main(): Promise<void> {
       return runStatus();
     case 'restart':
       return runRestart(parseStartOptions(rest));
+    case 'init':
+      return runInit(rest);
     case 'mcp':
       return runMcp(rest);
     case 'where':
