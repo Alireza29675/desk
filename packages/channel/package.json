@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@desk/anchor-geometry": "workspace:*",
-    "@modelcontextprotocol/sdk": "^1.0.4",
-    "puppeteer-core": "^25.0.4"
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "puppeteer-core": "^25.14.0"
   },
   "publishConfig": {
     "access": "public"
