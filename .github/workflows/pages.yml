@@ -40,7 +40,7 @@ jobs:
       run:
         working-directory: website
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Pin bun to the version that generated website/bun.lock (lockfileVersion 1).
       # This `uses:` step runs at the repo root — it ignores the working-directory
       # default — so without an explicit pin setup-bun reads the root
