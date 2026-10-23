@@ -17,7 +17,7 @@
   "dependencies": {
     "@desk/types": "workspace:*",
     "@desk/plugin-sdk": "workspace:*",
-    "zod": "^3.23.8"
+    "zod": "^4.6.7"
   },
   "publishConfig": {
     "access": "public"
